@@ -22,10 +22,7 @@ export default async function CardPage({ params }: { params: { slug: string } })
   const card = await getCard(params.slug);
   if (!card) return notFound();
 
-  const url =
-    card.plan === "basic"
-      ? `https://${SITE.domain}/card/${card.slug}`
-      : `https://${card.slug}.${SITE.domain}`;
+  const url = `https://${SITE.domain}/card/${card.slug}`;
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12 gap-8 bg-stone-50">

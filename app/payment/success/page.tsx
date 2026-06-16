@@ -108,6 +108,30 @@ function PaymentSuccessInner() {
               ? "We have received your payment details. Once verified by our admin, your card will be activated (usually within 15-30 minutes)."
               : "Your digital card is now live and active."}
           </p>
+
+          {params.get("provider") === "manual" && (
+            <div className="bg-stone-50 border border-stone-200/60 rounded-2xl p-5 mb-6 text-xs text-stone-600 space-y-3 text-left max-w-sm mx-auto shadow-sm">
+              <p className="font-semibold text-stone-900 text-sm">Want to speed up activation?</p>
+              <p className="leading-relaxed">Directly inform us after paying to get approved instantly:</p>
+              <div className="flex flex-col gap-2 pt-1 font-semibold">
+                <a
+                  href={`https://wa.me/9779866243388?text=Hello%2C%20I%20have%20submitted%20the%20payment%20verification%20details%20for%20my%20digital%20card%20(slug%3A%20${cardSlug}).`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 transition-colors"
+                >
+                  💬 Chat on WhatsApp (9866243388)
+                </a>
+                <a
+                  href={`mailto:sparajuli802@gmail.com?subject=OneQRCard%20Payment%20Verification&body=Hello%2C%20I%20have%20submitted%20the%20payment%20verification%20details%20for%20my%20digital%20card%20(slug%3A%20${cardSlug}).`}
+                  className="inline-flex items-center gap-1.5 text-stone-800 hover:text-stone-950 transition-colors"
+                >
+                  ✉️ Email: sparajuli802@gmail.com
+                </a>
+              </div>
+            </div>
+          )}
+
           <a
             href={`/card/${cardSlug}`}
             className="inline-block bg-stone-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-stone-800 transition-colors"

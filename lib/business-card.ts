@@ -203,7 +203,7 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
   ctx.stroke();
 
   currentY += 32;
-  ctx.font = "20px sans-serif";
+  ctx.font = "26px sans-serif";
   ctx.fillStyle = textColor;
 
   const contactList = [];
@@ -214,17 +214,22 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
     if (displayWeb.length > 30) displayWeb = displayWeb.substring(0, 27) + "...";
     contactList.push({ icon: "🌐", text: displayWeb });
   }
+  if (data.address) {
+    let displayAddr = data.address;
+    if (displayAddr.length > 35) displayAddr = displayAddr.substring(0, 32) + "...";
+    contactList.push({ icon: "📍", text: displayAddr });
+  }
 
   contactList.forEach((item) => {
     if (layout === "modern_dark") {
       ctx.fillStyle = brandColor;
       ctx.fillText(item.icon, startX, currentY);
       ctx.fillStyle = textColor;
-      ctx.fillText(`  ${item.text}`, startX + 30, currentY);
+      ctx.fillText(`  ${item.text}`, startX + 38, currentY);
     } else {
       ctx.fillText(`${item.icon}  ${item.text}`, startX, currentY);
     }
-    currentY += 48;
+    currentY += 54;
   });
 
   // 11. Draw Logo circle (or initials) if show_logo_on_card is enabled

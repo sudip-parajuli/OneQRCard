@@ -621,6 +621,14 @@ export default function CardForm({
                 className="input"
               />
             </Field>
+            <Field label="Address (Optional)">
+              <input
+                value={data.address || ""}
+                onChange={(e) => update("address", e.target.value)}
+                placeholder="e.g. Putalisadak, Kathmandu"
+                className="input"
+              />
+            </Field>
           </div>
         </section>
 

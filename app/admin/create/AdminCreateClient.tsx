@@ -26,6 +26,7 @@ const EMPTY: CardData = {
   payment_status: "paid", // Default to paid for cash payments
   owner_email: "",
   custom_links: [],
+  address: "",
 };
 
 export default function AdminCreateClient() {

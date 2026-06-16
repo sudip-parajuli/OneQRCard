@@ -42,6 +42,7 @@ interface VCardInput {
   whatsapp: string;
   website: string;
   email: string;
+  address?: string | null;
 }
 
 export function buildVCard(d: VCardInput) {
@@ -50,6 +51,7 @@ export function buildVCard(d: VCardInput) {
   if (d.whatsapp) lines.push(`TEL;TYPE=CELL,WHATSAPP:${normalizePhone(d.whatsapp)}`);
   if (d.email) lines.push(`EMAIL:${d.email}`);
   if (d.website) lines.push(`URL:${d.website}`);
+  if (d.address) lines.push(`ADR;TYPE=WORK:;;${d.address};;;;`);
   lines.push("END:VCARD");
   return lines.join("\n");
 }

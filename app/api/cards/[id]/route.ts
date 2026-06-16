@@ -47,6 +47,7 @@ export async function PUT(
       member_role: body.member_role ?? null,
       show_logo_on_card: body.show_logo_on_card !== undefined ? body.show_logo_on_card : true,
       custom_links: body.custom_links ?? [],
+      address: body.address ?? "",
     };
 
     if (isAdmin) {

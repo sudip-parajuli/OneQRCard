@@ -53,7 +53,10 @@ create table if not exists cards (
   sender_wallet text,
 
   -- From Migration 010: Add custom links field for Business plan users
-  custom_links jsonb default '[]'::jsonb
+  custom_links jsonb default '[]'::jsonb,
+
+  -- From Migration 011: Add address field
+  address text default ''
 );
 
 -- Indexes

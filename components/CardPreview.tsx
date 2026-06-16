@@ -67,11 +67,18 @@ const icons = {
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
     </svg>
   ),
+  address: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  ),
 };
 
 function buildLinks(data: CardData): LinkItem[] {
   const items: LinkItem[] = [];
   if (data.google_review) items.push({ key: "google_review", label: "Review us on Google", href: data.google_review, icon: icons.googleReview });
+  if (data.address) items.push({ key: "address", label: data.address, href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.address)}`, icon: icons.address });
   if (data.phone) items.push({ key: "phone", label: `Call — ${data.phone}`, href: `tel:${normalizePhone(data.phone)}`, icon: icons.phone });
   if (data.whatsapp) items.push({ key: "whatsapp", label: "WhatsApp", href: `https://wa.me/${normalizePhone(data.whatsapp)}`, icon: icons.whatsapp });
   if (data.website) items.push({ key: "website", label: "Website", href: data.website, icon: icons.website });

@@ -1,4 +1,4 @@
-export type ThemeId = "classic" | "minimal" | "bold" | "gradient";
+export type ThemeId = "classic" | "minimal" | "bold" | "gradient" | "glassmorphic" | "neonDark";
 
 export type PlanId = "basic" | "pro" | "business";
 
@@ -27,6 +27,8 @@ export interface CardData {
   amount_paid?: number | null;
   owner_email?: string | null;
   google_review?: string;
+  background_data_url?: string | null;
+  card_layout?: "classic" | "modern_dark" | "minimal_light";
   created_at?: string;
 }
 
@@ -35,6 +37,8 @@ export const THEME_LABELS: Record<ThemeId, string> = {
   minimal: "Minimal — clean & centered",
   bold: "Bold — full color",
   gradient: "Gradient — soft glow",
+  glassmorphic: "Glassmorphic — frosted card (Business)",
+  neonDark: "Neon Dark — premium dark mode (Business)",
 };
 
 export const PLAN_DETAILS: Record<
@@ -52,13 +56,13 @@ export const PLAN_DETAILS: Record<
       "Locked brand color",
       "QR code (PNG download)",
       "Save-to-contacts button",
-      "Lifetime hosting",
+      "15-day free trial period",
     ],
   },
   pro: {
     name: "Pro",
-    priceNPR: 1000,
-    priceUSD: 10,
+    priceNPR: 500,
+    priceUSD: 5,
     features: [
       "Custom subdomain (clientname.one-qr-card.vercel.app)",
       "All themes (Classic, Minimal, Bold, Gradient)",
@@ -71,14 +75,16 @@ export const PLAN_DETAILS: Record<
   },
   business: {
     name: "Business",
-    priceNPR: 2000,
-    priceUSD: 20,
+    priceNPR: 1000,
+    priceUSD: 10,
     features: [
       "Everything in Pro",
+      "Premium themes (Glassmorphic, Neon Dark)",
+      "Upload custom background images",
+      "Logo embedded inside the QR Code itself",
+      "Custom layouts for downloadable card (Classic, Modern, Minimal)",
       "Up to 5 team member cards",
-      "Shared brand kit (logo + color)",
-      "Downloadable customized business cards for all team members",
-      "Priority support & edits",
+      "Shared brand kit & priority support",
       "Lifetime hosting",
     ],
   },

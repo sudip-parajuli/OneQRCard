@@ -29,6 +29,7 @@ export default function CardForm({
 }: CardFormProps) {
   const [data, setData] = useState<CardData>(initialData);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [bgImageError, setBgImageError] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,10 +64,24 @@ export default function CardForm({
       .catch(() => setQr(null));
   }, [previewUrl, data.brand_color]);
 
-  // Enforce Basic plan constraints: reset logo, theme, and brand color if plan is basic
+  // Enforce plan constraints based on tier
   useEffect(() => {
     if (data.plan === "basic") {
-      setData((d) => ({ ...d, theme: "classic", logo_data_url: null, brand_color: "#085041" }));
+      setData((d) => ({
+        ...d,
+        theme: "classic",
+        logo_data_url: null,
+        brand_color: "#085041",
+        background_data_url: null,
+        card_layout: "classic",
+      }));
+    } else if (data.plan === "pro") {
+      setData((d) => ({
+        ...d,
+        theme: (d.theme === "glassmorphic" || d.theme === "neonDark") ? "classic" : d.theme,
+        background_data_url: null,
+        card_layout: "classic",
+      }));
     }
   }, [data.plan]);
 
@@ -84,6 +99,19 @@ export default function CardForm({
     setLogoError(null);
     const reader = new FileReader();
     reader.onload = () => update("logo_data_url", reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  function handleBackgroundUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_LOGO_BYTES) {
+      setBgImageError("Background image must be under 300KB.");
+      return;
+    }
+    setBgImageError(null);
+    const reader = new FileReader();
+    reader.onload = () => update("background_data_url", reader.result as string);
     reader.readAsDataURL(file);
   }
 
@@ -290,15 +318,22 @@ export default function CardForm({
         <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
           <div className="flex justify-between items-center mb-3">
             <h2 className="font-semibold text-stone-900 text-sm">Theme</h2>
-            {data.plan === "basic" && (
+            {data.plan === "basic" ? (
               <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
                 Pro/Business gets all themes
               </span>
-            )}
+            ) : data.plan === "pro" ? (
+              <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
+                Business unlocks premium themes
+              </span>
+            ) : null}
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             {(Object.keys(THEME_LABELS) as ThemeId[]).map((id) => {
-              const isLocked = data.plan === "basic" && id !== "classic";
+              const isLocked =
+                (data.plan === "basic" && id !== "classic") ||
+                (data.plan === "pro" && (id === "glassmorphic" || id === "neonDark"));
+              const lockText = (id === "glassmorphic" || id === "neonDark") ? "Business only" : "Pro/Business only";
               return (
                 <button
                   key={id}
@@ -314,12 +349,62 @@ export default function CardForm({
                   <span className="flex justify-between items-center w-full">
                     <span>{THEME_LABELS[id]}</span>
                     {isLocked && (
-                      <span className="text-[10px] font-semibold text-stone-400">🔒</span>
+                      <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                        {lockText}
+                      </span>
                     )}
                   </span>
                 </button>
               );
             })}
+          </div>
+        </section>
+
+        {/* Business Customizations (Only for Business Plan) */}
+        <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-semibold text-stone-900 text-sm">Business Tier Features</h2>
+            {data.plan !== "business" && (
+              <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
+                Business plan only
+              </span>
+            )}
+          </div>
+          <div className={`space-y-4 ${data.plan !== "business" ? "opacity-50 pointer-events-none" : ""}`}>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Field label="Custom Card Background Image (optional)">
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  onChange={handleBackgroundUpload}
+                  disabled={data.plan !== "business"}
+                  className="text-xs mt-1 block w-full text-stone-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 disabled:opacity-50"
+                />
+                {bgImageError && <p className="text-xs text-red-500 mt-1">{bgImageError}</p>}
+                {data.background_data_url && (
+                  <button
+                    type="button"
+                    onClick={() => update("background_data_url", null)}
+                    className="text-xs text-stone-500 underline mt-1 block"
+                  >
+                    Remove background image
+                  </button>
+                )}
+              </Field>
+
+              <Field label="Physical Business Card Layout">
+                <select
+                  value={data.card_layout || "classic"}
+                  onChange={(e) => update("card_layout", e.target.value as any)}
+                  disabled={data.plan !== "business"}
+                  className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 py-1 text-sm outline-none focus:border-stone-500 transition-colors disabled:opacity-50"
+                >
+                  <option value="classic">Classic (Brand Color background)</option>
+                  <option value="modern_dark">Modern Dark (Slate & glowing border)</option>
+                  <option value="minimal_light">Minimal Light (Clean white & borderless)</option>
+                </select>
+              </Field>
+            </div>
           </div>
         </section>
 

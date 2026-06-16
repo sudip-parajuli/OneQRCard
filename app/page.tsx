@@ -36,7 +36,7 @@ export default function HomePage() {
             href="/create"
             className="bg-stone-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-stone-800"
           >
-            Create your card — from Rs 500 / $5
+            Create your card — Start Free!
           </Link>
         </div>
       </section>

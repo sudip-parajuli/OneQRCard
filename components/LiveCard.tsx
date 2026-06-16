@@ -4,6 +4,16 @@ import CardPreview from "@/components/CardPreview";
 import { CardData } from "@/lib/types";
 import { buildVCard } from "@/lib/utils";
 import { generateBusinessCard } from "@/lib/business-card";
+import Link from "next/link";
+
+function isCardExpired(card: CardData): boolean {
+  if (card.plan !== "basic") return false;
+  if (!card.created_at) return false;
+  const created = new Date(card.created_at);
+  const diffTime = new Date().getTime() - created.getTime();
+  const diffDays = diffTime / (1000 * 60 * 60 * 24);
+  return diffDays > 15;
+}
 
 export default function LiveCard({ data }: { data: CardData }) {
   function handleSaveContact() {
@@ -32,6 +42,35 @@ export default function LiveCard({ data }: { data: CardData }) {
       console.error("Failed to generate business card:", err);
       alert("Failed to generate your business card. Please try again.");
     }
+  }
+
+  if (isCardExpired(data)) {
+    return (
+      <div className="bg-white rounded-3xl border border-stone-200/80 p-8 max-w-sm w-full mx-auto text-center shadow-lg relative overflow-hidden animate-fade-in">
+        <div className="absolute top-0 inset-x-0 h-2 bg-amber-500"></div>
+        <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-100">
+          <span className="text-2xl">⏳</span>
+        </div>
+        <h2 className="text-xl font-bold text-stone-900 mb-2">Free Trial Expired</h2>
+        <p className="text-stone-500 text-sm mb-6 leading-relaxed">
+          The 15-day free trial for <strong>{data.business_name}</strong> has ended. Upgrade to Pro or Business to reactivate this digital card.
+        </p>
+        <div className="flex flex-col gap-2.5">
+          <Link
+            href="/edit"
+            className="w-full py-3 bg-stone-900 text-white rounded-xl text-xs font-semibold hover:bg-stone-800 transition-all shadow-sm"
+          >
+            Upgrade & Reactivate Card
+          </Link>
+          <Link
+            href="/create"
+            className="w-full py-3 border border-stone-200 hover:bg-stone-50 text-stone-700 rounded-xl text-xs font-semibold transition-all"
+          >
+            Create a New Card
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const showDownload = data.plan !== "basic";

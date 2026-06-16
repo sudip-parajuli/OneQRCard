@@ -92,15 +92,131 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
   const initials = getInitials(data.business_name || "Your Business");
   const color = data.brand_color || "#085041";
 
+  const hasBg = data.plan === "business" && data.background_data_url;
+  const bgStyle = hasBg
+    ? {
+        backgroundImage: `url(${data.background_data_url})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : {};
+
+  if (data.theme === "glassmorphic") {
+    return (
+      <div
+        className="rounded-3xl p-1.5 max-w-sm w-full mx-auto relative overflow-hidden shadow-xl"
+        style={bgStyle}
+      >
+        {/* Abstract floating blur circles only if no custom background image */}
+        {!hasBg && (
+          <div className="absolute inset-0 -z-10 bg-stone-950 overflow-hidden">
+            <div
+              className="absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl opacity-50"
+              style={{ backgroundColor: color }}
+            ></div>
+            <div
+              className="absolute -bottom-16 -right-16 w-52 h-52 rounded-full blur-3xl opacity-40"
+              style={{ backgroundColor: lighten(color, 0.3) }}
+            ></div>
+          </div>
+        )}
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 text-center shadow-2xl">
+          <Logo data={data} initials={initials} color={color} size={76} inverse />
+          <div className="text-xl font-bold mt-4 text-white drop-shadow-sm">
+            {data.business_name || "Your Business"}
+          </div>
+          {data.tagline && <div className="text-xs text-white/75 mt-1">{data.tagline}</div>}
+
+          <div className="mt-6 flex flex-col gap-2">
+            <SaveButton color="rgba(255, 255, 255, 0.22)" textColor="#fff" onClick={onSaveContact} />
+            {onDownloadCard && <DownloadButton color="#ffffff" onClick={onDownloadCard} />}
+            {links.map((l) => (
+              <a
+                key={l.key}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/15 text-sm transition-all"
+              >
+                <span className="text-white/60">{l.icon}</span>
+                {l.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (data.theme === "neonDark") {
+    return (
+      <div
+        className="bg-stone-950 rounded-3xl overflow-hidden max-w-sm w-full mx-auto border-2 p-6 transition-all"
+        style={{
+          borderColor: color,
+          boxShadow: `0 0 20px ${color}33`,
+          ...bgStyle,
+        }}
+      >
+        <div className="text-center pb-6 border-b border-stone-800/60 bg-stone-950/70 backdrop-blur-sm rounded-t-xl">
+          <Logo data={data} initials={initials} color={color} size={76} />
+          <div
+            className="text-xl font-extrabold tracking-tight mt-4 text-white"
+            style={{ textShadow: `0 0 10px ${color}66` }}
+          >
+            {data.business_name || "Your Business"}
+          </div>
+          {data.tagline && <div className="text-xs text-stone-400 mt-1.5">{data.tagline}</div>}
+        </div>
+        <div className="pt-6 flex flex-col gap-2 bg-stone-950/70 backdrop-blur-sm rounded-b-xl px-1">
+          <button
+            onClick={onSaveContact}
+            style={{ backgroundColor: color }}
+            className="w-full py-3 rounded-xl text-sm font-extrabold text-stone-950 hover:opacity-90 transition-opacity mb-1"
+          >
+            Save to contacts
+          </button>
+          {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
+          {links.map((l) => {
+            const isGoogleReview = l.key === "google_review";
+            return (
+              <a
+                key={l.key}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all ${
+                  isGoogleReview
+                    ? "border-amber-500/30 bg-amber-500/5 text-amber-300 hover:bg-amber-500/10"
+                    : "border-stone-800 text-stone-300 hover:bg-stone-900 hover:text-stone-100"
+                }`}
+              >
+                <span className={isGoogleReview ? "text-amber-400" : "text-stone-450"}>
+                  {l.icon}
+                </span>
+                {l.label}
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   if (data.theme === "minimal") {
     return (
-      <div className="bg-white rounded-2xl overflow-hidden border border-stone-200 max-w-sm w-full mx-auto">
-        <div className="pt-8 px-6 pb-6 text-center">
+      <div
+        className="bg-white rounded-2xl overflow-hidden border border-stone-200 max-w-sm w-full mx-auto"
+        style={bgStyle}
+      >
+        <div className={`pt-8 px-6 pb-6 text-center ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}>
           <Logo data={data} initials={initials} color={color} size={72} />
-          <div className="text-lg font-semibold text-stone-900 mt-4">{data.business_name || "Your Business"}</div>
+          <div className="text-lg font-semibold text-stone-900 mt-4">
+            {data.business_name || "Your Business"}
+          </div>
           {data.tagline && <div className="text-sm text-stone-500 mt-1">{data.tagline}</div>}
         </div>
-        <div className="px-6 pb-6 flex flex-col gap-2">
+        <div className={`px-6 pb-6 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}>
           <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
           {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
           {links.map((l) => (
@@ -115,9 +231,9 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
     return (
       <div
         className="rounded-2xl overflow-hidden max-w-sm w-full mx-auto"
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: color, ...bgStyle }}
       >
-        <div className="pt-10 px-6 pb-8 text-center">
+        <div className={`pt-10 px-6 pb-8 text-center ${hasBg ? "bg-black/30 backdrop-blur-[2px]" : ""}`}>
           <Logo data={data} initials={initials} color={color} size={80} inverse />
           <div className="text-xl font-semibold mt-4" style={{ color: lighten(color, 0.92) }}>
             {data.business_name || "Your Business"}
@@ -128,7 +244,7 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
             </div>
           )}
         </div>
-        <div className="bg-white rounded-t-3xl px-6 py-6 flex flex-col gap-2">
+        <div className={`bg-white rounded-t-3xl px-6 py-6 flex flex-col gap-2 ${hasBg ? "bg-white/90 backdrop-blur-md" : ""}`}>
           <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
           {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
           {links.map((l) => (
@@ -141,11 +257,16 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
 
   if (data.theme === "gradient") {
     return (
-      <div className="rounded-2xl overflow-hidden max-w-sm w-full mx-auto border border-stone-200 bg-white">
+      <div
+        className="rounded-2xl overflow-hidden max-w-sm w-full mx-auto border border-stone-200 bg-white"
+        style={bgStyle}
+      >
         <div
-          className="pt-10 px-6 pb-12 text-center relative"
+          className={`pt-10 px-6 pb-12 text-center relative ${hasBg ? "backdrop-blur-[2px]" : ""}`}
           style={{
-            background: `linear-gradient(135deg, ${color} 0%, ${lighten(color, 0.4)} 100%)`,
+            background: hasBg
+              ? "rgba(0,0,0,0.3)"
+              : `linear-gradient(135deg, ${color} 0%, ${lighten(color, 0.4)} 100%)`,
           }}
         >
           <Logo data={data} initials={initials} color={color} size={76} inverse />
@@ -158,7 +279,7 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
             </div>
           )}
         </div>
-        <div className="px-6 pt-6 pb-6 -mt-6 mx-4 mb-2 bg-white rounded-2xl shadow-sm flex flex-col gap-2 relative">
+        <div className={`px-6 pt-6 pb-6 -mt-6 mx-4 mb-2 bg-white rounded-2xl shadow-sm flex flex-col gap-2 relative ${hasBg ? "bg-white/90 backdrop-blur-md" : ""}`}>
           <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
           {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
           {links.map((l) => (
@@ -171,8 +292,14 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
 
   // "classic" — default
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-stone-200 max-w-sm w-full mx-auto">
-      <div className="pt-8 px-6 pb-10 text-center" style={{ backgroundColor: color }}>
+    <div
+      className="bg-white rounded-2xl overflow-hidden border border-stone-200 max-w-sm w-full mx-auto"
+      style={bgStyle}
+    >
+      <div
+        className={`pt-8 px-6 pb-10 text-center ${hasBg ? "backdrop-blur-[2px]" : ""}`}
+        style={{ backgroundColor: hasBg ? "rgba(0,0,0,0.35)" : color }}
+      >
         <Logo data={data} initials={initials} color={color} size={64} inverse />
         <div className="text-base font-semibold mt-3" style={{ color: lighten(color, 0.92) }}>
           {data.business_name || "Your Business"}
@@ -183,7 +310,7 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
           </div>
         )}
       </div>
-      <div className="px-5 py-5 flex flex-col gap-2">
+      <div className={`px-5 py-5 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}>
         <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
         {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
         {links.map((l) => (

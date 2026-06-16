@@ -94,3 +94,40 @@ export async function PUT(
     return NextResponse.json({ error: "Unexpected error occurred" }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = createServerSupabase();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "sparajuli802@gmail.com";
+    if (session.user.email !== adminEmail) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const db = supabaseAdmin();
+    const { error } = await db
+      .from("cards")
+      .delete()
+      .eq("id", params.id);
+
+    if (error) {
+      console.error("DELETE card error:", error);
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("DELETE card handler error:", err);
+    return NextResponse.json({ error: "Unexpected error occurred" }, { status: 500 });
+  }
+}

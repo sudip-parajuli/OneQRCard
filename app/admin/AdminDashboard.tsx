@@ -17,6 +17,31 @@ export default function AdminDashboard({ initialCards, userEmail }: AdminDashboa
   const [planFilter, setPlanFilter] = useState<"all" | "basic" | "pro" | "business">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending">("all");
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDeleteCard(cardId: string, businessName: string) {
+    if (!window.confirm(`Are you sure you want to delete the card for "${businessName}"? This cannot be undone.`)) {
+      return;
+    }
+    setDeletingId(cardId);
+    try {
+      const res = await fetch(`/api/cards/${cardId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to delete card");
+      }
+
+      setCards((prev) => prev.filter((c) => c.id !== cardId));
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Failed to delete card");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function handleTogglePayment(cardId: string, currentStatus: "paid" | "pending") {
     setTogglingId(cardId);
@@ -212,12 +237,21 @@ export default function AdminDashboard({ initialCards, userEmail }: AdminDashboa
                         }) : "-"}
                       </td>
                       <td className="py-4 px-6 text-right">
-                        <Link
-                          href={`/admin/edit/${card.id}`}
-                          className="text-stone-700 hover:text-stone-900 border border-stone-200 rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-stone-50 transition-colors inline-block"
-                        >
-                          Edit
-                        </Link>
+                        <div className="flex justify-end gap-2">
+                          <Link
+                            href={`/admin/edit/${card.id}`}
+                            className="text-stone-700 hover:text-stone-900 border border-stone-200 rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-stone-50 transition-colors inline-block"
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteCard(card.id!, card.business_name)}
+                            disabled={deletingId === card.id}
+                            className="text-red-600 hover:text-red-700 border border-red-200 rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            {deletingId === card.id ? "Deleting..." : "Delete"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

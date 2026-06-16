@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export const revalidate = 0;
 
@@ -19,31 +20,54 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@oneqrcard.com";
+    const isAdmin = session.user.email === adminEmail;
+
     const body = await req.json();
 
-    // Execute update using user's client, which forces Row Level Security
-    const { data, error } = await supabase
+    const updatePayload: any = {
+      business_name: body.business_name,
+      tagline: body.tagline ?? "",
+      brand_color: body.brand_color ?? "#085041",
+      theme: body.theme ?? "classic",
+      logo_data_url: body.logo_data_url ?? null,
+      phone: body.phone ?? "",
+      whatsapp: body.whatsapp ?? "",
+      website: body.website ?? "",
+      facebook: body.facebook ?? "",
+      instagram: body.instagram ?? "",
+      tiktok: body.tiktok ?? "",
+      youtube: body.youtube ?? "",
+      email: body.email ?? "",
+      google_review: body.google_review ?? "",
+      background_data_url: body.background_data_url ?? null,
+      card_layout: body.card_layout ?? "classic",
+      text_color: body.text_color ?? null,
+    };
+
+    if (isAdmin) {
+      if (body.plan !== undefined) {
+        updatePayload.plan = body.plan;
+        if (body.plan === "basic") {
+          updatePayload.subdomain = null;
+        } else if (body.slug) {
+          updatePayload.subdomain = body.slug;
+        }
+      }
+      if (body.payment_status !== undefined) {
+        updatePayload.payment_status = body.payment_status;
+      }
+      if (body.owner_email !== undefined) {
+        updatePayload.owner_email = body.owner_email;
+      }
+    }
+
+    // Admin updates bypass RLS via service role
+    const dbClient = isAdmin ? supabaseAdmin() : supabase;
+
+    const { data, error } = await dbClient
       .from("cards")
-      .update({
-        business_name: body.business_name,
-        tagline: body.tagline ?? "",
-        brand_color: body.brand_color ?? "#085041",
-        theme: body.theme ?? "classic",
-        logo_data_url: body.logo_data_url ?? null,
-        phone: body.phone ?? "",
-        whatsapp: body.whatsapp ?? "",
-        website: body.website ?? "",
-        facebook: body.facebook ?? "",
-        instagram: body.instagram ?? "",
-        tiktok: body.tiktok ?? "",
-        youtube: body.youtube ?? "",
-        email: body.email ?? "",
-        google_review: body.google_review ?? "",
-        background_data_url: body.background_data_url ?? null,
-        card_layout: body.card_layout ?? "classic",
-        text_color: body.text_color ?? null,
-        // payment_status, slug, subdomain, plan, owner_email are excluded to protect system integrity
-      })
+      .update(updatePayload)
       .eq("id", params.id)
       .select()
       .maybeSingle();

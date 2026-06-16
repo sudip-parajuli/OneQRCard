@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { createServerSupabase } from "@/lib/supabase-server";
 import { CardData } from "@/lib/types";
 import { slugify } from "@/lib/utils";
 import { nanoid } from "nanoid";
@@ -14,6 +15,14 @@ export async function POST(req: NextRequest) {
     if (!body.business_name) {
       return NextResponse.json({ error: "business_name is required" }, { status: 400 });
     }
+
+    // Check if creator is Admin
+    const supabase = createServerSupabase();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@oneqrcard.com";
+    const isAdmin = session && session.user.email === adminEmail;
 
     const db = supabaseAdmin();
 
@@ -48,11 +57,11 @@ export async function POST(req: NextRequest) {
       tiktok: body.tiktok ?? "",
       youtube: body.youtube ?? "",
       email: body.email ?? "",
-      owner_email: body.owner_email ?? body.email ?? "",
+      owner_email: isAdmin ? (body.owner_email || body.email || "") : (body.email || ""),
       google_review: body.google_review ?? "",
       plan: body.plan ?? "basic",
       subdomain: body.plan === "basic" ? null : slug,
-      payment_status: body.plan === "basic" ? "paid" : "pending",
+      payment_status: isAdmin ? (body.payment_status || "paid") : (body.plan === "basic" ? "paid" : "pending"),
     };
 
     const { data, error } = await db.from("cards").insert(record).select().single();

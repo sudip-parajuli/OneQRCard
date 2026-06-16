@@ -17,6 +17,7 @@ interface CardFormProps {
   submitting: boolean;
   submitError: string | null;
   defaultCountry?: string;
+  isAdmin?: boolean;
 }
 
 export default function CardForm({
@@ -26,6 +27,7 @@ export default function CardForm({
   submitting,
   submitError: externalSubmitError,
   defaultCountry,
+  isAdmin = false,
 }: CardFormProps) {
   const [data, setData] = useState<CardData>(initialData);
   const [logoError, setLogoError] = useState<string | null>(null);
@@ -209,23 +211,37 @@ export default function CardForm({
         {/* Account Email (Magic Link login target) */}
         <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
           <h2 className="font-semibold text-stone-900 mb-3 text-sm">Account Details</h2>
-          <Field label="Account Email (Required for management & updates)" required>
-            <input
-              type="email"
-              required
-              value={data.owner_email || ""}
-              onChange={(e) => update("owner_email", e.target.value)}
-              placeholder="you@example.com"
-              className="input"
-            />
-          </Field>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field label="Account Email (Required for management & updates)" required>
+              <input
+                type="email"
+                required
+                value={data.owner_email || ""}
+                onChange={(e) => update("owner_email", e.target.value)}
+                placeholder="you@example.com"
+                className="input"
+              />
+            </Field>
+            {isAdmin && (
+              <Field label="Payment Activation Status">
+                <select
+                  value={data.payment_status}
+                  onChange={(e) => update("payment_status", e.target.value as any)}
+                  className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 py-1 text-sm outline-none focus:border-stone-500"
+                >
+                  <option value="paid">Active (Paid)</option>
+                  <option value="pending">Pending Payment</option>
+                </select>
+              </Field>
+            )}
+          </div>
           <p className="text-[11px] text-stone-400 mt-2">
             This email is used to log in via a passwordless Magic Link to manage/edit your card in the future.
           </p>
         </section>
 
         {/* Plan Selection */}
-        {mode === "create" && (
+        {(mode === "create" || isAdmin) && (
           <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
             <h2 className="font-semibold text-stone-900 mb-3 text-sm">Choose Plan</h2>
             <div className="grid sm:grid-cols-3 gap-3">

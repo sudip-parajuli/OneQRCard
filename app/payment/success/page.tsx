@@ -13,6 +13,17 @@ function PaymentSuccessInner() {
     const provider = params.get("provider");
     const cardId = params.get("cardId");
 
+    if (provider === "free") {
+      const slug = params.get("slug");
+      if (slug) {
+        setCardSlug(slug);
+        setStatus("ok");
+      } else {
+        setStatus("error");
+      }
+      return;
+    }
+
     if (provider === "stripe") {
       if (!cardId) {
         setStatus("error");
@@ -83,8 +94,12 @@ function PaymentSuccessInner() {
       )}
       {status === "ok" && cardSlug && (
         <>
-          <h1 className="text-2xl font-semibold mb-2">Payment successful 🎉</h1>
-          <p className="text-stone-500 mb-6 text-sm">Your digital card is now live and active.</p>
+          <h1 className="text-2xl font-semibold mb-2">
+            {params.get("provider") === "free" ? "Card created successfully! 🎉" : "Payment successful 🎉"}
+          </h1>
+          <p className="text-stone-500 mb-6 text-sm">
+            {params.get("provider") === "free" ? "Your free digital card is now live." : "Your digital card is now live and active."}
+          </p>
           <a
             href={`/card/${cardSlug}`}
             className="inline-block bg-stone-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-stone-800 transition-colors"

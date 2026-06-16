@@ -6,6 +6,7 @@ import CardPreview from "@/components/CardPreview";
 import { CardData, PLAN_DETAILS, PlanId, THEME_LABELS, ThemeId } from "@/lib/types";
 import { buildVCard, slugify } from "@/lib/utils";
 import { SITE } from "@/lib/config";
+import { generateBusinessCard } from "@/lib/business-card";
 
 const MAX_LOGO_BYTES = 300 * 1024; // ~300KB
 
@@ -62,10 +63,10 @@ export default function CardForm({
       .catch(() => setQr(null));
   }, [previewUrl, data.brand_color]);
 
-  // Enforce Basic plan constraints: reset logo and theme if plan is basic
+  // Enforce Basic plan constraints: reset logo, theme, and brand color if plan is basic
   useEffect(() => {
     if (data.plan === "basic") {
-      setData((d) => ({ ...d, theme: "classic", logo_data_url: null }));
+      setData((d) => ({ ...d, theme: "classic", logo_data_url: null, brand_color: "#085041" }));
     }
   }, [data.plan]);
 
@@ -111,6 +112,21 @@ export default function CardForm({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  async function handleDownloadCard() {
+    try {
+      const dataUrl = await generateBusinessCard(data);
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `${data.business_name || "business"}_card.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("Failed to generate business card:", err);
+      alert("Failed to generate your business card. Please try again.");
+    }
   }
 
   return (
@@ -162,7 +178,7 @@ export default function CardForm({
         )}
 
         {/* Payment Method Selector (Create Mode Only) */}
-        {mode === "create" && (
+        {mode === "create" && data.plan !== "basic" && (
           <section className="bg-stone-100 p-6 rounded-2xl border border-stone-200">
             <h2 className="font-semibold text-stone-900 mb-1 text-sm">Payment Method</h2>
             <p className="text-[11px] text-stone-500 mb-4">
@@ -219,12 +235,22 @@ export default function CardForm({
               />
             </Field>
             <Field label="Brand color">
-              <input
-                type="color"
-                value={data.brand_color || "#085041"}
-                onChange={(e) => update("brand_color", e.target.value)}
-                className="h-10 w-full rounded-lg border border-stone-200 cursor-pointer"
-              />
+              {data.plan === "basic" ? (
+                <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-500 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full border border-stone-300" style={{ backgroundColor: "#085041" }}></div>
+                    <span>Locked to default branding.</span>
+                  </div>
+                  <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Pro/Business only</span>
+                </div>
+              ) : (
+                <input
+                  type="color"
+                  value={data.brand_color || "#085041"}
+                  onChange={(e) => update("brand_color", e.target.value)}
+                  className="h-10 w-full rounded-lg border border-stone-200 cursor-pointer"
+                />
+              )}
             </Field>
             <Field label="Logo (optional, under 300KB)">
               {data.plan === "basic" ? (
@@ -394,9 +420,13 @@ export default function CardForm({
               Processing...
             </span>
           ) : mode === "create" ? (
-            paymentProvider === "esewa"
-              ? `Pay Rs ${PLAN_DETAILS[data.plan].priceNPR.toLocaleString()} & activate`
-              : `Pay $${PLAN_DETAILS[data.plan].priceUSD} & activate`
+            data.plan === "basic" ? (
+              "Activate free card"
+            ) : paymentProvider === "esewa" ? (
+              `Pay Rs ${PLAN_DETAILS[data.plan].priceNPR.toLocaleString()} & activate`
+            ) : (
+              `Pay $${PLAN_DETAILS[data.plan].priceUSD} & activate`
+            )
           ) : (
             "Save Changes"
           )}
@@ -408,7 +438,11 @@ export default function CardForm({
         <div>
           <h2 className="font-semibold mb-3 text-xs uppercase tracking-wider text-stone-500">Live preview</h2>
           <div className="bg-stone-100 rounded-2xl p-6 flex items-center justify-center border border-stone-200/50 shadow-inner">
-            <CardPreview data={data} onSaveContact={downloadVCardPreview} />
+            <CardPreview
+              data={data}
+              onSaveContact={downloadVCardPreview}
+              onDownloadCard={data.plan !== "basic" ? handleDownloadCard : undefined}
+            />
           </div>
         </div>
 

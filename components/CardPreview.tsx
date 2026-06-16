@@ -80,13 +80,14 @@ function buildLinks(data: CardData): LinkItem[] {
 interface Props {
   data: CardData;
   onSaveContact?: () => void;
+  onDownloadCard?: () => void;
 }
 
 /**
  * Renders the public-facing digital card. Shared between the live editor preview
  * and the actual hosted /card/[slug] page so they always stay visually in sync.
  */
-export default function CardPreview({ data, onSaveContact }: Props) {
+export default function CardPreview({ data, onSaveContact, onDownloadCard }: Props) {
   const links = buildLinks(data);
   const initials = getInitials(data.business_name || "Your Business");
   const color = data.brand_color || "#085041";
@@ -101,6 +102,7 @@ export default function CardPreview({ data, onSaveContact }: Props) {
         </div>
         <div className="px-6 pb-6 flex flex-col gap-2">
           <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
+          {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
           {links.map((l) => (
             <LinkRow key={l.key} item={l} variant="outline" />
           ))}
@@ -128,6 +130,7 @@ export default function CardPreview({ data, onSaveContact }: Props) {
         </div>
         <div className="bg-white rounded-t-3xl px-6 py-6 flex flex-col gap-2">
           <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
+          {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
           {links.map((l) => (
             <LinkRow key={l.key} item={l} variant="outline" />
           ))}
@@ -157,6 +160,7 @@ export default function CardPreview({ data, onSaveContact }: Props) {
         </div>
         <div className="px-6 pt-6 pb-6 -mt-6 mx-4 mb-2 bg-white rounded-2xl shadow-sm flex flex-col gap-2 relative">
           <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
+          {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
           {links.map((l) => (
             <LinkRow key={l.key} item={l} variant="outline" />
           ))}
@@ -181,6 +185,7 @@ export default function CardPreview({ data, onSaveContact }: Props) {
       </div>
       <div className="px-5 py-5 flex flex-col gap-2">
         <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
+        {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
         {links.map((l) => (
           <LinkRow key={l.key} item={l} variant="outline" />
         ))}
@@ -246,6 +251,37 @@ function SaveButton({
       className="w-full py-3 rounded-xl text-sm font-semibold mb-1"
     >
       Save to contacts
+    </button>
+  );
+}
+
+function DownloadButton({
+  color,
+  onClick,
+}: {
+  color: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ borderColor: color, color: color }}
+      className="w-full py-3 rounded-xl text-sm font-semibold border-2 hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 mb-1"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-4 h-4"
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+      Download Business Card
     </button>
   );
 }

@@ -56,7 +56,13 @@ function CreateClientInner({ defaultCountry }: CreateClientProps) {
       const created = await createRes.json();
       if (!createRes.ok) throw new Error(created.error || "Could not save card");
 
-      // 2. Select payment method
+      // 2. Bypass payment for basic plan
+      if (data.plan === "basic") {
+        window.location.href = `/payment/success?provider=free&slug=${created.card.slug}`;
+        return;
+      }
+
+      // 3. Select payment method
       if (paymentProvider === "stripe") {
         // Stripe flow
         const stripeRes = await fetch("/api/payment/stripe/create-session", {

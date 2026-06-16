@@ -43,11 +43,13 @@ export const PLAN_DETAILS: Record<
 > = {
   basic: {
     name: "Basic",
-    priceNPR: 500,
-    priceUSD: 5,
+    priceNPR: 0,
+    priceUSD: 0,
     features: [
-      "Hosted at yoursite.com/card/[slug]",
-      "1 theme",
+      "Hosted at one-qr-card.vercel.app/card/[slug]",
+      "Standard Classic theme only",
+      "No logo upload or visual customization",
+      "Locked brand color",
       "QR code (PNG download)",
       "Save-to-contacts button",
       "Lifetime hosting",
@@ -58,11 +60,13 @@ export const PLAN_DETAILS: Record<
     priceNPR: 1000,
     priceUSD: 10,
     features: [
-      "Custom subdomain — clientname.yoursite.com",
-      "All themes + logo upload",
+      "Custom subdomain (clientname.one-qr-card.vercel.app)",
+      "All themes (Classic, Minimal, Bold, Gradient)",
+      "Custom brand color & logo upload",
+      "Downloadable customized business card (with QR code)",
       "QR code (PNG + SVG)",
       "Save-to-contacts button",
-      "Lifetime hosting",
+      "Lifetime hosting & self-edit anytime",
     ],
   },
   business: {
@@ -73,6 +77,7 @@ export const PLAN_DETAILS: Record<
       "Everything in Pro",
       "Up to 5 team member cards",
       "Shared brand kit (logo + color)",
+      "Downloadable customized business cards for all team members",
       "Priority support & edits",
       "Lifetime hosting",
     ],

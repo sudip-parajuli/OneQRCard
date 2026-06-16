@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       google_review: body.google_review ?? "",
       plan: body.plan ?? "basic",
       subdomain: body.plan === "basic" ? null : slug,
-      payment_status: "pending",
+      payment_status: body.plan === "basic" ? "paid" : "pending",
     };
 
     const { data, error } = await db.from("cards").insert(record).select().single();

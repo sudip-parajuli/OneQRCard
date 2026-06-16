@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { notFound, redirect } from "next/navigation";
-import CheckoutClient from "./CheckoutClient";
+import CheckoutClient from "@/app/payment/checkout/[id]/CheckoutClient";
 import { CardData } from "@/lib/types";
 
 export const revalidate = 0;

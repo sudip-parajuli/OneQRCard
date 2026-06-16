@@ -12,31 +12,42 @@ export async function middleware(req: NextRequest) {
     },
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
-          res = NextResponse.next({
-            request: {
-              headers: req.headers,
-            },
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            res.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Refresh auth session
-  await supabase.auth.getUser();
+  if (supabaseUrl && supabaseAnonKey) {
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          getAll() {
+            return req.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
+            res = NextResponse.next({
+              request: {
+                headers: req.headers,
+              },
+            });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              res.cookies.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+
+    // Refresh auth session
+    try {
+      await supabase.auth.getUser();
+    } catch (err) {
+      console.error("Failed to refresh session:", err);
+    }
+  } else {
+    console.warn("Supabase environment variables are missing. Skipping session refresh in middleware.");
+  }
 
   // 2. Perform subdomain rewrite logic
   const host = req.headers.get("host") || "";

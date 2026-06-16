@@ -129,11 +129,11 @@ export default function CheckoutClient({ card }: CheckoutClientProps) {
           {tab === "esewa" && (
             <>
               <p className="text-xs text-stone-500 mb-4 font-medium leading-relaxed">
-                Scan using eSewa to transfer <span className="font-bold text-emerald-700">Rs. {priceNPR.toLocaleString()}</span> to <span className="font-bold text-stone-900">Sudip Parajuli</span>.
+                Scan using eSewa to transfer <span className="font-bold text-emerald-700">Rs. {priceNPR.toLocaleString()}</span>.
               </p>
               <div className="bg-white p-3 rounded-xl border border-stone-200 shadow-sm max-w-[200px] w-full">
                 <img
-                  src="/esewa_qr.jpg"
+                  src="/esewa_qr.png"
                   alt="eSewa Payment QR Code"
                   className="w-full h-auto rounded-lg"
                 />
@@ -144,11 +144,11 @@ export default function CheckoutClient({ card }: CheckoutClientProps) {
           {tab === "khalti" && (
             <>
               <p className="text-xs text-stone-500 mb-4 font-medium leading-relaxed">
-                Scan using Khalti to transfer <span className="font-bold text-purple-700">Rs. {priceNPR.toLocaleString()}</span> to <span className="font-bold text-stone-900">Sudip Parajuli</span>.
+                Scan using Khalti to transfer <span className="font-bold text-purple-700">Rs. {priceNPR.toLocaleString()}</span>.
               </p>
               <div className="bg-white p-3 rounded-xl border border-stone-200 shadow-sm max-w-[200px] w-full">
                 <img
-                  src="/khalti_qr.jpg"
+                  src="/khalti_qr.png"
                   alt="Khalti Payment QR Code"
                   className="w-full h-auto rounded-lg"
                 />

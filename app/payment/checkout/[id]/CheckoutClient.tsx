@@ -7,11 +7,14 @@ import Image from "next/image";
 
 interface CheckoutClientProps {
   card: CardData;
+  initialProvider?: "esewa" | "khalti" | "stripe";
 }
 
-export default function CheckoutClient({ card }: CheckoutClientProps) {
+export default function CheckoutClient({ card, initialProvider }: CheckoutClientProps) {
   const router = useRouter();
-  const [tab, setTab] = useState<"esewa" | "khalti" | "stripe">("esewa");
+  const [tab, setTab] = useState<"esewa" | "khalti" | "stripe">(
+    initialProvider === "khalti" || initialProvider === "stripe" ? initialProvider : "esewa"
+  );
   const [txnId, setTxnId] = useState("");
   const [senderWallet, setSenderWallet] = useState("");
   const [loading, setLoading] = useState(false);

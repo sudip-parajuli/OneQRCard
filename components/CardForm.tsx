@@ -13,7 +13,7 @@ const MAX_LOGO_BYTES = 300 * 1024; // ~300KB
 interface CardFormProps {
   initialData: CardData;
   mode: "create" | "edit";
-  onSubmit: (data: CardData, paymentProvider?: "esewa" | "stripe") => Promise<void>;
+  onSubmit: (data: CardData, paymentProvider?: "esewa" | "khalti" | "stripe") => Promise<void>;
   submitting: boolean;
   submitError: string | null;
   defaultCountry?: string;
@@ -40,7 +40,7 @@ export default function CardForm({
   const [generatingPreview, setGeneratingPreview] = useState(false);
 
   // Initialize payment provider based on country
-  const [paymentProvider, setPaymentProvider] = useState<"esewa" | "stripe">(
+  const [paymentProvider, setPaymentProvider] = useState<"esewa" | "khalti" | "stripe">(
     defaultCountry === "NP" ? "esewa" : "stripe"
   );
 
@@ -271,29 +271,41 @@ export default function CardForm({
             <p className="text-[11px] text-stone-500 mb-4">
               Select your payment method. Region-based default is auto-detected.
             </p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <button
                 type="button"
                 onClick={() => setPaymentProvider("esewa")}
-                className={`flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all ${
+                className={`flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all cursor-pointer ${
                   paymentProvider === "esewa"
                     ? "border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-600 text-emerald-950 font-medium"
                     : "border-stone-200 bg-white hover:border-stone-300 text-stone-700"
                 }`}
               >
-                <span className="font-semibold text-sm">eSewa / NPR</span>
+                <span className="font-semibold text-sm">eSewa (NPR)</span>
+                <span className="text-[10px] opacity-75 mt-0.5">Rs {PLAN_DETAILS[data.plan].priceNPR.toLocaleString()}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentProvider("khalti")}
+                className={`flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all cursor-pointer ${
+                  paymentProvider === "khalti"
+                    ? "border-purple-600 bg-purple-50/80 ring-2 ring-purple-600 text-purple-950 font-medium"
+                    : "border-stone-200 bg-white hover:border-stone-300 text-stone-700"
+                }`}
+              >
+                <span className="font-semibold text-sm">Khalti (NPR)</span>
                 <span className="text-[10px] opacity-75 mt-0.5">Rs {PLAN_DETAILS[data.plan].priceNPR.toLocaleString()}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setPaymentProvider("stripe")}
-                className={`flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all ${
+                className={`flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all cursor-pointer ${
                   paymentProvider === "stripe"
                     ? "border-indigo-600 bg-indigo-50/80 ring-2 ring-indigo-600 text-indigo-950 font-medium"
                     : "border-stone-200 bg-white hover:border-stone-300 text-stone-700"
                 }`}
               >
-                <span className="font-semibold text-sm">Card / USD</span>
+                <span className="font-semibold text-sm">Card (USD)</span>
                 <span className="text-[10px] opacity-75 mt-0.5">${PLAN_DETAILS[data.plan].priceUSD}</span>
               </button>
             </div>
@@ -716,9 +728,11 @@ export default function CardForm({
             data.plan === "basic" ? (
               "Activate free card"
             ) : paymentProvider === "esewa" ? (
-              `Pay Rs ${PLAN_DETAILS[data.plan].priceNPR.toLocaleString()} & activate`
+              `Continue to Checkout (Rs ${PLAN_DETAILS[data.plan].priceNPR.toLocaleString()} via eSewa)`
+            ) : paymentProvider === "khalti" ? (
+              `Continue to Checkout (Rs ${PLAN_DETAILS[data.plan].priceNPR.toLocaleString()} via Khalti)`
             ) : (
-              `Pay $${PLAN_DETAILS[data.plan].priceUSD} & activate`
+              `Continue to Checkout ($${PLAN_DETAILS[data.plan].priceUSD} via Stripe)`
             )
           ) : (
             "Save Changes"

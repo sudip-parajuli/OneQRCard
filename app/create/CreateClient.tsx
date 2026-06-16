@@ -86,7 +86,7 @@ function CreateClientInner({ defaultCountry }: CreateClientProps) {
     };
   }
 
-  async function handleCreateSubmit(data: CardData, paymentProvider?: "esewa" | "stripe") {
+  async function handleCreateSubmit(data: CardData, paymentProvider?: "esewa" | "khalti" | "stripe") {
     setSubmitting(true);
     setSubmitError(null);
 
@@ -109,7 +109,8 @@ function CreateClientInner({ defaultCountry }: CreateClientProps) {
       }
 
       // 3. Redirect to manual checkout page
-      router.push(`/payment/checkout/${created.card.id}`);
+      const providerParam = paymentProvider ? `?provider=${paymentProvider}` : "";
+      router.push(`/payment/checkout/${created.card.id}${providerParam}`);
     } catch (err: any) {
       setSubmitError(err.message || "Something went wrong");
       setSubmitting(false);

@@ -5,7 +5,13 @@ import { CardData } from "@/lib/types";
 
 export const revalidate = 0;
 
-export default async function CheckoutPage({ params }: { params: { id: string } }) {
+export default async function CheckoutPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { provider?: string };
+}) {
   const db = supabaseAdmin();
   const { data: card, error } = await db
     .from("cards")
@@ -27,5 +33,5 @@ export default async function CheckoutPage({ params }: { params: { id: string } 
     redirect("/edit/dashboard");
   }
 
-  return <CheckoutClient card={card as CardData} />;
+  return <CheckoutClient card={card as CardData} initialProvider={searchParams.provider as any} />;
 }

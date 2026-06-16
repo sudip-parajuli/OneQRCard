@@ -101,13 +101,20 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
       }
     : {};
 
+  const isPaid = data.plan !== "basic";
+  const customTextColor = (isPaid && data.text_color) ? data.text_color : null;
+
   if (data.theme === "glassmorphic") {
+    const txtColor = customTextColor || "#ffffff";
+    const mutedTxtColor = customTextColor ? `${customTextColor}dd` : "rgba(255, 255, 255, 0.75)";
+    const borderCol = customTextColor ? `${customTextColor}26` : "rgba(255, 255, 255, 0.2)";
+    const linkBorderCol = customTextColor ? `${customTextColor}1a` : "rgba(255, 255, 255, 0.1)";
+
     return (
       <div
         className="rounded-3xl p-1.5 max-w-sm w-full mx-auto relative overflow-hidden shadow-xl"
         style={bgStyle}
       >
-        {/* Abstract floating blur circles only if no custom background image */}
         {!hasBg && (
           <div className="absolute inset-0 -z-10 bg-stone-950 overflow-hidden">
             <div
@@ -120,25 +127,36 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
             ></div>
           </div>
         )}
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 text-center shadow-2xl">
+        <div 
+          style={{ borderColor: borderCol }}
+          className="bg-white/10 backdrop-blur-xl border rounded-2xl p-6 text-center shadow-2xl"
+        >
           <Logo data={data} initials={initials} color={color} size={76} inverse />
-          <div className="text-xl font-bold mt-4 text-white drop-shadow-sm">
+          <div 
+            style={{ color: txtColor }}
+            className="text-xl font-bold mt-4 drop-shadow-sm"
+          >
             {data.business_name || "Your Business"}
           </div>
-          {data.tagline && <div className="text-xs text-white/75 mt-1">{data.tagline}</div>}
+          {data.tagline && (
+            <div style={{ color: mutedTxtColor }} className="text-xs mt-1">
+              {data.tagline}
+            </div>
+          )}
 
           <div className="mt-6 flex flex-col gap-2">
             <SaveButton color="rgba(255, 255, 255, 0.22)" textColor="#fff" onClick={onSaveContact} />
-            {onDownloadCard && <DownloadButton color="#ffffff" onClick={onDownloadCard} />}
+            {onDownloadCard && <DownloadButton color={txtColor} onClick={onDownloadCard} />}
             {links.map((l) => (
               <a
                 key={l.key}
                 href={l.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/15 text-sm transition-all"
+                style={{ color: txtColor, borderColor: linkBorderCol }}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-white/5 hover:bg-white/15 text-sm transition-all"
               >
-                <span className="text-white/60">{l.icon}</span>
+                <span style={{ color: mutedTxtColor }}>{l.icon}</span>
                 {l.label}
               </a>
             ))}
@@ -149,6 +167,9 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
   }
 
   if (data.theme === "neonDark") {
+    const txtColor = customTextColor || "#ffffff";
+    const mutedTxtColor = customTextColor ? `${customTextColor}b3` : "#a1a1aa";
+
     return (
       <div
         className="bg-stone-950 rounded-3xl overflow-hidden max-w-sm w-full mx-auto border-2 p-6 transition-all"
@@ -161,12 +182,16 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
         <div className="text-center pb-6 border-b border-stone-800/60 bg-stone-950/70 backdrop-blur-sm rounded-t-xl">
           <Logo data={data} initials={initials} color={color} size={76} />
           <div
-            className="text-xl font-extrabold tracking-tight mt-4 text-white"
-            style={{ textShadow: `0 0 10px ${color}66` }}
+            className="text-xl font-extrabold tracking-tight mt-4"
+            style={{ textShadow: `0 0 10px ${color}66`, color: txtColor }}
           >
             {data.business_name || "Your Business"}
           </div>
-          {data.tagline && <div className="text-xs text-stone-400 mt-1.5">{data.tagline}</div>}
+          {data.tagline && (
+            <div style={{ color: mutedTxtColor }} className="text-xs mt-1.5">
+              {data.tagline}
+            </div>
+          )}
         </div>
         <div className="pt-6 flex flex-col gap-2 bg-stone-950/70 backdrop-blur-sm rounded-b-xl px-1">
           <button
@@ -185,13 +210,17 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
                 href={l.href}
                 target="_blank"
                 rel="noopener noreferrer"
+                style={{ color: isGoogleReview ? undefined : txtColor }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all ${
                   isGoogleReview
                     ? "border-amber-500/30 bg-amber-500/5 text-amber-300 hover:bg-amber-500/10"
-                    : "border-stone-800 text-stone-300 hover:bg-stone-900 hover:text-stone-100"
+                    : "border-stone-800 hover:bg-stone-900"
                 }`}
               >
-                <span className={isGoogleReview ? "text-amber-400" : "text-stone-450"}>
+                <span 
+                  style={{ color: isGoogleReview ? undefined : mutedTxtColor }}
+                  className={isGoogleReview ? "text-amber-400" : ""}
+                >
                   {l.icon}
                 </span>
                 {l.label}
@@ -204,6 +233,9 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
   }
 
   if (data.theme === "minimal") {
+    const txtColor = customTextColor || "#0f172a";
+    const mutedTxtColor = customTextColor ? `${customTextColor}b3` : "#6b7280";
+
     return (
       <div
         className="bg-white rounded-2xl overflow-hidden border border-stone-200 max-w-sm w-full mx-auto"
@@ -211,23 +243,52 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
       >
         <div className={`pt-8 px-6 pb-6 text-center ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}>
           <Logo data={data} initials={initials} color={color} size={72} />
-          <div className="text-lg font-semibold text-stone-900 mt-4">
+          <div style={{ color: txtColor }} className="text-lg font-semibold mt-4">
             {data.business_name || "Your Business"}
           </div>
-          {data.tagline && <div className="text-sm text-stone-500 mt-1">{data.tagline}</div>}
+          {data.tagline && (
+            <div style={{ color: mutedTxtColor }} className="text-sm mt-1">
+              {data.tagline}
+            </div>
+          )}
         </div>
         <div className={`px-6 pb-6 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}>
           <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
           {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
-          {links.map((l) => (
-            <LinkRow key={l.key} item={l} variant="outline" />
-          ))}
+          {links.map((l) => {
+            const isGoogleReview = l.key === "google_review";
+            return (
+              <a
+                key={l.key}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: isGoogleReview ? undefined : txtColor }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all ${
+                  isGoogleReview
+                    ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
+                    : "border-stone-200 hover:bg-stone-50"
+                }`}
+              >
+                <span 
+                  style={{ color: isGoogleReview ? undefined : mutedTxtColor }}
+                  className={isGoogleReview ? "text-amber-500" : ""}
+                >
+                  {l.icon}
+                </span>
+                {l.label}
+              </a>
+            );
+          })}
         </div>
       </div>
     );
   }
 
   if (data.theme === "bold") {
+    const txtColor = customTextColor || lighten(color, 0.92);
+    const mutedTxtColor = customTextColor ? `${customTextColor}cc` : lighten(color, 0.6);
+
     return (
       <div
         className="rounded-2xl overflow-hidden max-w-sm w-full mx-auto"
@@ -235,11 +296,11 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
       >
         <div className={`pt-10 px-6 pb-8 text-center ${hasBg ? "bg-black/30 backdrop-blur-[2px]" : ""}`}>
           <Logo data={data} initials={initials} color={color} size={80} inverse />
-          <div className="text-xl font-semibold mt-4" style={{ color: lighten(color, 0.92) }}>
+          <div style={{ color: txtColor }} className="text-xl font-semibold mt-4">
             {data.business_name || "Your Business"}
           </div>
           {data.tagline && (
-            <div className="text-sm mt-1" style={{ color: lighten(color, 0.6) }}>
+            <div style={{ color: mutedTxtColor }} className="text-sm mt-1">
               {data.tagline}
             </div>
           )}
@@ -256,6 +317,9 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
   }
 
   if (data.theme === "gradient") {
+    const txtColor = customTextColor || lighten(color, 0.92);
+    const mutedTxtColor = customTextColor ? `${customTextColor}cc` : lighten(color, 0.7);
+
     return (
       <div
         className="rounded-2xl overflow-hidden max-w-sm w-full mx-auto border border-stone-200 bg-white"
@@ -270,11 +334,11 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
           }}
         >
           <Logo data={data} initials={initials} color={color} size={76} inverse />
-          <div className="text-lg font-semibold mt-4" style={{ color: lighten(color, 0.92) }}>
+          <div style={{ color: txtColor }} className="text-lg font-semibold mt-4">
             {data.business_name || "Your Business"}
           </div>
           {data.tagline && (
-            <div className="text-sm mt-1" style={{ color: lighten(color, 0.7) }}>
+            <div style={{ color: mutedTxtColor }} className="text-sm mt-1">
               {data.tagline}
             </div>
           )}
@@ -291,6 +355,11 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
   }
 
   // "classic" — default
+  const classicHeaderTextColor = customTextColor || lighten(color, 0.92);
+  const classicHeaderMutedColor = customTextColor ? `${customTextColor}cc` : lighten(color, 0.6);
+  const classicBodyTextColor = customTextColor || "#0f172a";
+  const classicBodyMutedColor = customTextColor ? `${customTextColor}b3` : "#6b7280";
+
   return (
     <div
       className="bg-white rounded-2xl overflow-hidden border border-stone-200 max-w-sm w-full mx-auto"
@@ -301,11 +370,11 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
         style={{ backgroundColor: hasBg ? "rgba(0,0,0,0.35)" : color }}
       >
         <Logo data={data} initials={initials} color={color} size={64} inverse />
-        <div className="text-base font-semibold mt-3" style={{ color: lighten(color, 0.92) }}>
+        <div style={{ color: classicHeaderTextColor }} className="text-base font-semibold mt-3">
           {data.business_name || "Your Business"}
         </div>
         {data.tagline && (
-          <div className="text-xs mt-1" style={{ color: lighten(color, 0.6) }}>
+          <div style={{ color: classicHeaderMutedColor }} className="text-xs mt-1">
             {data.tagline}
           </div>
         )}
@@ -313,9 +382,31 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
       <div className={`px-5 py-5 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}>
         <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
         {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
-        {links.map((l) => (
-          <LinkRow key={l.key} item={l} variant="outline" />
-        ))}
+        {links.map((l) => {
+          const isGoogleReview = l.key === "google_review";
+          return (
+            <a
+              key={l.key}
+              href={l.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: isGoogleReview ? undefined : classicBodyTextColor }}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all ${
+                isGoogleReview
+                  ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
+                  : "border-stone-200 hover:bg-stone-50"
+              }`}
+            >
+              <span 
+                style={{ color: isGoogleReview ? undefined : classicBodyMutedColor }}
+                className={isGoogleReview ? "text-amber-500" : ""}
+              >
+                {l.icon}
+              </span>
+              {l.label}
+            </a>
+          );
+        })}
       </div>
     </div>
   );

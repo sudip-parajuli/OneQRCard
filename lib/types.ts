@@ -29,6 +29,7 @@ export interface CardData {
   google_review?: string;
   background_data_url?: string | null;
   card_layout?: "classic" | "modern_dark" | "minimal_light";
+  text_color?: string | null;
   created_at?: string;
 }
 
@@ -66,7 +67,8 @@ export const PLAN_DETAILS: Record<
     features: [
       "Custom subdomain (clientname.one-qr-card.vercel.app)",
       "All themes (Classic, Minimal, Bold, Gradient)",
-      "Custom brand color & logo upload",
+      "Custom brand color, text color & logo upload",
+      "Logo embedded inside the QR Code itself",
       "Downloadable customized business card (with QR code)",
       "QR code (PNG + SVG)",
       "Save-to-contacts button",
@@ -81,8 +83,7 @@ export const PLAN_DETAILS: Record<
       "Everything in Pro",
       "Premium themes (Glassmorphic, Neon Dark)",
       "Upload custom background images",
-      "Logo embedded inside the QR Code itself",
-      "Custom layouts for downloadable card (Classic, Modern, Minimal)",
+      "Custom layouts for downloadable card with watermark logo",
       "Up to 5 team member cards",
       "Shared brand kit & priority support",
       "Lifetime hosting",

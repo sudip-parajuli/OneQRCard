@@ -8,19 +8,29 @@ export default function ShareQR({ data, url }: { data: CardData; url: string }) 
   const [qr, setQr] = useState<string | null>(null);
 
   useEffect(() => {
-    const isBusiness = data.plan === "business";
+    const isPaid = data.plan !== "basic";
     generateQRCodeWithLogo(
       url,
       data.brand_color || "#085041",
       data.logo_data_url,
       data.business_name,
-      isBusiness
+      isPaid
     )
       .then(setQr)
       .catch((err) => {
         console.error("Failed to generate share QR code:", err);
       });
   }, [url, data]);
+
+  function handleDownloadQR() {
+    if (!qr) return;
+    const a = document.createElement("a");
+    a.href = qr;
+    a.download = `${data.business_name || "card"}_qr_code.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
 
   if (!qr) {
     return (
@@ -33,11 +43,35 @@ export default function ShareQR({ data, url }: { data: CardData; url: string }) 
     );
   }
 
+  const brandColor = data.brand_color || "#085041";
+
   return (
     <div className="bg-white border border-stone-200 rounded-2xl p-5 text-center max-w-xs w-full shadow-sm animate-fade-in">
       <div className="text-sm font-medium mb-3 text-stone-600">Share this card</div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={qr} alt="QR code for this card" className="mx-auto rounded-lg border border-stone-100 shadow-sm" />
+      
+      <button
+        onClick={handleDownloadQR}
+        style={{ borderColor: brandColor, color: brandColor }}
+        className="mt-3 w-full py-2 border rounded-xl text-xs font-semibold hover:bg-stone-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-3.5 h-3.5"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Download QR Code
+      </button>
+
       <div className="text-xs text-stone-400 mt-3 break-all font-mono select-all">{url}</div>
     </div>
   );

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import QRCode from "qrcode";
 import CardPreview from "@/components/CardPreview";
+import { generateQRCodeWithLogo } from "@/lib/qr-helper";
 import { CardData, PLAN_DETAILS, PlanId, THEME_LABELS, ThemeId } from "@/lib/types";
 import { buildVCard, slugify } from "@/lib/utils";
 import { SITE } from "@/lib/config";
@@ -33,6 +33,9 @@ export default function CardForm({
   const [qr, setQr] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewTab, setPreviewTab] = useState<"digital" | "business">("digital");
+  const [businessCardPreview, setBusinessCardPreview] = useState<string | null>(null);
+  const [generatingPreview, setGeneratingPreview] = useState(false);
 
   // Initialize payment provider based on country
   const [paymentProvider, setPaymentProvider] = useState<"esewa" | "stripe">(
@@ -53,16 +56,22 @@ export default function CardForm({
     }
   }, [defaultCountry]);
 
-  // Regenerate QR preview whenever the resulting URL or brand color changes
+  // Regenerate QR preview whenever the resulting URL, brand color, logo, business name, or plan changes
   useEffect(() => {
-    QRCode.toDataURL(previewUrl, {
-      width: 220,
-      margin: 1,
-      color: { dark: data.brand_color || "#085041", light: "#ffffff" },
-    })
+    const isPaid = data.plan !== "basic";
+    generateQRCodeWithLogo(
+      previewUrl,
+      data.brand_color || "#085041",
+      data.logo_data_url,
+      data.business_name,
+      isPaid
+    )
       .then(setQr)
-      .catch(() => setQr(null));
-  }, [previewUrl, data.brand_color]);
+      .catch((err) => {
+        console.error("Failed to generate QR preview:", err);
+        setQr(null);
+      });
+  }, [previewUrl, data.brand_color, data.logo_data_url, data.business_name, data.plan]);
 
   // Enforce plan constraints based on tier
   useEffect(() => {
@@ -74,6 +83,7 @@ export default function CardForm({
         brand_color: "#085041",
         background_data_url: null,
         card_layout: "classic",
+        text_color: null,
       }));
     } else if (data.plan === "pro") {
       setData((d) => ({
@@ -84,6 +94,31 @@ export default function CardForm({
       }));
     }
   }, [data.plan]);
+
+  // Generate physical business card preview when active tab is business card
+  useEffect(() => {
+    if (previewTab !== "business") return;
+
+    let active = true;
+    setGeneratingPreview(true);
+    generateBusinessCard(data)
+      .then((url) => {
+        if (active) {
+          setBusinessCardPreview(url);
+          setGeneratingPreview(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to generate business card preview:", err);
+        if (active) {
+          setGeneratingPreview(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [data, previewTab]);
 
   function update<K extends keyof CardData>(key: K, value: CardData[K]) {
     setData((d) => ({ ...d, [key]: value }));
@@ -155,6 +190,16 @@ export default function CardForm({
       console.error("Failed to generate business card:", err);
       alert("Failed to generate your business card. Please try again.");
     }
+  }
+
+  function handleDownloadQR() {
+    if (!qr) return;
+    const a = document.createElement("a");
+    a.href = qr;
+    a.download = `${data.business_name || "card"}_qr_code.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   return (
@@ -280,37 +325,70 @@ export default function CardForm({
                 />
               )}
             </Field>
-            <Field label="Logo (optional, under 300KB)">
+
+            <Field label="Text color">
               {data.plan === "basic" ? (
                 <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-500 flex items-center justify-between">
-                  <span>Logo upload is locked on Basic plan.</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full border border-stone-300" style={{ backgroundColor: "#ffffff" }}></div>
+                    <span>Locked to default colors.</span>
+                  </div>
                   <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Pro/Business only</span>
                 </div>
               ) : (
-                <>
+                <div className="flex gap-2 items-center">
                   <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/png, image/jpeg, image/webp"
-                    onChange={handleLogoUpload}
-                    className="text-xs mt-1 block w-full text-stone-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200"
+                    type="color"
+                    value={data.text_color || "#ffffff"}
+                    onChange={(e) => update("text_color", e.target.value)}
+                    className="h-10 flex-1 rounded-lg border border-stone-200 cursor-pointer"
                   />
-                  {logoError && <p className="text-xs text-red-500 mt-1">{logoError}</p>}
-                  {data.logo_data_url && (
+                  {data.text_color && (
                     <button
                       type="button"
-                      onClick={() => {
-                        update("logo_data_url", null);
-                        if (fileInputRef.current) fileInputRef.current.value = "";
-                      }}
-                      className="text-xs text-stone-500 underline mt-1"
+                      onClick={() => update("text_color", null)}
+                      className="text-xs text-stone-500 hover:text-stone-700 border border-stone-200 rounded-lg px-2.5 h-10 transition-colors"
                     >
-                      Remove logo
+                      Reset
                     </button>
                   )}
-                </>
+                </div>
               )}
             </Field>
+
+            <div className="sm:col-span-2">
+              <Field label="Logo (optional, under 300KB)">
+                {data.plan === "basic" ? (
+                  <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-500 flex items-center justify-between">
+                    <span>Logo upload is locked on Basic plan.</span>
+                    <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Pro/Business only</span>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png, image/jpeg, image/webp"
+                      onChange={handleLogoUpload}
+                      className="text-xs mt-1 block w-full text-stone-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200"
+                    />
+                    {logoError && <p className="text-xs text-red-500 mt-1">{logoError}</p>}
+                    {data.logo_data_url && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          update("logo_data_url", null);
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }}
+                        className="text-xs text-stone-500 underline mt-1"
+                      >
+                        Remove logo
+                      </button>
+                    )}
+                  </>
+                )}
+              </Field>
+            </div>
           </div>
         </section>
 
@@ -521,21 +599,130 @@ export default function CardForm({
       {/* Live Preview Side Panel */}
       <div className="lg:sticky lg:top-10 self-start space-y-6">
         <div>
-          <h2 className="font-semibold mb-3 text-xs uppercase tracking-wider text-stone-500">Live preview</h2>
-          <div className="bg-stone-100 rounded-2xl p-6 flex items-center justify-center border border-stone-200/50 shadow-inner">
-            <CardPreview
-              data={data}
-              onSaveContact={downloadVCardPreview}
-              onDownloadCard={data.plan !== "basic" ? handleDownloadCard : undefined}
-            />
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-semibold text-xs uppercase tracking-wider text-stone-500">Live preview</h2>
+            
+            {/* Tab Selector */}
+            <div className="flex bg-stone-200/60 p-0.5 rounded-lg text-xs">
+              <button
+                type="button"
+                onClick={() => setPreviewTab("digital")}
+                className={`px-3 py-1 rounded-md font-medium transition-all ${
+                  previewTab === "digital"
+                    ? "bg-white text-stone-900 shadow-sm"
+                    : "text-stone-500 hover:text-stone-900"
+                }`}
+              >
+                Digital Card
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewTab("business")}
+                className={`px-3 py-1 rounded-md font-medium transition-all ${
+                  previewTab === "business"
+                    ? "bg-white text-stone-900 shadow-sm"
+                    : "text-stone-500 hover:text-stone-900"
+                }`}
+              >
+                Business Card
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-stone-100 rounded-2xl p-6 flex flex-col items-center justify-center border border-stone-200/50 shadow-inner min-h-[380px] relative">
+            {previewTab === "digital" ? (
+              <CardPreview
+                data={data}
+                onSaveContact={downloadVCardPreview}
+                onDownloadCard={data.plan !== "basic" ? handleDownloadCard : undefined}
+              />
+            ) : (
+              <div className="w-full flex flex-col items-center gap-4">
+                {generatingPreview ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <svg className="animate-spin h-8 w-8 text-stone-500 mb-2" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span className="text-xs text-stone-500">Generating preview...</span>
+                  </div>
+                ) : businessCardPreview ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={businessCardPreview}
+                      alt="Physical Business Card Preview"
+                      className="w-full rounded-lg shadow-md border border-stone-200 object-contain aspect-[1.75]"
+                    />
+                    {data.plan === "basic" ? (
+                      <div className="text-center p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                        <p className="text-[11px] text-amber-700 font-semibold">Business Card Download locked on Basic plan</p>
+                        <p className="text-[10px] text-amber-600 mt-0.5">Upgrade to Pro or Business to download.</p>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleDownloadCard}
+                        style={{ backgroundColor: data.brand_color || "#085041" }}
+                        className="w-full py-2.5 rounded-xl text-xs font-semibold text-white hover:opacity-95 transition-opacity flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="w-3.5 h-3.5"
+                        >
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Download Business Card (PNG)
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-xs text-stone-400 py-12">Failed to load preview</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         <div className="bg-white border border-stone-200 rounded-2xl p-5 text-center shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wider mb-3 text-stone-500">QR code preview</div>
-          {qr && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={qr} alt="QR code preview" className="mx-auto rounded-lg shadow-sm border border-stone-100" />
+          {qr ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qr} alt="QR code preview" className="mx-auto rounded-lg shadow-sm border border-stone-100" />
+              <button
+                type="button"
+                onClick={handleDownloadQR}
+                style={{ borderColor: data.brand_color || "#085041", color: data.brand_color || "#085041" }}
+                className="mt-3 w-full py-2 border rounded-xl text-xs font-semibold hover:bg-stone-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-3.5 h-3.5"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download QR Code
+              </button>
+            </>
+          ) : (
+            <div className="w-[220px] h-[220px] mx-auto bg-stone-100 rounded-lg flex items-center justify-center text-stone-400 text-xs">
+              Generating...
+            </div>
           )}
           <div className="text-[10px] text-stone-400 mt-3 break-all font-mono select-all">{previewUrl}</div>
           {!isSubdomainPlan && (

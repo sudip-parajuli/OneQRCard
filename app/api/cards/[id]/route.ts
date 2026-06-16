@@ -41,6 +41,7 @@ export async function PUT(
         google_review: body.google_review ?? "",
         background_data_url: body.background_data_url ?? null,
         card_layout: body.card_layout ?? "classic",
+        text_color: body.text_color ?? null,
         // payment_status, slug, subdomain, plan, owner_email are excluded to protect system integrity
       })
       .eq("id", params.id)

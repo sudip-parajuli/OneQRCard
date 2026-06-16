@@ -184,7 +184,7 @@ export default function AdminDashboard({ initialCards, userEmail }: AdminDashboa
                           slug: {card.slug}
                         </div>
                         <a
-                          href={card.plan === "basic" ? `/card/${card.slug}` : `https://${card.slug}.${window.location.host.replace("admin.", "")}`}
+                          href={`/card/${card.slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-stone-400 hover:text-stone-900 underline mt-1 inline-block"

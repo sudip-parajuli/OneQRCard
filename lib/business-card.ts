@@ -26,10 +26,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
  */
 export async function generateBusinessCard(data: CardData): Promise<string> {
   const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || SITE.domain;
-  const isSubdomainPlan = data.plan !== "basic";
-  const cardUrl = isSubdomainPlan
-    ? `https://${data.slug}.${baseDomain}`
-    : `https://${baseDomain}/card/${data.slug}`;
+  const isSubdomainPlan = false; // Disabled until custom domain is ready
+  const cardUrl = `https://${baseDomain}/card/${data.slug}`;
 
   const brandColor = data.brand_color || "#085041";
   const isPaid = data.plan !== "basic";

@@ -45,11 +45,9 @@ export default function CardForm({
   );
 
   const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || SITE.domain;
-  const isSubdomainPlan = data.plan !== "basic";
+  const isSubdomainPlan = false; // Disabled until custom domain is ready
   const previewSlug = data.business_name ? slugify(data.business_name) : "your-business";
-  const previewUrl = isSubdomainPlan
-    ? `https://${previewSlug}.${baseDomain}`
-    : `https://${baseDomain}/card/${previewSlug}`;
+  const previewUrl = `https://${baseDomain}/card/${previewSlug}`;
 
   // Update payment provider if defaultCountry changes
   useEffect(() => {
@@ -774,7 +772,7 @@ export default function CardForm({
             </div>
           )}
           <div className="text-[10px] text-stone-400 mt-3 break-all font-mono select-all">{previewUrl}</div>
-          {!isSubdomainPlan && (
+          {data.plan === "basic" && (
             <p className="text-[11px] text-stone-400 mt-2 italic">
               Upgrade to Pro for a custom subdomain instead of a /card/ path.
             </p>

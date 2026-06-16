@@ -96,7 +96,7 @@ export default async function DashboardPage() {
                     </div>
                     {card.tagline && <p className="text-xs text-stone-500 mb-4 line-clamp-2">{card.tagline}</p>}
                     <p className="text-[11px] text-stone-400 font-mono mb-6">
-                      {card.plan.toUpperCase()} • {card.subdomain ? `${card.subdomain}.${baseDomain}` : `${baseDomain}/card/${card.slug}`}
+                      {card.plan.toUpperCase()} • {baseDomain}/card/{card.slug}
                     </p>
 
                     {/* Team Members Slots Section */}
@@ -106,53 +106,56 @@ export default async function DashboardPage() {
                           <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">
                             Team Cards ({myTeamCards.length} of {maxTeamSlots})
                           </span>
-                          {myTeamCards.length < maxTeamSlots && (
-                            <Link
-                              href={`/create?parent_id=${card.id}`}
-                              className="text-xs font-bold text-emerald-600 hover:text-emerald-700 underline"
-                            >
-                              + Add Member
-                            </Link>
-                          )}
+                          <span className="text-[10px] text-stone-400 font-medium">
+                            {maxTeamSlots - myTeamCards.length} slots left
+                          </span>
                         </div>
 
-                        {myTeamCards.length === 0 ? (
-                          <p className="text-xs text-stone-400 italic">No team member cards created yet.</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {myTeamCards.map((member) => (
-                              <div
-                                key={member.id}
-                                className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/50 flex justify-between items-center text-xs"
-                              >
-                                <div>
-                                  <div className="font-semibold text-stone-800">
-                                    {member.member_name || member.business_name}
-                                  </div>
-                                  {member.member_role && (
-                                    <div className="text-[10px] text-stone-400 mt-0.5">{member.member_role}</div>
-                                  )}
+                        <div className="space-y-2.5">
+                          {myTeamCards.map((member) => (
+                            <div
+                              key={member.id}
+                              className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/50 flex justify-between items-center text-xs"
+                            >
+                              <div>
+                                <div className="font-semibold text-stone-800">
+                                  {member.member_name || member.business_name}
                                 </div>
-                                <div className="flex gap-2">
-                                  <Link
-                                    href={`/edit/${member.id}`}
-                                    className="text-stone-600 hover:text-stone-900 underline font-semibold"
-                                  >
-                                    Edit
-                                  </Link>
-                                  <a
-                                    href={member.subdomain ? `https://${member.slug}.${baseDomain}` : `/card/${member.slug}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-stone-600 hover:text-stone-900 underline font-semibold"
-                                  >
-                                    View
-                                  </a>
-                                </div>
+                                {member.member_role && (
+                                  <div className="text-[10px] text-stone-400 mt-0.5">{member.member_role}</div>
+                                )}
                               </div>
-                            ))}
-                          </div>
-                        )}
+                              <div className="flex gap-2">
+                                <Link
+                                  href={`/edit/${member.id}`}
+                                  className="text-stone-600 hover:text-stone-900 underline font-semibold"
+                                >
+                                  Edit
+                                </Link>
+                                <a
+                                  href={`/card/${member.slug}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-stone-600 hover:text-stone-900 underline font-semibold"
+                                >
+                                  View
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* Remaining empty slots styled as interactive boxes */}
+                          {Array.from({ length: maxTeamSlots - myTeamCards.length }).map((_, index) => (
+                            <Link
+                              key={`empty-${index}`}
+                              href={`/create?parent_id=${card.id}`}
+                              className="border border-dashed border-stone-300 hover:border-stone-400 bg-stone-50/50 hover:bg-stone-50 p-2.5 rounded-xl flex items-center justify-between text-xs text-stone-500 transition-all cursor-pointer group"
+                            >
+                              <span className="font-medium group-hover:text-stone-700">Empty Team Slot</span>
+                              <span className="text-[10px] text-stone-400 font-bold bg-white px-2 py-0.5 rounded border border-stone-250 group-hover:border-stone-300">+ Add Card</span>
+                            </Link>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -165,7 +168,7 @@ export default async function DashboardPage() {
                     </Link>
                     {card.payment_status === "paid" && (
                       <a
-                        href={card.subdomain ? `https://${card.subdomain}.${baseDomain}` : `/card/${card.slug}`}
+                        href={`/card/${card.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex-1 text-center py-2.5 border border-stone-200 hover:bg-stone-50 rounded-xl text-xs font-semibold text-stone-700 transition-colors"

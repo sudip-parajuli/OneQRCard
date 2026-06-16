@@ -28,6 +28,7 @@ const EMPTY: CardData = {
   subdomain: null,
   payment_status: "pending",
   owner_email: "",
+  custom_links: [],
 };
 
 import { supabase } from "@/lib/supabase";

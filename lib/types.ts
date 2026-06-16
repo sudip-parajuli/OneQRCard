@@ -28,6 +28,7 @@ export interface CardData {
   owner_email?: string | null;
   txn_id?: string | null;
   sender_wallet?: string | null;
+  custom_links?: { label: string; url: string }[] | null;
   google_review?: string;
   background_data_url?: string | null;
   card_layout?: "classic" | "modern_dark" | "minimal_light";

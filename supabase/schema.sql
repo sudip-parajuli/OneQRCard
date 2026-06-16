@@ -50,7 +50,10 @@ create table if not exists cards (
   
   -- From Migration 009: Personal payment verification fields
   txn_id text,
-  sender_wallet text
+  sender_wallet text,
+
+  -- From Migration 010: Add custom links field for Business plan users
+  custom_links jsonb default '[]'::jsonb
 );
 
 -- Indexes

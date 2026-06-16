@@ -61,6 +61,12 @@ const icons = {
       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
     </svg>
   ),
+  link: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  ),
 };
 
 function buildLinks(data: CardData): LinkItem[] {
@@ -74,6 +80,21 @@ function buildLinks(data: CardData): LinkItem[] {
   if (data.tiktok) items.push({ key: "tiktok", label: "TikTok", href: data.tiktok, icon: icons.tiktok });
   if (data.youtube) items.push({ key: "youtube", label: "YouTube", href: data.youtube, icon: icons.youtube });
   if (data.email) items.push({ key: "email", label: "Email", href: `mailto:${data.email}`, icon: icons.email });
+
+  if (data.plan === "business" && data.custom_links && Array.isArray(data.custom_links)) {
+    data.custom_links.forEach((link, idx) => {
+      if (link.label?.trim() && link.url?.trim()) {
+        const href = link.url.trim().startsWith("http") ? link.url.trim() : `https://${link.url.trim()}`;
+        items.push({
+          key: `custom_${idx}`,
+          label: link.label.trim(),
+          href,
+          icon: icons.link,
+        });
+      }
+    });
+  }
+
   return items;
 }
 

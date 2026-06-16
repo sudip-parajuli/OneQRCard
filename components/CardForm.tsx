@@ -612,6 +612,89 @@ export default function CardForm({
           </div>
         </section>
 
+        {/* Custom Links (Business Plan Only) */}
+        <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-3">
+            <div>
+              <h2 className="font-semibold text-stone-900 text-sm">Custom Links</h2>
+              <p className="text-stone-500 text-[11px] mt-0.5">Add unlimited custom buttons (e.g. Booking, Portfolio, Menu, PDF Catalog, etc.)</p>
+            </div>
+            {data.plan !== "business" && (
+              <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
+                Business plan only
+              </span>
+            )}
+          </div>
+
+          {data.plan !== "business" ? (
+            <div className="bg-stone-50 rounded-xl p-4 border border-stone-200 text-xs text-stone-500 leading-relaxed">
+              Custom Links feature is locked on your current plan. Upgrade to the <strong className="text-stone-900">Business Tier</strong> to add unlimited personalized buttons to your card.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(data.custom_links || []).map((link, idx) => (
+                <div key={idx} className="flex flex-col sm:flex-row gap-3 items-end sm:items-center bg-stone-50 p-3.5 rounded-xl border border-stone-200/60 relative group">
+                  <div className="flex-1 grid sm:grid-cols-2 gap-3 w-full">
+                    <div>
+                      <span className="text-[10px] font-semibold text-stone-500 mb-1 block">Button Label</span>
+                      <input
+                        type="text"
+                        value={link.label || ""}
+                        onChange={(e) => {
+                          const list = [...(data.custom_links || [])];
+                          list[idx].label = e.target.value;
+                          update("custom_links", list);
+                        }}
+                        placeholder="e.g. View Our Menu"
+                        className="input bg-white h-9 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-stone-500 mb-1 block">Button Link (URL)</span>
+                      <input
+                        type="text"
+                        value={link.url || ""}
+                        onChange={(e) => {
+                          const list = [...(data.custom_links || [])];
+                          list[idx].url = e.target.value;
+                          update("custom_links", list);
+                        }}
+                        placeholder="e.g. www.myrestaurant.com/menu"
+                        className="input bg-white h-9 text-xs"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const list = (data.custom_links || []).filter((_, i) => i !== idx);
+                      update("custom_links", list);
+                    }}
+                    className="text-xs text-red-600 hover:text-red-700 font-semibold h-9 px-2 transition-colors cursor-pointer self-end sm:self-center mt-2 sm:mt-5"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => {
+                  const list = [...(data.custom_links || []), { label: "", url: "" }];
+                  update("custom_links", list);
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-900 border border-stone-300 hover:bg-stone-50 bg-white px-3 py-2 rounded-xl transition-all cursor-pointer shadow-sm"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Custom Link
+              </button>
+            </div>
+          )}
+        </section>
+
         {(submitError || externalSubmitError) && (
           <p className="text-sm text-red-500 font-medium">{submitError || externalSubmitError}</p>
         )}

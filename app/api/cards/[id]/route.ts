@@ -43,6 +43,8 @@ export async function PUT(
       background_data_url: body.background_data_url ?? null,
       card_layout: body.card_layout ?? "classic",
       text_color: body.text_color ?? null,
+      member_name: body.member_name ?? null,
+      member_role: body.member_role ?? null,
     };
 
     if (isAdmin) {

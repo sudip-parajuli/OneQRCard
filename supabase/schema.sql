@@ -1,4 +1,4 @@
--- Run this in the Supabase SQL editor for your project.
+-- Run this in the Supabase SQL editor for your project to set up the database.
 
 create table if not exists cards (
   id uuid primary key default gen_random_uuid(),
@@ -19,24 +19,52 @@ create table if not exists cards (
   plan text default 'basic',
   subdomain text,
   payment_status text default 'pending' check (payment_status in ('pending', 'paid')),
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  
+  -- From Migration 002: Payments
+  currency text default 'NPR' check (currency in ('NPR', 'USD')),
+  payment_provider text check (payment_provider in ('esewa', 'stripe')),
+  stripe_session_id text,
+  amount_paid integer,
+  
+  -- From Migration 003: Owner Authentication
+  owner_email text,
+  
+  -- From Migration 004: Google Reviews
+  google_review text default '',
+  
+  -- From Migration 005: Custom Background and Layouts
+  background_data_url text,
+  card_layout text default 'classic' check (card_layout in ('classic', 'modern_dark', 'minimal_light')),
+  
+  -- From Migration 006: Custom Text Color
+  text_color text,
+  
+  -- From Migration 007: Team Cards Feature
+  parent_id uuid references cards(id) on delete cascade,
+  member_name text,
+  member_role text
 );
 
+-- Indexes
 create index if not exists cards_slug_idx on cards (slug);
 create index if not exists cards_payment_status_idx on cards (payment_status);
+create index if not exists cards_stripe_session_idx on cards (stripe_session_id);
+create index if not exists cards_owner_email_idx on cards (owner_email);
+create index if not exists cards_parent_id_idx on cards (parent_id);
 
 -- Row Level Security
 alter table cards enable row level security;
 
--- All writes/reads from the app go through the service-role key in API
--- routes (lib/supabase.ts -> supabaseAdmin), which bypasses RLS entirely.
--- These policies are a safety net in case the anon key is ever used
--- directly from the browser — they only allow reading *paid* cards,
--- and never allow inserts/updates from the client.
-
+-- Policies
 create policy "Public can read paid cards"
   on cards for select
   using (payment_status = 'paid');
 
--- No insert/update/delete policies are defined for the anon role,
--- so those operations are blocked unless done via the service-role key.
+create policy "Owners can view their own cards"
+  on cards for select
+  using (auth.jwt() ->> 'email' = owner_email);
+
+create policy "Owners can update their own cards"
+  on cards for update
+  using (auth.jwt() ->> 'email' = owner_email);

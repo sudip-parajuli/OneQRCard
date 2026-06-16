@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       }
 
       const teamCount = teamCards?.length || 0;
-      const maxSlots = parentCard.plan === "pro" ? 2 : parentCard.plan === "business" ? 6 : 0;
+      const maxSlots = parentCard.plan === "pro" ? 1 : parentCard.plan === "business" ? 4 : 0;
 
       if (teamCount >= maxSlots) {
         return NextResponse.json({ error: "Team member slot limit reached for this plan" }, { status: 400 });
@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
       text_color: body.text_color ?? null,
       background_data_url: body.background_data_url ?? null,
       card_layout: body.card_layout ?? "classic",
+      show_logo_on_card: body.show_logo_on_card ?? true,
     };
 
     const { data, error } = await db.from("cards").insert(record).select().single();

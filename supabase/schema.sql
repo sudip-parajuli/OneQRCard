@@ -43,7 +43,10 @@ create table if not exists cards (
   -- From Migration 007: Team Cards Feature
   parent_id uuid references cards(id) on delete cascade,
   member_name text,
-  member_role text
+  member_role text,
+  
+  -- From Migration 008: Hide Logo Option
+  show_logo_on_card boolean default true
 );
 
 -- Indexes

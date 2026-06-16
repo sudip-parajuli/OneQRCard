@@ -45,6 +45,7 @@ export async function PUT(
       text_color: body.text_color ?? null,
       member_name: body.member_name ?? null,
       member_role: body.member_role ?? null,
+      show_logo_on_card: body.show_logo_on_card !== undefined ? body.show_logo_on_card : true,
     };
 
     if (isAdmin) {

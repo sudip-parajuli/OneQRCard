@@ -416,11 +416,24 @@ export default function CardForm({
                           update("logo_data_url", null);
                           if (fileInputRef.current) fileInputRef.current.value = "";
                         }}
-                        className="text-xs text-stone-500 underline mt-1"
+                        className="text-xs text-stone-500 underline mt-1 block"
                       >
                         Remove logo
                       </button>
                     )}
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <input
+                        id="show_logo_on_card"
+                        type="checkbox"
+                        checked={data.show_logo_on_card !== false}
+                        onChange={(e) => update("show_logo_on_card", e.target.checked)}
+                        className="h-4 w-4 rounded border-stone-300 text-stone-900 focus:ring-stone-900 cursor-pointer"
+                      />
+                      <label htmlFor="show_logo_on_card" className="text-xs font-medium text-stone-700 select-none cursor-pointer">
+                        Show logo/initials emblem on physical business card layout
+                      </label>
+                    </div>
                   </>
                 )}
               </Field>

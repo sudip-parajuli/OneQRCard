@@ -229,36 +229,38 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
     currentY += 48;
   });
 
-  // 11. Draw Logo circle (or initials)
-  const logoSize = 100;
-  const logoX = 500;
-  const logoY = 105;
+  // 11. Draw Logo circle (or initials) if show_logo_on_card is enabled
+  if (data.show_logo_on_card !== false) {
+    const logoSize = 100;
+    const logoX = 500;
+    const logoY = 105;
 
-  if (loadedImages.logo) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.drawImage(loadedImages.logo, logoX, logoY, logoSize, logoSize);
-    ctx.restore();
+    if (loadedImages.logo) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(loadedImages.logo, logoX, logoY, logoSize, logoSize);
+      ctx.restore();
 
-    ctx.strokeStyle = layout === "minimal_light" ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
-    ctx.stroke();
-  } else {
-    // Draw Initials Fallback
-    ctx.fillStyle = layout === "minimal_light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.12)";
-    ctx.beginPath();
-    ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
-    ctx.fill();
+      ctx.strokeStyle = layout === "minimal_light" ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      // Draw Initials Fallback
+      ctx.fillStyle = layout === "minimal_light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.12)";
+      ctx.beginPath();
+      ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
+      ctx.fill();
 
-    ctx.fillStyle = layout === "minimal_light" ? brandColor : textColor;
-    ctx.font = "bold 36px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(getInitials(data.member_name || data.business_name), logoX + logoSize / 2, logoY + logoSize / 2);
+      ctx.fillStyle = layout === "minimal_light" ? brandColor : textColor;
+      ctx.font = "bold 36px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(getInitials(data.member_name || data.business_name), logoX + logoSize / 2, logoY + logoSize / 2);
+    }
   }
 
   // 12. Draw QR code

@@ -79,6 +79,7 @@ function CreateClientInner({ defaultCountry }: CreateClientProps) {
       logo_data_url: parentCard.logo_data_url,
       background_data_url: parentCard.background_data_url,
       card_layout: parentCard.card_layout,
+      show_logo_on_card: parentCard.show_logo_on_card,
       payment_status: "paid", // Auto-activated as part of team slot
       owner_email: parentCard.owner_email,
     };

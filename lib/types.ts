@@ -33,6 +33,7 @@ export interface CardData {
   parent_id?: string | null;
   member_name?: string | null;
   member_role?: string | null;
+  show_logo_on_card?: boolean;
   created_at?: string;
 }
 
@@ -75,7 +76,7 @@ export const PLAN_DETAILS: Record<
       "Downloadable customized business card (with QR code)",
       "QR code (PNG + SVG)",
       "Save-to-contacts button",
-      "Create up to 3 cards total (1 primary + 2 team slots)",
+      "Create up to 2 cards total (1 primary + 1 team slot)",
       "Lifetime hosting & self-edit anytime",
     ],
   },
@@ -88,7 +89,7 @@ export const PLAN_DETAILS: Record<
       "Premium themes (Glassmorphic, Neon Dark)",
       "Upload custom background images",
       "Custom layouts for downloadable card with watermark logo",
-      "Create up to 7 cards total (1 primary + 6 team slots)",
+      "Create up to 5 cards total (1 primary + 4 team slots)",
       "Shared brand kit & priority support",
       "Lifetime hosting",
     ],

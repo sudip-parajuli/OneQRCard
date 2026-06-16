@@ -72,7 +72,7 @@ export default async function DashboardPage() {
           <div className="grid sm:grid-cols-2 gap-6">
             {primaryCards.map((card) => {
               const myTeamCards = teamCards.filter((tc) => tc.parent_id === card.id);
-              const maxTeamSlots = card.plan === "pro" ? 2 : card.plan === "business" ? 6 : 0;
+              const maxTeamSlots = card.plan === "pro" ? 1 : card.plan === "business" ? 4 : 0;
 
               return (
                 <div

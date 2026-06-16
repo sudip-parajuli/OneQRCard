@@ -20,12 +20,14 @@ export interface CardData {
   email: string;
   plan: PlanId;
   subdomain: string | null;
-  payment_status: "pending" | "paid";
+  payment_status: "pending" | "paid" | "pending_verification";
   currency?: "NPR" | "USD";
-  payment_provider?: "esewa" | "stripe";
+  payment_provider?: "esewa" | "stripe" | "manual";
   stripe_session_id?: string | null;
   amount_paid?: number | null;
   owner_email?: string | null;
+  txn_id?: string | null;
+  sender_wallet?: string | null;
   google_review?: string;
   background_data_url?: string | null;
   card_layout?: "classic" | "modern_dark" | "minimal_light";

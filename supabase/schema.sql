@@ -18,7 +18,7 @@ create table if not exists cards (
   email text default '',
   plan text default 'basic',
   subdomain text,
-  payment_status text default 'pending' check (payment_status in ('pending', 'paid')),
+  payment_status text default 'pending' check (payment_status in ('pending', 'paid', 'pending_verification')),
   created_at timestamptz default now(),
   
   -- From Migration 002: Payments
@@ -46,7 +46,11 @@ create table if not exists cards (
   member_role text,
   
   -- From Migration 008: Hide Logo Option
-  show_logo_on_card boolean default true
+  show_logo_on_card boolean default true,
+  
+  -- From Migration 009: Personal payment verification fields
+  txn_id text,
+  sender_wallet text
 );
 
 -- Indexes

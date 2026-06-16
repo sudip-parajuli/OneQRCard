@@ -107,43 +107,8 @@ function CreateClientInner({ defaultCountry }: CreateClientProps) {
         return;
       }
 
-      // 3. Select payment method
-      if (paymentProvider === "stripe") {
-        // Stripe flow
-        const stripeRes = await fetch("/api/payment/stripe/create-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cardId: created.card.id }),
-        });
-        const stripeSession = await stripeRes.json();
-        if (!stripeRes.ok) throw new Error(stripeSession.error || "Could not start Stripe payment");
-
-        // Redirect to Stripe checkout page
-        window.location.href = stripeSession.url;
-      } else {
-        // eSewa flow
-        const payRes = await fetch("/api/payment/initiate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cardId: created.card.id }),
-        });
-        const pay = await payRes.json();
-        if (!payRes.ok) throw new Error(pay.error || "Could not start payment");
-
-        // Auto-submit a form to eSewa with the signed fields
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = pay.esewaUrl;
-        Object.entries(pay.fields).forEach(([key, value]) => {
-          const input = document.createElement("input");
-          input.type = "hidden";
-          input.name = key;
-          input.value = String(value);
-          form.appendChild(input);
-        });
-        document.body.appendChild(form);
-        form.submit();
-      }
+      // 3. Redirect to manual checkout page
+      router.push(`/payment/checkout/${created.card.id}`);
     } catch (err: any) {
       setSubmitError(err.message || "Something went wrong");
       setSubmitting(false);

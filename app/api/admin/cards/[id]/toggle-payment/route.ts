@@ -26,7 +26,7 @@ export async function PUT(
     const body = await req.json();
     const status = body.payment_status;
 
-    if (status !== "paid" && status !== "pending") {
+    if (status !== "paid" && status !== "pending" && status !== "pending_verification") {
       return NextResponse.json({ error: "Invalid payment status" }, { status: 400 });
     }
 

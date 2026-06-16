@@ -15,7 +15,7 @@ export default function AdminDashboard({ initialCards, userEmail }: AdminDashboa
   const [cards, setCards] = useState<CardData[]>(initialCards);
   const [searchTerm, setSearchTerm] = useState("");
   const [planFilter, setPlanFilter] = useState<"all" | "basic" | "pro" | "business">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending" | "pending_verification">("all");
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -43,10 +43,8 @@ export default function AdminDashboard({ initialCards, userEmail }: AdminDashboa
     }
   }
 
-  async function handleTogglePayment(cardId: string, currentStatus: "paid" | "pending") {
+  async function handleUpdatePaymentStatus(cardId: string, newStatus: "paid" | "pending" | "pending_verification") {
     setTogglingId(cardId);
-    const newStatus = currentStatus === "paid" ? "pending" : "paid";
-
     try {
       const res = await fetch(`/api/admin/cards/${cardId}/toggle-payment`, {
         method: "PUT",
@@ -56,12 +54,17 @@ export default function AdminDashboard({ initialCards, userEmail }: AdminDashboa
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Failed to toggle payment status");
+        throw new Error(errData.error || "Failed to update payment status");
       }
 
       const updated = await res.json();
       setCards((prev) =>
-        prev.map((c) => (c.id === cardId ? { ...c, payment_status: updated.card.payment_status } : c))
+        prev.map((c) => (c.id === cardId ? {
+          ...c,
+          payment_status: updated.card.payment_status,
+          txn_id: updated.card.txn_id,
+          sender_wallet: updated.card.sender_wallet,
+        } : c))
       );
     } catch (err: any) {
       console.error(err);
@@ -70,6 +73,7 @@ export default function AdminDashboard({ initialCards, userEmail }: AdminDashboa
       setTogglingId(null);
     }
   }
+
 
   // Filter cards based on search term and dropdown selections
   const filteredCards = cards.filter((card) => {
@@ -151,6 +155,7 @@ export default function AdminDashboard({ initialCards, userEmail }: AdminDashboa
             >
               <option value="all">All Statuses</option>
               <option value="paid">Active (Paid)</option>
+              <option value="pending_verification">Pending Verification</option>
               <option value="pending">Pending Payment</option>
             </select>
           </div>
@@ -207,26 +212,74 @@ export default function AdminDashboard({ initialCards, userEmail }: AdminDashboa
                         </span>
                       </td>
                       <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                            card.payment_status === "paid"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                              : "bg-amber-50 text-amber-700 border border-amber-100"
-                          }`}>
-                            {card.payment_status === "paid" ? "Active" : "Pending"}
-                          </span>
-                          
-                          <button
-                            onClick={() => handleTogglePayment(card.id!, card.payment_status)}
-                            disabled={togglingId === card.id}
-                            className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                               card.payment_status === "paid"
-                                ? "border-amber-200 text-amber-700 hover:bg-amber-50"
-                                : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                            }`}
-                          >
-                            {togglingId === card.id ? "Updating..." : card.payment_status === "paid" ? "Deactivate" : "Activate (Cash)"}
-                          </button>
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                : card.payment_status === "pending_verification"
+                                ? "bg-amber-100 text-amber-800 border-amber-200 animate-pulse"
+                                : "bg-stone-50 text-stone-500 border-stone-200"
+                            }`}>
+                              {card.payment_status === "paid"
+                                ? "Active"
+                                : card.payment_status === "pending_verification"
+                                ? "Pending Verification"
+                                : "Pending"}
+                            </span>
+                          </div>
+
+                          {card.payment_status === "pending_verification" && (
+                            <div className="text-xs bg-stone-50 border border-stone-200 p-2.5 rounded-xl space-y-1 max-w-[240px]">
+                              <div>
+                                <span className="font-semibold text-stone-500">Txn ID:</span>{" "}
+                                <span className="font-mono text-stone-800 bg-stone-100 px-1 py-0.5 rounded text-[11px] font-bold select-all">
+                                  {card.txn_id || "N/A"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-stone-500">Sender:</span>{" "}
+                                <span className="text-stone-800 font-medium">{card.sender_wallet || "N/A"}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {card.payment_status === "pending_verification" ? (
+                              <>
+                                <button
+                                  onClick={() => handleUpdatePaymentStatus(card.id!, "paid")}
+                                  disabled={togglingId === card.id}
+                                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                  {togglingId === card.id ? "Processing..." : "Approve"}
+                                </button>
+                                <button
+                                  onClick={() => handleUpdatePaymentStatus(card.id!, "pending")}
+                                  disabled={togglingId === card.id}
+                                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white border border-red-200 text-red-600 hover:bg-red-50 transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            ) : card.payment_status === "paid" ? (
+                              <button
+                                onClick={() => handleUpdatePaymentStatus(card.id!, "pending")}
+                                disabled={togglingId === card.id}
+                                className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 transition-all cursor-pointer disabled:opacity-50"
+                              >
+                                {togglingId === card.id ? "Updating..." : "Deactivate"}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleUpdatePaymentStatus(card.id!, "paid")}
+                                disabled={togglingId === card.id}
+                                className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-all cursor-pointer disabled:opacity-50"
+                              >
+                                {togglingId === card.id ? "Updating..." : "Activate (Cash)"}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="py-4 px-6 text-stone-500 text-xs">

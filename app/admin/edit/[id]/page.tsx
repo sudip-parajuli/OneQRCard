@@ -12,7 +12,7 @@ export default async function AdminEditCardPage({ params }: { params: { id: stri
     data: { session },
   } = await supabase.auth.getSession();
 
-  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@oneqrcard.com";
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "sparajuli802@gmail.com";
 
   if (!session || session.user.email !== adminEmail) {
     redirect("/admin");

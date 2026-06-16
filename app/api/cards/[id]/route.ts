@@ -20,7 +20,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@oneqrcard.com";
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "sparajuli802@gmail.com";
     const isAdmin = session.user.email === adminEmail;
 
     const body = await req.json();

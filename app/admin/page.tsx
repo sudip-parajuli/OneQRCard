@@ -13,7 +13,7 @@ export default async function AdminPage() {
     data: { session },
   } = await supabase.auth.getSession();
 
-  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@oneqrcard.com";
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "sparajuli802@gmail.com";
 
   if (!session) {
     return <AdminLogin adminEmail={adminEmail} />;

@@ -1,0 +1,450 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
+import CardPreview from "@/components/CardPreview";
+import { CardData, PLAN_DETAILS, PlanId, THEME_LABELS, ThemeId } from "@/lib/types";
+import { buildVCard, slugify } from "@/lib/utils";
+import { SITE } from "@/lib/config";
+
+const MAX_LOGO_BYTES = 300 * 1024; // ~300KB
+
+interface CardFormProps {
+  initialData: CardData;
+  mode: "create" | "edit";
+  onSubmit: (data: CardData, paymentProvider?: "esewa" | "stripe") => Promise<void>;
+  submitting: boolean;
+  submitError: string | null;
+  defaultCountry?: string;
+}
+
+export default function CardForm({
+  initialData,
+  mode,
+  onSubmit,
+  submitting,
+  submitError: externalSubmitError,
+  defaultCountry,
+}: CardFormProps) {
+  const [data, setData] = useState<CardData>(initialData);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const [qr, setQr] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize payment provider based on country
+  const [paymentProvider, setPaymentProvider] = useState<"esewa" | "stripe">(
+    defaultCountry === "NP" ? "esewa" : "stripe"
+  );
+
+  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || SITE.domain;
+  const isSubdomainPlan = data.plan !== "basic";
+  const previewSlug = data.business_name ? slugify(data.business_name) : "your-business";
+  const previewUrl = isSubdomainPlan
+    ? `https://${previewSlug}.${baseDomain}`
+    : `https://${baseDomain}/card/${previewSlug}`;
+
+  // Update payment provider if defaultCountry changes
+  useEffect(() => {
+    if (defaultCountry) {
+      setPaymentProvider(defaultCountry === "NP" ? "esewa" : "stripe");
+    }
+  }, [defaultCountry]);
+
+  // Regenerate QR preview whenever the resulting URL or brand color changes
+  useEffect(() => {
+    QRCode.toDataURL(previewUrl, {
+      width: 220,
+      margin: 1,
+      color: { dark: data.brand_color || "#085041", light: "#ffffff" },
+    })
+      .then(setQr)
+      .catch(() => setQr(null));
+  }, [previewUrl, data.brand_color]);
+
+  // Enforce Basic plan constraints: reset logo and theme if plan is basic
+  useEffect(() => {
+    if (data.plan === "basic") {
+      setData((d) => ({ ...d, theme: "classic", logo_data_url: null }));
+    }
+  }, [data.plan]);
+
+  function update<K extends keyof CardData>(key: K, value: CardData[K]) {
+    setData((d) => ({ ...d, [key]: value }));
+  }
+
+  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_LOGO_BYTES) {
+      setLogoError("Logo must be under 300KB. Try a smaller or compressed image.");
+      return;
+    }
+    setLogoError(null);
+    const reader = new FileReader();
+    reader.onload = () => update("logo_data_url", reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  async function handleFormSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!data.business_name.trim()) {
+      setSubmitError("Business name is required.");
+      return;
+    }
+    if (!data.owner_email || !data.owner_email.trim()) {
+      setSubmitError("Account email is required.");
+      return;
+    }
+    setSubmitError(null);
+    await onSubmit(data, paymentProvider);
+  }
+
+  function downloadVCardPreview() {
+    const vcard = buildVCard(data);
+    const blob = new Blob([vcard], { type: "text/vcard" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${data.business_name || "card"}.vcf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <form onSubmit={handleFormSubmit} className="grid lg:grid-cols-[1fr_380px] gap-10">
+      {/* Form Fields */}
+      <div className="space-y-8">
+        {/* Account Email (Magic Link login target) */}
+        <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+          <h2 className="font-semibold text-stone-900 mb-3 text-sm">Account Details</h2>
+          <Field label="Account Email (Required for management & updates)" required>
+            <input
+              type="email"
+              required
+              value={data.owner_email || ""}
+              onChange={(e) => update("owner_email", e.target.value)}
+              placeholder="you@example.com"
+              className="input"
+            />
+          </Field>
+          <p className="text-[11px] text-stone-400 mt-2">
+            This email is used to log in via a passwordless Magic Link to manage/edit your card in the future.
+          </p>
+        </section>
+
+        {/* Plan Selection */}
+        {mode === "create" && (
+          <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+            <h2 className="font-semibold text-stone-900 mb-3 text-sm">Choose Plan</h2>
+            <div className="grid sm:grid-cols-3 gap-3">
+              {Object.entries(PLAN_DETAILS).map(([id, plan]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => update("plan", id as PlanId)}
+                  className={`text-left rounded-xl border p-4 transition-all ${
+                    data.plan === id
+                      ? "border-stone-900 ring-2 ring-stone-900 bg-stone-50"
+                      : "border-stone-200 hover:border-stone-300 hover:bg-stone-50/50"
+                  }`}
+                >
+                  <div className="font-semibold text-stone-900">{plan.name}</div>
+                  <div className="text-xs text-stone-500 mt-1">
+                    Rs {plan.priceNPR.toLocaleString()} / ${plan.priceUSD}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Payment Method Selector (Create Mode Only) */}
+        {mode === "create" && (
+          <section className="bg-stone-100 p-6 rounded-2xl border border-stone-200">
+            <h2 className="font-semibold text-stone-900 mb-1 text-sm">Payment Method</h2>
+            <p className="text-[11px] text-stone-500 mb-4">
+              Select your payment method. Region-based default is auto-detected.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setPaymentProvider("esewa")}
+                className={`flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all ${
+                  paymentProvider === "esewa"
+                    ? "border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-600 text-emerald-950 font-medium"
+                    : "border-stone-200 bg-white hover:border-stone-300 text-stone-700"
+                }`}
+              >
+                <span className="font-semibold text-sm">eSewa / NPR</span>
+                <span className="text-[10px] opacity-75 mt-0.5">Rs {PLAN_DETAILS[data.plan].priceNPR.toLocaleString()}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentProvider("stripe")}
+                className={`flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all ${
+                  paymentProvider === "stripe"
+                    ? "border-indigo-600 bg-indigo-50/80 ring-2 ring-indigo-600 text-indigo-950 font-medium"
+                    : "border-stone-200 bg-white hover:border-stone-300 text-stone-700"
+                }`}
+              >
+                <span className="font-semibold text-sm">Card / USD</span>
+                <span className="text-[10px] opacity-75 mt-0.5">${PLAN_DETAILS[data.plan].priceUSD}</span>
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* Business details */}
+        <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+          <h2 className="font-semibold text-stone-900 mb-3 text-sm">Business details</h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field label="Business name" required>
+              <input
+                required
+                value={data.business_name}
+                onChange={(e) => update("business_name", e.target.value)}
+                placeholder="Easymoto"
+                className="input"
+              />
+            </Field>
+            <Field label="Tagline">
+              <input
+                value={data.tagline || ""}
+                onChange={(e) => update("tagline", e.target.value)}
+                placeholder="Two-wheeler rentals, Kathmandu"
+                className="input"
+              />
+            </Field>
+            <Field label="Brand color">
+              <input
+                type="color"
+                value={data.brand_color || "#085041"}
+                onChange={(e) => update("brand_color", e.target.value)}
+                className="h-10 w-full rounded-lg border border-stone-200 cursor-pointer"
+              />
+            </Field>
+            <Field label="Logo (optional, under 300KB)">
+              {data.plan === "basic" ? (
+                <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-500 flex items-center justify-between">
+                  <span>Logo upload is locked on Basic plan.</span>
+                  <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Pro/Business only</span>
+                </div>
+              ) : (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp"
+                    onChange={handleLogoUpload}
+                    className="text-xs mt-1 block w-full text-stone-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200"
+                  />
+                  {logoError && <p className="text-xs text-red-500 mt-1">{logoError}</p>}
+                  {data.logo_data_url && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        update("logo_data_url", null);
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                      }}
+                      className="text-xs text-stone-500 underline mt-1"
+                    >
+                      Remove logo
+                    </button>
+                  )}
+                </>
+              )}
+            </Field>
+          </div>
+        </section>
+
+        {/* Theme selection */}
+        <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-semibold text-stone-900 text-sm">Theme</h2>
+            {data.plan === "basic" && (
+              <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
+                Pro/Business gets all themes
+              </span>
+            )}
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {(Object.keys(THEME_LABELS) as ThemeId[]).map((id) => {
+              const isLocked = data.plan === "basic" && id !== "classic";
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  disabled={isLocked}
+                  onClick={() => update("theme", id)}
+                  className={`text-left rounded-xl border px-4 py-3 text-sm transition-all ${
+                    data.theme === id
+                      ? "border-stone-900 ring-2 ring-stone-900 bg-stone-50 font-medium text-stone-900"
+                      : "border-stone-200 hover:border-stone-300 hover:bg-stone-50/50 text-stone-700"
+                  } ${isLocked ? "opacity-45 cursor-not-allowed bg-stone-50/70" : ""}`}
+                >
+                  <span className="flex justify-between items-center w-full">
+                    <span>{THEME_LABELS[id]}</span>
+                    {isLocked && (
+                      <span className="text-[10px] font-semibold text-stone-400">🔒</span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Contact + socials */}
+        <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+          <h2 className="font-semibold text-stone-900 mb-3 text-sm">Contact &amp; social links</h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field label="Phone number">
+              <input
+                value={data.phone || ""}
+                onChange={(e) => update("phone", e.target.value)}
+                placeholder="9860702780"
+                className="input"
+              />
+            </Field>
+            <Field label="WhatsApp (with country code)">
+              <input
+                value={data.whatsapp || ""}
+                onChange={(e) => update("whatsapp", e.target.value)}
+                placeholder="9779851401903"
+                className="input"
+              />
+            </Field>
+            <Field label="Public Email">
+              <input
+                value={data.email || ""}
+                onChange={(e) => update("email", e.target.value)}
+                placeholder="hello@business.com"
+                className="input"
+              />
+            </Field>
+            <Field label="Website">
+              <input
+                value={data.website || ""}
+                onChange={(e) => update("website", e.target.value)}
+                placeholder="https://www.example.com"
+                className="input"
+              />
+            </Field>
+            <Field label="Facebook">
+              <input
+                value={data.facebook || ""}
+                onChange={(e) => update("facebook", e.target.value)}
+                placeholder="https://facebook.com/yourpage"
+                className="input"
+              />
+            </Field>
+            <Field label="Instagram">
+              <input
+                value={data.instagram || ""}
+                onChange={(e) => update("instagram", e.target.value)}
+                placeholder="https://instagram.com/yourpage"
+                className="input"
+              />
+            </Field>
+            <Field label="TikTok">
+              <input
+                value={data.tiktok || ""}
+                onChange={(e) => update("tiktok", e.target.value)}
+                placeholder="https://tiktok.com/@yourpage"
+                className="input"
+              />
+            </Field>
+            <Field label="YouTube">
+              <input
+                value={data.youtube || ""}
+                onChange={(e) => update("youtube", e.target.value)}
+                placeholder="https://youtube.com/@yourchannel"
+                className="input"
+              />
+            </Field>
+            <Field label="Google Review Link">
+              <input
+                value={data.google_review || ""}
+                onChange={(e) => update("google_review", e.target.value)}
+                placeholder="https://g.page/r/..."
+                className="input"
+              />
+            </Field>
+          </div>
+        </section>
+
+        {(submitError || externalSubmitError) && (
+          <p className="text-sm text-red-500 font-medium">{submitError || externalSubmitError}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="bg-stone-900 text-white px-6 py-3 rounded-xl font-semibold hover:bg-stone-800 transition-colors disabled:opacity-50 w-full sm:w-auto"
+        >
+          {submitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Processing...
+            </span>
+          ) : mode === "create" ? (
+            paymentProvider === "esewa"
+              ? `Pay Rs ${PLAN_DETAILS[data.plan].priceNPR.toLocaleString()} & activate`
+              : `Pay $${PLAN_DETAILS[data.plan].priceUSD} & activate`
+          ) : (
+            "Save Changes"
+          )}
+        </button>
+      </div>
+
+      {/* Live Preview Side Panel */}
+      <div className="lg:sticky lg:top-10 self-start space-y-6">
+        <div>
+          <h2 className="font-semibold mb-3 text-xs uppercase tracking-wider text-stone-500">Live preview</h2>
+          <div className="bg-stone-100 rounded-2xl p-6 flex items-center justify-center border border-stone-200/50 shadow-inner">
+            <CardPreview data={data} onSaveContact={downloadVCardPreview} />
+          </div>
+        </div>
+
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 text-center shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wider mb-3 text-stone-500">QR code preview</div>
+          {qr && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={qr} alt="QR code preview" className="mx-auto rounded-lg shadow-sm border border-stone-100" />
+          )}
+          <div className="text-[10px] text-stone-400 mt-3 break-all font-mono select-all">{previewUrl}</div>
+          {!isSubdomainPlan && (
+            <p className="text-[11px] text-stone-400 mt-2 italic">
+              Upgrade to Pro for a custom subdomain instead of a /card/ path.
+            </p>
+          )}
+        </div>
+      </div>
+    </form>
+  );
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-medium text-stone-600 mb-1 block">
+        {label} {required && <span className="text-red-400">*</span>}
+      </span>
+      {children}
+    </label>
+  );
+}

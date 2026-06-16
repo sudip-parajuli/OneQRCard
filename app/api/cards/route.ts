@@ -42,6 +42,50 @@ export async function POST(req: NextRequest) {
       attempt++;
     }
 
+    let parentId = body.parent_id ?? null;
+    let paymentStatus = isAdmin ? (body.payment_status || "paid") : (body.plan === "basic" ? "paid" : "pending");
+    let plan = body.plan ?? "basic";
+    let ownerEmail = isAdmin ? (body.owner_email || body.email || "") : (body.email || "");
+
+    if (parentId) {
+      // Fetch parent card to verify plan and active status
+      const { data: parentCard, error: parentError } = await db
+        .from("cards")
+        .select("*")
+        .eq("id", parentId)
+        .maybeSingle();
+
+      if (parentError || !parentCard) {
+        return NextResponse.json({ error: "Parent card not found" }, { status: 400 });
+      }
+
+      if (parentCard.payment_status !== "paid") {
+        return NextResponse.json({ error: "Parent card is not active" }, { status: 400 });
+      }
+
+      // Check team count limits
+      const { data: teamCards, error: countError } = await db
+        .from("cards")
+        .select("id")
+        .eq("parent_id", parentId);
+
+      if (countError) {
+        return NextResponse.json({ error: "Could not verify team slots" }, { status: 500 });
+      }
+
+      const teamCount = teamCards?.length || 0;
+      const maxSlots = parentCard.plan === "pro" ? 2 : parentCard.plan === "business" ? 6 : 0;
+
+      if (teamCount >= maxSlots) {
+        return NextResponse.json({ error: "Team member slot limit reached for this plan" }, { status: 400 });
+      }
+
+      // Inherit parent attributes
+      plan = parentCard.plan;
+      paymentStatus = "paid";
+      ownerEmail = parentCard.owner_email || "";
+    }
+
     const record: Partial<CardData> = {
       slug,
       business_name: body.business_name,
@@ -57,11 +101,17 @@ export async function POST(req: NextRequest) {
       tiktok: body.tiktok ?? "",
       youtube: body.youtube ?? "",
       email: body.email ?? "",
-      owner_email: isAdmin ? (body.owner_email || body.email || "") : (body.email || ""),
+      owner_email: ownerEmail,
       google_review: body.google_review ?? "",
-      plan: body.plan ?? "basic",
-      subdomain: body.plan === "basic" ? null : slug,
-      payment_status: isAdmin ? (body.payment_status || "paid") : (body.plan === "basic" ? "paid" : "pending"),
+      plan,
+      subdomain: plan === "basic" ? null : slug,
+      payment_status: paymentStatus,
+      parent_id: parentId,
+      member_name: body.member_name ?? null,
+      member_role: body.member_role ?? null,
+      text_color: body.text_color ?? null,
+      background_data_url: body.background_data_url ?? null,
+      card_layout: body.card_layout ?? "classic",
     };
 
     const { data, error } = await db.from("cards").insert(record).select().single();

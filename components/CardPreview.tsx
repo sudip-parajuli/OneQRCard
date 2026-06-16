@@ -89,7 +89,7 @@ interface Props {
  */
 export default function CardPreview({ data, onSaveContact, onDownloadCard }: Props) {
   const links = buildLinks(data);
-  const initials = getInitials(data.business_name || "Your Business");
+  const initials = getInitials(data.member_name || data.business_name || "Your Business");
   const color = data.brand_color || "#085041";
 
   const hasBg = data.plan === "business" && data.background_data_url;
@@ -136,11 +136,13 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
             style={{ color: txtColor }}
             className="text-xl font-bold mt-4 drop-shadow-sm"
           >
-            {data.business_name || "Your Business"}
+            {data.member_name ? data.member_name : (data.business_name || "Your Business")}
           </div>
-          {data.tagline && (
+          {(data.member_role || data.tagline) && (
             <div style={{ color: mutedTxtColor }} className="text-xs mt-1">
-              {data.tagline}
+              {data.member_name
+                ? `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`
+                : data.tagline}
             </div>
           )}
 
@@ -185,11 +187,13 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
             className="text-xl font-extrabold tracking-tight mt-4"
             style={{ textShadow: `0 0 10px ${color}66`, color: txtColor }}
           >
-            {data.business_name || "Your Business"}
+            {data.member_name ? data.member_name : (data.business_name || "Your Business")}
           </div>
-          {data.tagline && (
+          {(data.member_role || data.tagline) && (
             <div style={{ color: mutedTxtColor }} className="text-xs mt-1.5">
-              {data.tagline}
+              {data.member_name
+                ? `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`
+                : data.tagline}
             </div>
           )}
         </div>
@@ -244,11 +248,13 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
         <div className={`pt-8 px-6 pb-6 text-center ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}>
           <Logo data={data} initials={initials} color={color} size={72} />
           <div style={{ color: txtColor }} className="text-lg font-semibold mt-4">
-            {data.business_name || "Your Business"}
+            {data.member_name ? data.member_name : (data.business_name || "Your Business")}
           </div>
-          {data.tagline && (
+          {(data.member_role || data.tagline) && (
             <div style={{ color: mutedTxtColor }} className="text-sm mt-1">
-              {data.tagline}
+              {data.member_name
+                ? `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`
+                : data.tagline}
             </div>
           )}
         </div>
@@ -297,11 +303,13 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
         <div className={`pt-10 px-6 pb-8 text-center ${hasBg ? "bg-black/30 backdrop-blur-[2px]" : ""}`}>
           <Logo data={data} initials={initials} color={color} size={80} inverse />
           <div style={{ color: txtColor }} className="text-xl font-semibold mt-4">
-            {data.business_name || "Your Business"}
+            {data.member_name ? data.member_name : (data.business_name || "Your Business")}
           </div>
-          {data.tagline && (
+          {(data.member_role || data.tagline) && (
             <div style={{ color: mutedTxtColor }} className="text-sm mt-1">
-              {data.tagline}
+              {data.member_name
+                ? `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`
+                : data.tagline}
             </div>
           )}
         </div>
@@ -335,11 +343,13 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
         >
           <Logo data={data} initials={initials} color={color} size={76} inverse />
           <div style={{ color: txtColor }} className="text-lg font-semibold mt-4">
-            {data.business_name || "Your Business"}
+            {data.member_name ? data.member_name : (data.business_name || "Your Business")}
           </div>
-          {data.tagline && (
+          {(data.member_role || data.tagline) && (
             <div style={{ color: mutedTxtColor }} className="text-sm mt-1">
-              {data.tagline}
+              {data.member_name
+                ? `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`
+                : data.tagline}
             </div>
           )}
         </div>
@@ -371,11 +381,13 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
       >
         <Logo data={data} initials={initials} color={color} size={64} inverse />
         <div style={{ color: classicHeaderTextColor }} className="text-base font-semibold mt-3">
-          {data.business_name || "Your Business"}
+          {data.member_name ? data.member_name : (data.business_name || "Your Business")}
         </div>
-        {data.tagline && (
+        {(data.member_role || data.tagline) && (
           <div style={{ color: classicHeaderMutedColor }} className="text-xs mt-1">
-            {data.tagline}
+            {data.member_name
+              ? `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`
+              : data.tagline}
           </div>
         )}
       </div>

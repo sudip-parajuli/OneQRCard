@@ -30,6 +30,9 @@ export interface CardData {
   background_data_url?: string | null;
   card_layout?: "classic" | "modern_dark" | "minimal_light";
   text_color?: string | null;
+  parent_id?: string | null;
+  member_name?: string | null;
+  member_role?: string | null;
   created_at?: string;
 }
 

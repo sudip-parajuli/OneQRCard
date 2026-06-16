@@ -179,9 +179,17 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
   ctx.font = "bold 44px sans-serif";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillText(data.business_name || "Your Business", startX, currentY);
 
-  if (data.tagline) {
+  const displayName = data.member_name || data.business_name || "Your Business";
+  ctx.fillText(displayName, startX, currentY);
+
+  if (data.member_name) {
+    currentY += 56;
+    ctx.fillStyle = mutedTextColor;
+    ctx.font = "italic 22px sans-serif";
+    const subText = `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`;
+    ctx.fillText(subText, startX, currentY);
+  } else if (data.tagline) {
     currentY += 56;
     ctx.fillStyle = mutedTextColor;
     ctx.font = "italic 22px sans-serif";
@@ -250,7 +258,7 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
     ctx.font = "bold 36px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(getInitials(data.business_name), logoX + logoSize / 2, logoY + logoSize / 2);
+    ctx.fillText(getInitials(data.member_name || data.business_name), logoX + logoSize / 2, logoY + logoSize / 2);
   }
 
   // 12. Draw QR code

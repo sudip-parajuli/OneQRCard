@@ -241,7 +241,7 @@ export default function CardForm({
         </section>
 
         {/* Plan Selection */}
-        {(mode === "create" || isAdmin) && (
+        {(mode === "create" || isAdmin) && !data.parent_id && (
           <section className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
             <h2 className="font-semibold text-stone-900 mb-3 text-sm">Choose Plan</h2>
             <div className="grid sm:grid-cols-3 gap-3">
@@ -267,7 +267,7 @@ export default function CardForm({
         )}
 
         {/* Payment Method Selector (Create Mode Only) */}
-        {mode === "create" && data.plan !== "basic" && (
+        {mode === "create" && data.plan !== "basic" && !data.parent_id && (
           <section className="bg-stone-100 p-6 rounded-2xl border border-stone-200">
             <h2 className="font-semibold text-stone-900 mb-1 text-sm">Payment Method</h2>
             <p className="text-[11px] text-stone-500 mb-4">
@@ -323,6 +323,26 @@ export default function CardForm({
                 className="input"
               />
             </Field>
+            {data.plan !== "basic" && (
+              <>
+                <Field label="Member Name (Optional — e.g. for team cards)">
+                  <input
+                    value={data.member_name || ""}
+                    onChange={(e) => update("member_name", e.target.value)}
+                    placeholder="Sudip Parajuli"
+                    className="input"
+                  />
+                </Field>
+                <Field label="Member Role (Optional — e.g. Founder & CEO)">
+                  <input
+                    value={data.member_role || ""}
+                    onChange={(e) => update("member_role", e.target.value)}
+                    placeholder="Founder & CEO"
+                    className="input"
+                  />
+                </Field>
+              </>
+            )}
             <Field label="Brand color">
               {data.plan === "basic" ? (
                 <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-500 flex items-center justify-between">

@@ -27,11 +27,15 @@ export default async function DashboardPage() {
   }
 
   const userCards = (cards || []) as CardData[];
+  const primaryCards = userCards.filter((c) => !c.parent_id);
+  const teamCards = userCards.filter((c) => c.parent_id);
 
-  // If user has exactly one card, redirect to its edit page
-  if (userCards.length === 1) {
+  // Auto-redirect to edit page only if they have exactly 1 card AND it's on the basic plan
+  if (userCards.length === 1 && userCards[0].plan === "basic") {
     redirect(`/edit/${userCards[0].id}`);
   }
+
+  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || "yourcard.app";
 
   return (
     <main className="min-h-screen bg-stone-50 py-12 px-6 lg:px-8 animate-fade-in">
@@ -51,7 +55,7 @@ export default async function DashboardPage() {
           </form>
         </header>
 
-        {userCards.length === 0 ? (
+        {primaryCards.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl border border-stone-200 p-8 shadow-sm">
             <h2 className="text-lg font-semibold text-stone-900 mb-2">No cards found</h2>
             <p className="text-stone-500 text-sm mb-6 max-w-md mx-auto">
@@ -66,49 +70,113 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 gap-6">
-            {userCards.map((card) => (
-              <div
-                key={card.id}
-                className="bg-white rounded-2xl border border-stone-200 p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-200"
-              >
-                <div>
-                  <div className="flex justify-between items-start mb-4">
-                    <h2 className="text-lg font-semibold text-stone-900">{card.business_name}</h2>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        card.payment_status === "paid"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                          : "bg-amber-50 text-amber-700 border border-amber-100"
-                      }`}
-                    >
-                      {card.payment_status === "paid" ? "Active" : "Pending Payment"}
-                    </span>
+            {primaryCards.map((card) => {
+              const myTeamCards = teamCards.filter((tc) => tc.parent_id === card.id);
+              const maxTeamSlots = card.plan === "pro" ? 2 : card.plan === "business" ? 6 : 0;
+
+              return (
+                <div
+                  key={card.id}
+                  className="bg-white rounded-2xl border border-stone-200 p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <div>
+                    <div className="flex justify-between items-start mb-4">
+                      <h2 className="text-lg font-semibold text-stone-900">
+                        {card.member_name ? `${card.member_name} (${card.business_name})` : card.business_name}
+                      </h2>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          card.payment_status === "paid"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                            : "bg-amber-50 text-amber-700 border border-amber-100"
+                        }`}
+                      >
+                        {card.payment_status === "paid" ? "Active" : "Pending Payment"}
+                      </span>
+                    </div>
+                    {card.tagline && <p className="text-xs text-stone-500 mb-4 line-clamp-2">{card.tagline}</p>}
+                    <p className="text-[11px] text-stone-400 font-mono mb-6">
+                      {card.plan.toUpperCase()} • {card.subdomain ? `${card.subdomain}.${baseDomain}` : `${baseDomain}/card/${card.slug}`}
+                    </p>
+
+                    {/* Team Members Slots Section */}
+                    {card.payment_status === "paid" && maxTeamSlots > 0 && (
+                      <div className="mt-4 pt-4 border-t border-stone-100 mb-6">
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                            Team Cards ({myTeamCards.length} of {maxTeamSlots})
+                          </span>
+                          {myTeamCards.length < maxTeamSlots && (
+                            <Link
+                              href={`/create?parent_id=${card.id}`}
+                              className="text-xs font-bold text-emerald-600 hover:text-emerald-700 underline"
+                            >
+                              + Add Member
+                            </Link>
+                          )}
+                        </div>
+
+                        {myTeamCards.length === 0 ? (
+                          <p className="text-xs text-stone-400 italic">No team member cards created yet.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {myTeamCards.map((member) => (
+                              <div
+                                key={member.id}
+                                className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/50 flex justify-between items-center text-xs"
+                              >
+                                <div>
+                                  <div className="font-semibold text-stone-800">
+                                    {member.member_name || member.business_name}
+                                  </div>
+                                  {member.member_role && (
+                                    <div className="text-[10px] text-stone-400 mt-0.5">{member.member_role}</div>
+                                  )}
+                                </div>
+                                <div className="flex gap-2">
+                                  <Link
+                                    href={`/edit/${member.id}`}
+                                    className="text-stone-600 hover:text-stone-900 underline font-semibold"
+                                  >
+                                    Edit
+                                  </Link>
+                                  <a
+                                    href={member.subdomain ? `https://${member.slug}.${baseDomain}` : `/card/${member.slug}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-stone-600 hover:text-stone-900 underline font-semibold"
+                                  >
+                                    View
+                                  </a>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {card.tagline && <p className="text-xs text-stone-500 mb-4 line-clamp-2">{card.tagline}</p>}
-                  <p className="text-[11px] text-stone-400 font-mono mb-6">
-                    {card.plan.toUpperCase()} • {card.subdomain ? `${card.subdomain}.yourcard.app` : `yourcard.app/card/${card.slug}`}
-                  </p>
-                </div>
-                <div className="flex gap-3 mt-auto">
-                  <Link
-                    href={`/edit/${card.id}`}
-                    className="flex-1 text-center py-2.5 bg-stone-900 text-white rounded-xl text-xs font-semibold hover:bg-stone-800 transition-colors"
-                  >
-                    Edit Card
-                  </Link>
-                  {card.payment_status === "paid" && (
-                    <a
-                      href={card.subdomain ? `https://${card.subdomain}.yourcard.app` : `/card/${card.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 text-center py-2.5 border border-stone-200 hover:bg-stone-50 rounded-xl text-xs font-semibold text-stone-700 transition-colors"
+                  <div className="flex gap-3 mt-auto">
+                    <Link
+                      href={`/edit/${card.id}`}
+                      className="flex-1 text-center py-2.5 bg-stone-900 text-white rounded-xl text-xs font-semibold hover:bg-stone-800 transition-colors"
                     >
-                      View Live
-                    </a>
-                  )}
+                      Edit Card
+                    </Link>
+                    {card.payment_status === "paid" && (
+                      <a
+                        href={card.subdomain ? `https://${card.subdomain}.${baseDomain}` : `/card/${card.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 text-center py-2.5 border border-stone-200 hover:bg-stone-50 rounded-xl text-xs font-semibold text-stone-700 transition-colors"
+                      >
+                        View Live
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

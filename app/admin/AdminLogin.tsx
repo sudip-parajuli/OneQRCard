@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface AdminLoginProps {
   adminEmail: string;
 }
 
 export default function AdminLogin({ adminEmail }: AdminLoginProps) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -18,35 +20,32 @@ export default function AdminLogin({ adminEmail }: AdminLoginProps) {
     setLoading(true);
     setMessage(null);
 
-    const trimmedEmail = email.trim().toLowerCase();
-    if (trimmedEmail !== adminEmail.toLowerCase()) {
-      setMessage({
-        type: "error",
-        text: "Access denied. Only the system administrator can log in here.",
-      });
-      setLoading(false);
-      return;
-    }
-
     try {
-      const baseUrl = window.location.origin;
-      const { error } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: {
-          emailRedirectTo: `${baseUrl}/edit/callback?next=/admin`,
-        },
+      const res = await fetch("/api/admin/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
       });
 
-      if (error) throw error;
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || "Login failed");
+      }
 
       setMessage({
         type: "success",
-        text: "Magic link sent successfully! Check your inbox to log in as administrator.",
+        text: "Logged in successfully! Redirecting...",
       });
+
+      router.push("/admin");
+      router.refresh();
     } catch (err: any) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to send magic link. Please try again.",
+        text: err.message || "Failed to log in. Please check your credentials.",
       });
     } finally {
       setLoading(false);
@@ -63,7 +62,7 @@ export default function AdminLogin({ adminEmail }: AdminLoginProps) {
           Admin Portal
         </h2>
         <p className="mt-2 text-center text-sm text-stone-500">
-          Please enter the administrator email to receive your magic login link.
+          Enter your email and password to log in as administrator.
         </p>
       </div>
 
@@ -83,7 +82,23 @@ export default function AdminLogin({ adminEmail }: AdminLoginProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@example.com"
-                className="input text-center font-medium"
+                className="input font-medium"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-xs font-medium text-stone-700 mb-1">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="input font-medium"
               />
             </div>
 
@@ -103,7 +118,7 @@ export default function AdminLogin({ adminEmail }: AdminLoginProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-stone-900 hover:bg-stone-800 focus:outline-none transition-colors disabled:opacity-50"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-stone-900 hover:bg-stone-800 focus:outline-none transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -111,7 +126,7 @@ export default function AdminLogin({ adminEmail }: AdminLoginProps) {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Verifying & sending...
+                    Signing in...
                   </span>
                 ) : (
                   "Log In as Admin"

@@ -5,6 +5,7 @@ import { SITE } from "@/lib/config";
 import LiveCard from "@/components/LiveCard";
 import ShareQR from "@/components/ShareQR";
 import DownloadBusinessCard from "@/components/DownloadBusinessCard";
+import CardMap from "@/components/CardMap";
 
 export const revalidate = 0;
 
@@ -32,6 +33,8 @@ export default async function CardPage({ params }: { params: { slug: string } })
       <DownloadBusinessCard data={card} />
 
       <ShareQR data={card} url={url} />
+
+      <CardMap data={card} />
 
       <a href={SITE.baseUrl} className="text-xs text-stone-400">
         Made with {SITE.name}

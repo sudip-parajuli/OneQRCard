@@ -48,6 +48,7 @@ export async function PUT(
       show_logo_on_card: body.show_logo_on_card !== undefined ? body.show_logo_on_card : true,
       custom_links: body.custom_links ?? [],
       address: body.address ?? "",
+      location_url: body.location_url ?? "",
     };
 
     if (isAdmin) {

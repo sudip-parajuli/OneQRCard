@@ -4,6 +4,7 @@ import { CardData } from "@/lib/types";
 import { SITE } from "@/lib/config";
 import LiveCard from "@/components/LiveCard";
 import ShareQR from "@/components/ShareQR";
+import DownloadBusinessCard from "@/components/DownloadBusinessCard";
 
 export const revalidate = 0;
 
@@ -27,6 +28,8 @@ export default async function CardPage({ params }: { params: { slug: string } })
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12 gap-8 bg-stone-50">
       <LiveCard data={card} />
+
+      <DownloadBusinessCard data={card} />
 
       <ShareQR data={card} url={url} />
 

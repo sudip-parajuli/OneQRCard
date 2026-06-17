@@ -629,6 +629,14 @@ export default function CardForm({
                 className="input"
               />
             </Field>
+            <Field label="Location URL (Direct Google Maps link)">
+              <input
+                value={data.location_url || ""}
+                onChange={(e) => update("location_url", e.target.value)}
+                placeholder="https://maps.app.goo.gl/..."
+                className="input"
+              />
+            </Field>
           </div>
         </section>
 

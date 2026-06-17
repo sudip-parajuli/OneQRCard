@@ -78,7 +78,21 @@ const icons = {
 function buildLinks(data: CardData): LinkItem[] {
   const items: LinkItem[] = [];
   if (data.google_review) items.push({ key: "google_review", label: "Review us on Google", href: data.google_review, icon: icons.googleReview });
-  if (data.address) items.push({ key: "address", label: data.address, href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.address)}`, icon: icons.address });
+  if (data.location_url) {
+    items.push({
+      key: "address",
+      label: data.address || "Location / Map",
+      href: data.location_url,
+      icon: icons.address,
+    });
+  } else if (data.address) {
+    items.push({
+      key: "address",
+      label: data.address,
+      href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.address)}`,
+      icon: icons.address,
+    });
+  }
   if (data.phone) items.push({ key: "phone", label: `Call — ${data.phone}`, href: `tel:${normalizePhone(data.phone)}`, icon: icons.phone });
   if (data.whatsapp) items.push({ key: "whatsapp", label: "WhatsApp", href: `https://wa.me/${normalizePhone(data.whatsapp)}`, icon: icons.whatsapp });
   if (data.website) items.push({ key: "website", label: "Website", href: data.website, icon: icons.website });

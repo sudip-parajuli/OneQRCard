@@ -31,6 +31,7 @@ export interface CardData {
   custom_links?: { label: string; url: string }[] | null;
   address?: string | null;
   google_review?: string;
+  location_url?: string | null;
   background_data_url?: string | null;
   card_layout?: "classic" | "modern_dark" | "minimal_light";
   text_color?: string | null;

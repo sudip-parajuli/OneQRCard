@@ -56,7 +56,10 @@ create table if not exists cards (
   custom_links jsonb default '[]'::jsonb,
 
   -- From Migration 011: Add address field
-  address text default ''
+  address text default '',
+
+  -- From Migration 012: Add location_url field
+  location_url text default ''
 );
 
 -- Indexes

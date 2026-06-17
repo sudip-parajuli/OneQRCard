@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
       show_logo_on_card: body.show_logo_on_card ?? true,
       custom_links: body.custom_links ?? [],
       address: body.address ?? "",
+      location_url: body.location_url ?? "",
     };
 
     const { data, error } = await db.from("cards").insert(record).select().single();

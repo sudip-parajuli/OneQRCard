@@ -15,7 +15,8 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}${next}`);
     }
     console.error("Auth callback session exchange error:", error);
+    return NextResponse.redirect(`${origin}/edit?error=${encodeURIComponent(error.message)}`);
   }
 
-  return NextResponse.redirect(`${origin}/edit?error=Could not verify session`);
+  return NextResponse.redirect(`${origin}/edit?error=No+code+provided`);
 }

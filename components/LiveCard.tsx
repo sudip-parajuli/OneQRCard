@@ -1,21 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
 import CardPreview from "@/components/CardPreview";
 import { CardData } from "@/lib/types";
-import { buildVCard } from "@/lib/utils";
+import { buildVCard, isCardExpired } from "@/lib/utils";
 import { generateBusinessCard } from "@/lib/business-card";
 import Link from "next/link";
 
-function isCardExpired(card: CardData): boolean {
-  if (card.plan !== "basic") return false;
-  if (!card.created_at) return false;
-  const created = new Date(card.created_at);
-  const diffTime = new Date().getTime() - created.getTime();
-  const diffDays = diffTime / (1000 * 60 * 60 * 24);
-  return diffDays > 15;
-}
-
 export default function LiveCard({ data }: { data: CardData }) {
+  useEffect(() => {
+    if (data.id && data.plan !== "basic") {
+      fetch(`/api/cards/${data.id}/scan`, { method: "POST" }).catch((e) =>
+        console.error("Scan recording failed", e)
+      );
+    }
+  }, [data.id, data.plan]);
+
   function handleSaveContact() {
     const vcard = buildVCard(data);
     const blob = new Blob([vcard], { type: "text/vcard" });

@@ -39,6 +39,17 @@ export interface CardData {
   member_name?: string | null;
   member_role?: string | null;
   show_logo_on_card?: boolean;
+  workspace_id?: string | null;
+  is_primary?: boolean;
+  opening_hours?: Record<string, { open: string; close: string; isClosed: boolean }> | null;
+  business_type?: string;
+  sections?: any[] | null;
+  section_order?: string[] | null;
+  qr_customization?: {
+    dotStyle?: "square" | "rounded" | "dots";
+    cornerStyle?: "square" | "rounded";
+    logoEnabled?: boolean;
+  } | null;
   created_at?: string;
 }
 
@@ -74,7 +85,7 @@ export const PLAN_DETAILS: Record<
     priceNPR: 500,
     priceUSD: 5,
     features: [
-      "Custom subdomain (clientname.one-qr-card.vercel.app)",
+      "Custom subdomain — yourname.one-qr-card.com (Coming soon. Hosted at /card/[slug] in the meantime. Same QR, no interruptions when we switch.)",
       "All themes (Classic, Minimal, Bold, Gradient)",
       "Custom brand color, text color & logo upload",
       "Logo embedded inside the QR Code itself",

@@ -19,10 +19,10 @@ export async function POST(req: NextRequest) {
     // Check if creator is Admin
     const supabase = createServerSupabase();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "sparajuli802@gmail.com";
-    const isAdmin = session && session.user.email === adminEmail;
+    const isAdmin = user && user.email === adminEmail;
 
     const db = supabaseAdmin();
 
@@ -42,12 +42,62 @@ export async function POST(req: NextRequest) {
       attempt++;
     }
 
+    let workspaceId = body.workspace_id ?? null;
     let parentId = body.parent_id ?? null;
     let paymentStatus = isAdmin ? (body.payment_status || "paid") : (body.plan === "basic" ? "paid" : "pending");
     let plan = body.plan ?? "basic";
     let ownerEmail = isAdmin ? (body.owner_email || body.email || "") : (body.email || "");
 
-    if (parentId) {
+    if (workspaceId) {
+      // Fetch workspace
+      const { data: ws, error: wsError } = await db
+        .from("workspaces")
+        .select("*")
+        .eq("id", workspaceId)
+        .maybeSingle();
+
+      if (wsError || !ws) {
+        return NextResponse.json({ error: "Workspace not found" }, { status: 400 });
+      }
+
+      // Check card limits for this workspace
+      const { data: wsCards, error: wsCardsError } = await db
+        .from("cards")
+        .select("id")
+        .eq("workspace_id", workspaceId);
+
+      if (wsCardsError) {
+        return NextResponse.json({ error: "Could not verify workspace cards" }, { status: 500 });
+      }
+
+      const currentCount = wsCards?.length || 0;
+      if (currentCount >= ws.card_limit) {
+        return NextResponse.json({ error: "Workspace card limit reached for this plan" }, { status: 400 });
+      }
+
+      // Fetch primary card of the workspace to inherit branding
+      const { data: primaryCard } = await db
+        .from("cards")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .eq("is_primary", true)
+        .maybeSingle();
+
+      if (primaryCard) {
+        body.brand_color = body.brand_color || primaryCard.brand_color;
+        body.theme = body.theme || primaryCard.theme;
+        body.logo_data_url = body.logo_data_url || primaryCard.logo_data_url;
+        body.background_data_url = body.background_data_url || primaryCard.background_data_url;
+        body.card_layout = body.card_layout || primaryCard.card_layout;
+        body.show_logo_on_card = body.show_logo_on_card ?? primaryCard.show_logo_on_card;
+        
+        parentId = primaryCard.id;
+      }
+
+      plan = ws.plan;
+      paymentStatus = "paid";
+      ownerEmail = ws.owner_email;
+    } else if (parentId) {
       // Fetch parent card to verify plan and active status
       const { data: parentCard, error: parentError } = await db
         .from("cards")
@@ -84,6 +134,7 @@ export async function POST(req: NextRequest) {
       plan = parentCard.plan;
       paymentStatus = "paid";
       ownerEmail = parentCard.owner_email || "";
+      workspaceId = parentCard.workspace_id || null;
     }
 
     const record: Partial<CardData> = {
@@ -107,6 +158,8 @@ export async function POST(req: NextRequest) {
       subdomain: plan === "basic" ? null : slug,
       payment_status: paymentStatus,
       parent_id: parentId,
+      workspace_id: workspaceId,
+      is_primary: workspaceId ? false : (parentId ? false : true),
       member_name: body.member_name ?? null,
       member_role: body.member_role ?? null,
       text_color: body.text_color ?? null,
@@ -116,6 +169,10 @@ export async function POST(req: NextRequest) {
       custom_links: body.custom_links ?? [],
       address: body.address ?? "",
       location_url: body.location_url ?? "",
+      business_type: body.business_type ?? "general",
+      sections: body.sections ?? [],
+      section_order: body.section_order ?? [],
+      qr_customization: body.qr_customization ?? null,
     };
 
     const { data, error } = await db.from("cards").insert(record).select().single();

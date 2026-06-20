@@ -3,6 +3,8 @@
 import { useState } from "react";
 import CardForm from "@/components/CardForm";
 import UpgradeButton from "@/components/UpgradeButton";
+import ScanAnalytics from "@/components/ScanAnalytics";
+import InboxCRM from "@/components/InboxCRM";
 import { CardData } from "@/lib/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -90,11 +92,21 @@ export default function EditClient({ initialData }: EditClientProps) {
         </div>
       )}
 
+      {initialData.id && (
+        <ScanAnalytics cardId={initialData.id} plan={initialData.plan} />
+      )}
+
+      {initialData.id && (
+        <InboxCRM cardId={initialData.id} plan={initialData.plan} />
+      )}
+
       {initialData.payment_status === "paid" && (
-        <UpgradeButton
-          cardId={initialData.id || ""}
-          currentPlan={initialData.plan}
-        />
+        <div id="upgrade-section">
+          <UpgradeButton
+            cardId={initialData.id || ""}
+            currentPlan={initialData.plan}
+          />
+        </div>
       )}
 
       <CardForm

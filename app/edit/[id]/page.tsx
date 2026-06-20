@@ -9,10 +9,10 @@ export default async function EditCardPage({ params }: { params: { id: string } 
   const supabase = createServerSupabase();
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     redirect("/edit");
   }
 

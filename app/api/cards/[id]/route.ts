@@ -13,15 +13,15 @@ export async function PUT(
 
     // Verify authentication session
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "sparajuli802@gmail.com";
-    const isAdmin = session.user.email === adminEmail;
+    const isAdmin = user.email === adminEmail;
 
     const body = await req.json();
 
@@ -49,6 +49,11 @@ export async function PUT(
       custom_links: body.custom_links ?? [],
       address: body.address ?? "",
       location_url: body.location_url ?? "",
+      opening_hours: body.opening_hours ?? null,
+      business_type: body.business_type,
+      sections: body.sections,
+      section_order: body.section_order,
+      qr_customization: body.qr_customization ?? null,
     };
 
     if (isAdmin) {
@@ -105,15 +110,15 @@ export async function DELETE(
   try {
     const supabase = createServerSupabase();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "sparajuli802@gmail.com";
-    if (session.user.email !== adminEmail) {
+    if (user.email !== adminEmail) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

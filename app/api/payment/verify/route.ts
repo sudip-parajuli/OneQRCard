@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { activateWorkspaceForCard, upgradeWorkspaceForCard } from "@/lib/workspace";
 
 /**
  * Verifies a completed eSewa transaction via eSewa's status check API,
@@ -73,6 +74,20 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Activate or upgrade workspace
+    try {
+      if (isUpgrade) {
+        const parts = transactionUuid.split("-");
+        const targetPlan = parts[2];
+        await upgradeWorkspaceForCard(cardId, targetPlan);
+      } else {
+        await activateWorkspaceForCard(cardId);
+      }
+    } catch (wsErr: any) {
+      console.error("Workspace activation/upgrade error during verify:", wsErr);
+      // We don't fail the verification since the card itself has been marked as paid/upgraded
     }
 
     return NextResponse.json({ verified: true, card });

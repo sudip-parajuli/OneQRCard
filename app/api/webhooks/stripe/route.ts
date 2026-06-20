@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { activateWorkspaceForCard, upgradeWorkspaceForCard } from "@/lib/workspace";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_mock");
 
@@ -57,6 +58,12 @@ export async function POST(req: NextRequest) {
           console.error("Error upgrading card via Stripe webhook:", cardId, error);
           return NextResponse.json({ error: error.message }, { status: 500 });
         }
+
+        try {
+          await upgradeWorkspaceForCard(cardId, targetPlan);
+        } catch (wsErr) {
+          console.error("Workspace upgrade error during Stripe webhook:", wsErr);
+        }
       } else {
         // Regular initial card payment
         const { error } = await db
@@ -70,6 +77,12 @@ export async function POST(req: NextRequest) {
         if (error) {
           console.error("Error updating payment status for card:", cardId, error);
           return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        try {
+          await activateWorkspaceForCard(cardId);
+        } catch (wsErr) {
+          console.error("Workspace activation error during Stripe webhook:", wsErr);
         }
       }
     }

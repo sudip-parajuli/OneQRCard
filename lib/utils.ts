@@ -65,3 +65,12 @@ export function slugify(name: string) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 }
+
+export function isCardExpired(card: { plan: string; created_at?: string }) {
+  if (card.plan !== "basic") return false;
+  if (!card.created_at) return false;
+  const created = new Date(card.created_at);
+  const diffTime = new Date().getTime() - created.getTime();
+  const diffDays = diffTime / (1000 * 60 * 60 * 24);
+  return diffDays > 15;
+}

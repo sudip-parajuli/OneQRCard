@@ -14,13 +14,14 @@ export default function ShareQR({ data, url }: { data: CardData; url: string }) 
       data.brand_color || "#085041",
       data.logo_data_url,
       data.business_name,
-      isPaid
+      isPaid,
+      data.qr_customization
     )
       .then(setQr)
       .catch((err) => {
         console.error("Failed to generate share QR code:", err);
       });
-  }, [url, data]);
+  }, [url, data, data.qr_customization]);
 
   function handleDownloadQR() {
     if (!qr) return;
@@ -30,6 +31,18 @@ export default function ShareQR({ data, url }: { data: CardData; url: string }) 
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  }
+
+  if (!data.slug) {
+    return (
+      <div className="bg-white border border-stone-200 rounded-xl p-5 text-center max-w-xs w-full shadow-sm animate-fade-in flex flex-col items-center justify-center min-h-[180px]">
+        <span className="text-2xl mb-2">🔗</span>
+        <div className="text-xs font-semibold text-stone-600">Custom link not set</div>
+        <p className="text-[10px] text-stone-400 mt-1 max-w-[200px] leading-normal">
+          Set a unique profile link in the details step to generate your branded QR code.
+        </p>
+      </div>
+    );
   }
 
   if (!qr) {

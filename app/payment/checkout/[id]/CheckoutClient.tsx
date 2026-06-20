@@ -57,7 +57,7 @@ export default function CheckoutClient({ card, initialProvider }: CheckoutClient
       }
 
       // Redirect to success page showing pending validation status
-      router.push(`/payment/success?provider=manual&slug=${card.slug}`);
+      router.push(`/payment/success?provider=manual&slug=${card.slug}&cardId=${card.id}`);
       router.refresh();
     } catch (err: any) {
       console.error(err);

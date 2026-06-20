@@ -9,12 +9,12 @@ export const revalidate = 0;
 export default async function AdminEditCardPage({ params }: { params: { id: string } }) {
   const supabase = createServerSupabase();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "sparajuli802@gmail.com";
 
-  if (!session || session.user.email !== adminEmail) {
+  if (!user || user.email !== adminEmail) {
     redirect("/admin");
   }
 

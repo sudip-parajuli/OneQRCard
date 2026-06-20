@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const db = supabaseAdmin();
   const { data: card, error } = await db
     .from("cards")
-    .select("id, slug, payment_status")
+    .select("id, slug, payment_status, plan, workspace_id")
     .eq("id", cardId)
     .maybeSingle();
 
@@ -23,5 +23,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     status: card.payment_status,
     slug: card.slug,
+    plan: card.plan,
+    workspaceId: card.workspace_id,
   });
 }

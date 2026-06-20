@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { activateWorkspaceForCard } from "@/lib/workspace";
 
 export const revalidate = 0;
 
@@ -11,15 +12,15 @@ export async function PUT(
   try {
     const supabase = createServerSupabase();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "sparajuli802@gmail.com";
-    if (session.user.email !== adminEmail) {
+    if (user.email !== adminEmail) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -44,6 +45,14 @@ export async function PUT(
 
     if (!data) {
       return NextResponse.json({ error: "Card not found" }, { status: 404 });
+    }
+
+    if (status === "paid") {
+      try {
+        await activateWorkspaceForCard(params.id);
+      } catch (wsErr) {
+        console.error("Workspace activation error during admin toggle-payment:", wsErr);
+      }
     }
 
     return NextResponse.json({ card: data });

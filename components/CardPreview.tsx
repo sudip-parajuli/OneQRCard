@@ -1,7 +1,29 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { CardData } from "@/lib/types";
 import { darken, getInitials, lighten, normalizePhone } from "@/lib/utils";
+import { motion } from "framer-motion";
+import ShareQR from "@/components/ShareQR";
+import { SITE } from "@/lib/config";
+import { 
+  MenuSectionRenderer, 
+  GallerySectionRenderer, 
+  ServicesSectionRenderer,
+  HoursSectionRenderer,
+  LocationSectionRenderer,
+  ReviewSectionRenderer,
+  BookingSectionRenderer,
+  WifiSectionRenderer,
+  LeadCaptureSectionRenderer,
+  AmenitiesSectionRenderer,
+  ScheduleSectionRenderer,
+  PricingTableSectionRenderer,
+  FeaturedProductsSectionRenderer,
+  CoursesSectionRenderer,
+  ContactSectionRenderer,
+  SocialsSectionRenderer
+} from "@/components/SectionRenderers";
 
 interface LinkItem {
   key: string;
@@ -77,7 +99,6 @@ const icons = {
 
 function buildLinks(data: CardData): LinkItem[] {
   const items: LinkItem[] = [];
-  if (data.google_review) items.push({ key: "google_review", label: "Review us on Google", href: data.google_review, icon: icons.googleReview });
   if (data.location_url) {
     items.push({
       key: "address",
@@ -94,7 +115,14 @@ function buildLinks(data: CardData): LinkItem[] {
     });
   }
   if (data.phone) items.push({ key: "phone", label: `Call — ${data.phone}`, href: `tel:${normalizePhone(data.phone)}`, icon: icons.phone });
-  if (data.whatsapp) items.push({ key: "whatsapp", label: "WhatsApp", href: `https://wa.me/${normalizePhone(data.whatsapp)}`, icon: icons.whatsapp });
+  if (data.whatsapp) {
+    items.push({
+      key: "whatsapp",
+      label: "WhatsApp",
+      href: `https://wa.me/${normalizePhone(data.whatsapp)}?text=Hello!%20I%20saw%20your%20digital%20business%20card%20and%20wanted%20to%20reach%2520out.`,
+      icon: icons.whatsapp,
+    });
+  }
   if (data.website) items.push({ key: "website", label: "Website", href: data.website, icon: icons.website });
   if (data.facebook) items.push({ key: "facebook", label: "Facebook", href: data.facebook, icon: icons.facebook });
   if (data.instagram) items.push({ key: "instagram", label: "Instagram", href: data.instagram, icon: icons.instagram });
@@ -129,7 +157,7 @@ interface Props {
  * Renders the public-facing digital card. Shared between the live editor preview
  * and the actual hosted /card/[slug] page so they always stay visually in sync.
  */
-export default function CardPreview({ data, onSaveContact, onDownloadCard }: Props) {
+function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
   const links = buildLinks(data);
   const initials = getInitials(data.member_name || data.business_name || "Your Business");
   const color = data.brand_color || "#085041";
@@ -153,7 +181,10 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
     const linkBorderCol = customTextColor ? `${customTextColor}1a` : "rgba(255, 255, 255, 0.1)";
 
     return (
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="rounded-3xl p-1.5 max-w-sm w-full mx-auto relative overflow-hidden shadow-xl"
         style={bgStyle}
       >
@@ -187,26 +218,62 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
                 : data.tagline}
             </div>
           )}
+          <OpenStatusBadge hours={data.opening_hours} inverse={false} />
 
-          <div className="mt-6 flex flex-col gap-2">
+          <motion.div
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.05
+                }
+              }
+            }}
+            initial="hidden"
+            animate="show"
+            className="mt-6 flex flex-col gap-2"
+          >
             <SaveButton color="rgba(255, 255, 255, 0.22)" textColor="#fff" onClick={onSaveContact} />
             {onDownloadCard && <DownloadButton color={txtColor} onClick={onDownloadCard} />}
+            
+            {data.google_review && (
+              <GoogleReviewGate
+                cardId={data.id}
+                googleReviewUrl={data.google_review}
+                brandColor={color}
+              />
+            )}
+
             {links.map((l) => (
-              <a
+              <motion.a
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: { opacity: 1, y: 0 }
+                }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
                 key={l.key}
                 href={l.href}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: txtColor, borderColor: linkBorderCol }}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-white/5 hover:bg-white/15 text-sm transition-all"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-white/5 hover:bg-white/15 text-sm transition-all cursor-pointer"
               >
                 <span style={{ color: mutedTxtColor }}>{l.icon}</span>
                 {l.label}
-              </a>
+              </motion.a>
             ))}
-          </div>
+
+            {data.plan === "business" && (
+              <>
+                <LeadCaptureForm cardId={data.id} brandColor={color} />
+                <WalletButton cardId={data.id} brandColor={color} />
+              </>
+            )}
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -215,7 +282,10 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
     const mutedTxtColor = customTextColor ? `${customTextColor}b3` : "#a1a1aa";
 
     return (
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="bg-stone-950 rounded-3xl overflow-hidden max-w-sm w-full mx-auto border-2 p-6 transition-all"
         style={{
           borderColor: color,
@@ -238,26 +308,49 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
                 : data.tagline}
             </div>
           )}
+          <OpenStatusBadge hours={data.opening_hours} inverse={false} />
         </div>
-        <div className="pt-6 flex flex-col gap-2 bg-stone-950/70 backdrop-blur-sm rounded-b-xl px-1">
-          <button
-            onClick={onSaveContact}
-            style={{ backgroundColor: color }}
-            className="w-full py-3 rounded-xl text-sm font-extrabold text-stone-950 hover:opacity-90 transition-opacity mb-1"
-          >
-            Save to contacts
-          </button>
+        <motion.div
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.05
+              }
+            }
+          }}
+          initial="hidden"
+          animate="show"
+          className="pt-6 flex flex-col gap-2 bg-stone-950/70 backdrop-blur-sm rounded-b-xl px-1"
+        >
+          <SaveButton color={color} textColor="#0c0a09" onClick={onSaveContact} />
           {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
+          
+          {data.google_review && (
+            <GoogleReviewGate
+              cardId={data.id}
+              googleReviewUrl={data.google_review}
+              brandColor={color}
+            />
+          )}
+
           {links.map((l) => {
             const isGoogleReview = l.key === "google_review";
             return (
-              <a
+              <motion.a
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: { opacity: 1, y: 0 }
+                }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
                 key={l.key}
                 href={l.href}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: isGoogleReview ? undefined : txtColor }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${
                   isGoogleReview
                     ? "border-amber-500/30 bg-amber-500/5 text-amber-300 hover:bg-amber-500/10"
                     : "border-stone-800 hover:bg-stone-900"
@@ -270,11 +363,18 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
                   {l.icon}
                 </span>
                 {l.label}
-              </a>
+              </motion.a>
             );
           })}
-        </div>
-      </div>
+
+          {data.plan === "business" && (
+            <>
+              <LeadCaptureForm cardId={data.id} brandColor={color} />
+              <WalletButton cardId={data.id} brandColor={color} />
+            </>
+          )}
+        </motion.div>
+      </motion.div>
     );
   }
 
@@ -283,7 +383,10 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
     const mutedTxtColor = customTextColor ? `${customTextColor}b3` : "#6b7280";
 
     return (
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="bg-white rounded-2xl overflow-hidden border border-stone-200 max-w-sm w-full mx-auto"
         style={bgStyle}
       >
@@ -299,20 +402,49 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
                 : data.tagline}
             </div>
           )}
+          <OpenStatusBadge hours={data.opening_hours} inverse={true} />
         </div>
-        <div className={`px-6 pb-6 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}>
+        <motion.div
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.05
+              }
+            }
+          }}
+          initial="hidden"
+          animate="show"
+          className={`px-6 pb-6 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}
+        >
           <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
           {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
+          
+          {data.google_review && (
+            <GoogleReviewGate
+              cardId={data.id}
+              googleReviewUrl={data.google_review}
+              brandColor={color}
+            />
+          )}
+
           {links.map((l) => {
             const isGoogleReview = l.key === "google_review";
             return (
-              <a
+              <motion.a
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: { opacity: 1, y: 0 }
+                }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
                 key={l.key}
                 href={l.href}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: isGoogleReview ? undefined : txtColor }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${
                   isGoogleReview
                     ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
                     : "border-stone-200 hover:bg-stone-50"
@@ -325,11 +457,18 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
                   {l.icon}
                 </span>
                 {l.label}
-              </a>
+              </motion.a>
             );
           })}
-        </div>
-      </div>
+
+          {data.plan === "business" && (
+            <>
+              <LeadCaptureForm cardId={data.id} brandColor={color} />
+              <WalletButton cardId={data.id} brandColor={color} />
+            </>
+          )}
+        </motion.div>
+      </motion.div>
     );
   }
 
@@ -338,7 +477,10 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
     const mutedTxtColor = customTextColor ? `${customTextColor}cc` : lighten(color, 0.6);
 
     return (
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="rounded-2xl overflow-hidden max-w-sm w-full mx-auto"
         style={{ backgroundColor: color, ...bgStyle }}
       >
@@ -354,15 +496,45 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
                 : data.tagline}
             </div>
           )}
+          <OpenStatusBadge hours={data.opening_hours} inverse={false} />
         </div>
-        <div className={`bg-white rounded-t-3xl px-6 py-6 flex flex-col gap-2 ${hasBg ? "bg-white/90 backdrop-blur-md" : ""}`}>
+        <motion.div
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.05
+              }
+            }
+          }}
+          initial="hidden"
+          animate="show"
+          className={`bg-white rounded-t-3xl px-6 py-6 flex flex-col gap-2 ${hasBg ? "bg-white/90 backdrop-blur-md" : ""}`}
+        >
           <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
           {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
+          
+          {data.google_review && (
+            <GoogleReviewGate
+              cardId={data.id}
+              googleReviewUrl={data.google_review}
+              brandColor={color}
+            />
+          )}
+
           {links.map((l) => (
             <LinkRow key={l.key} item={l} variant="outline" />
           ))}
-        </div>
-      </div>
+
+          {data.plan === "business" && (
+            <>
+              <LeadCaptureForm cardId={data.id} brandColor={color} />
+              <WalletButton cardId={data.id} brandColor={color} />
+            </>
+          )}
+        </motion.div>
+      </motion.div>
     );
   }
 
@@ -371,7 +543,10 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
     const mutedTxtColor = customTextColor ? `${customTextColor}cc` : lighten(color, 0.7);
 
     return (
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="rounded-2xl overflow-hidden max-w-sm w-full mx-auto border border-stone-200 bg-white"
         style={bgStyle}
       >
@@ -394,15 +569,45 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
                 : data.tagline}
             </div>
           )}
+          <OpenStatusBadge hours={data.opening_hours} inverse={false} />
         </div>
-        <div className={`px-6 pt-6 pb-6 -mt-6 mx-4 mb-2 bg-white rounded-2xl shadow-sm flex flex-col gap-2 relative ${hasBg ? "bg-white/90 backdrop-blur-md" : ""}`}>
+        <motion.div
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.05
+              }
+            }
+          }}
+          initial="hidden"
+          animate="show"
+          className={`px-6 pt-6 pb-6 -mt-6 mx-4 mb-2 bg-white rounded-2xl shadow-sm flex flex-col gap-2 relative ${hasBg ? "bg-white/90 backdrop-blur-md" : ""}`}
+        >
           <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
           {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
+          
+          {data.google_review && (
+            <GoogleReviewGate
+              cardId={data.id}
+              googleReviewUrl={data.google_review}
+              brandColor={color}
+            />
+          )}
+
           {links.map((l) => (
             <LinkRow key={l.key} item={l} variant="outline" />
           ))}
-        </div>
-      </div>
+
+          {data.plan === "business" && (
+            <>
+              <LeadCaptureForm cardId={data.id} brandColor={color} />
+              <WalletButton cardId={data.id} brandColor={color} />
+            </>
+          )}
+        </motion.div>
+      </motion.div>
     );
   }
 
@@ -413,7 +618,10 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
   const classicBodyMutedColor = customTextColor ? `${customTextColor}b3` : "#6b7280";
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
       className="bg-white rounded-2xl overflow-hidden border border-stone-200 max-w-sm w-full mx-auto"
       style={bgStyle}
     >
@@ -432,20 +640,49 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
               : data.tagline}
           </div>
         )}
+        <OpenStatusBadge hours={data.opening_hours} inverse={false} />
       </div>
-      <div className={`px-5 py-5 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}>
+      <motion.div
+        variants={{
+          hidden: { opacity: 0 },
+          show: {
+            opacity: 1,
+            transition: {
+              staggerChildren: 0.05
+            }
+          }
+        }}
+        initial="hidden"
+        animate="show"
+        className={`px-5 py-5 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}
+      >
         <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
         {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
+        
+        {data.google_review && (
+          <GoogleReviewGate
+            cardId={data.id}
+            googleReviewUrl={data.google_review}
+            brandColor={color}
+          />
+        )}
+
         {links.map((l) => {
           const isGoogleReview = l.key === "google_review";
           return (
-            <a
+            <motion.a
+              variants={{
+                hidden: { opacity: 0, y: 10 },
+                show: { opacity: 1, y: 0 }
+              }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
               key={l.key}
               href={l.href}
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: isGoogleReview ? undefined : classicBodyTextColor }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${
                 isGoogleReview
                   ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
                   : "border-stone-200 hover:bg-stone-50"
@@ -458,11 +695,18 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
                 {l.icon}
               </span>
               {l.label}
-            </a>
+            </motion.a>
           );
         })}
-      </div>
-    </div>
+
+        {data.plan === "business" && (
+          <>
+            <LeadCaptureForm cardId={data.id} brandColor={color} />
+            <WalletButton cardId={data.id} brandColor={color} />
+          </>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -516,14 +760,33 @@ function SaveButton({
   textColor: string;
   onClick?: () => void;
 }) {
+  const [saved, setSaved] = useState(false);
+
+  function handleSave() {
+    if (onClick) onClick();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
   return (
-    <button
-      onClick={onClick}
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={handleSave}
       style={{ backgroundColor: color, color: textColor }}
-      className="w-full py-3 rounded-xl text-sm font-semibold mb-1"
+      className="w-full py-3 rounded-xl text-sm font-semibold mb-1 flex items-center justify-center gap-2 cursor-pointer"
     >
-      Save to contacts
-    </button>
+      {saved ? (
+        <>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>Saved!</span>
+        </>
+      ) : (
+        "Save to contacts"
+      )}
+    </motion.button>
   );
 }
 
@@ -535,10 +798,12 @@ function DownloadButton({
   onClick?: () => void;
 }) {
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       onClick={onClick}
       style={{ borderColor: color, color: color }}
-      className="w-full py-3 rounded-xl text-sm font-semibold border-2 hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 mb-1"
+      className="w-full py-3 rounded-xl text-sm font-semibold border-2 hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 mb-1 cursor-pointer"
     >
       <svg
         viewBox="0 0 24 24"
@@ -554,14 +819,16 @@ function DownloadButton({
         <line x1="12" y1="15" x2="12" y2="3" />
       </svg>
       Download Business Card
-    </button>
+    </motion.button>
   );
 }
 
 function LinkRow({ item, variant }: { item: LinkItem; variant: "outline" }) {
   const isGoogleReview = item.key === "google_review";
   return (
-    <a
+    <motion.a
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       href={item.href}
       target="_blank"
       rel="noopener noreferrer"
@@ -573,6 +840,437 @@ function LinkRow({ item, variant }: { item: LinkItem; variant: "outline" }) {
     >
       <span className={isGoogleReview ? "text-amber-500" : "text-stone-500"}>{item.icon}</span>
       {item.label}
+    </motion.a>
+  );
+}
+
+function GoogleReviewGate({
+  cardId,
+  googleReviewUrl,
+  brandColor,
+}: {
+  cardId?: string;
+  googleReviewUrl: string;
+  brandColor: string;
+}) {
+  const [rated, setRated] = useState<"happy" | "unhappy" | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  if (submitted) {
+    return (
+      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center text-xs text-emerald-800 animate-fade-in my-1 w-full">
+        Thank you for your valuable feedback!
+      </div>
+    );
+  }
+
+  if (rated === "unhappy") {
+    return (
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (!feedbackText.trim()) return;
+          setSubmitting(true);
+          if (cardId) {
+            try {
+              await fetch(`/api/cards/${cardId}/feedback`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rating: "unhappy", comments: feedbackText }),
+              });
+            } catch (err) {
+              console.error(err);
+            }
+          }
+          setSubmitting(false);
+          setSubmitted(true);
+        }}
+        className="bg-stone-50 border border-stone-200 rounded-xl p-4 text-left text-xs space-y-3 animate-fade-in my-1 w-full"
+      >
+        <p className="font-semibold text-stone-700">We&apos;re sorry to hear that. How can we improve?</p>
+        <textarea
+          required
+          rows={3}
+          value={feedbackText}
+          onChange={(e) => setFeedbackText(e.target.value)}
+          placeholder="Share your experience..."
+          className="w-full border border-stone-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-brand"
+        />
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{ backgroundColor: brandColor }}
+            className="text-white px-3 py-1.5 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {submitting ? "Submitting..." : "Submit"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setRated(null)}
+            className="text-stone-500 hover:text-stone-700 font-semibold px-2 py-1.5"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="border border-stone-200 bg-amber-50/20 rounded-xl p-4 text-center text-xs shadow-sm my-1 w-full">
+      <p className="font-semibold text-stone-700 mb-2.5">Rate your experience with us</p>
+      <div className="flex justify-center gap-6">
+        <button
+          type="button"
+          onClick={() => {
+            setRated("happy");
+            window.open(googleReviewUrl, "_blank", "noopener,noreferrer");
+          }}
+          className="flex flex-col items-center gap-1 group"
+        >
+          <span className="text-3xl filter transition-transform group-hover:scale-110 duration-200">🙂</span>
+          <span className="text-[10px] text-stone-500 font-medium">Happy</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setRated("unhappy")}
+          className="flex flex-col items-center gap-1 group"
+        >
+          <span className="text-3xl filter transition-transform group-hover:scale-110 duration-200">🙁</span>
+          <span className="text-[10px] text-stone-500 font-medium">Unhappy</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function LeadCaptureForm({ cardId, brandColor }: { cardId?: string; brandColor: string }) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  if (submitted) {
+    return (
+      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center text-xs text-emerald-800 animate-fade-in mt-4 w-full">
+        Message sent successfully!
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-stone-200 rounded-xl p-4 bg-white shadow-sm mt-4 text-left text-xs w-full">
+      <h3 className="font-bold text-stone-850 mb-2">Get in touch</h3>
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (!name.trim() || !phone.trim()) return;
+          setSubmitting(true);
+          if (cardId) {
+            try {
+              await fetch(`/api/cards/${cardId}/leads`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, phone, message }),
+              });
+            } catch (err) {
+              console.error(err);
+            }
+          }
+          setSubmitting(false);
+          setSubmitted(true);
+        }}
+        className="space-y-2.5"
+      >
+        <div>
+          <label className="block text-[10px] font-semibold text-stone-500 mb-0.5">Name</label>
+          <input
+            required
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your name"
+            className="w-full border border-stone-300 rounded-lg p-1.5 text-xs focus:ring-1 focus:ring-brand bg-stone-50/50"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] font-semibold text-stone-500 mb-0.5">Phone Number</label>
+          <input
+            required
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="e.g. 9860000000"
+            className="w-full border border-stone-300 rounded-lg p-1.5 text-xs focus:ring-1 focus:ring-brand bg-stone-50/50"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] font-semibold text-stone-500 mb-0.5">Message</label>
+          <textarea
+            rows={2}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Your message..."
+            className="w-full border border-stone-300 rounded-lg p-1.5 text-xs focus:ring-1 focus:ring-brand bg-stone-50/50"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={submitting}
+          style={{ backgroundColor: brandColor }}
+          className="w-full text-white py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 text-center cursor-pointer"
+        >
+          {submitting ? "Sending..." : "Send Message"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function WalletButton({ cardId, brandColor }: { cardId?: string; brandColor: string }) {
+  if (!cardId) return null;
+  return (
+    <a
+      href={`/api/cards/${cardId}/wallet`}
+      download
+      style={{ borderColor: brandColor, color: brandColor }}
+      className="flex items-center justify-center gap-1.5 px-4 py-2 border rounded-xl text-xs font-semibold hover:bg-stone-50 transition-colors cursor-pointer mt-4 shadow-sm w-full"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+        <rect x="2" y="5" width="20" height="14" rx="2" ry="2" />
+        <line x1="2" y1="10" x2="22" y2="10" />
+      </svg>
+      Add to Apple/Google Wallet
     </a>
+  );
+}
+
+function OpenStatusBadge({ hours, inverse }: { hours: any; inverse?: boolean }) {
+  const status = getOpenStatus(hours);
+  if (!status) return null;
+  
+  const bgColor = inverse 
+    ? "bg-stone-100/80 border-stone-200/50" 
+    : "bg-white/10 border-white/5";
+    
+  const textColor = inverse 
+    ? "text-stone-700" 
+    : "text-white/90";
+
+  return (
+    <div className={`flex items-center justify-center gap-1.5 mt-2 ${bgColor} backdrop-blur-sm px-2.5 py-1 rounded-full w-fit mx-auto border shadow-sm`}>
+      <span className={`w-2 h-2 rounded-full ${status.isOpen ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
+      <span className={`text-[10px] font-semibold ${textColor} uppercase tracking-wider`}>{status.text}</span>
+    </div>
+  );
+}
+
+function getOpenStatus(hours: any): { isOpen: boolean; text: string } | null {
+  if (!hours) return null;
+  const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const now = new Date();
+  const currentDay = days[now.getDay()];
+  const dayHours = hours[currentDay];
+  
+  if (!dayHours || dayHours.isClosed) {
+    return { isOpen: false, text: "Closed" };
+  }
+  
+  const [openH, openM] = dayHours.open.split(":").map(Number);
+  const [closeH, closeM] = dayHours.close.split(":").map(Number);
+  
+  const currentH = now.getHours();
+  const currentM = now.getMinutes();
+  
+  const openTime = openH * 60 + openM;
+  const closeTime = closeH * 60 + closeM;
+  const currentTime = currentH * 60 + currentM;
+  
+  if (currentTime >= openTime && currentTime <= closeTime) {
+    return { isOpen: true, text: "Open Now" };
+  }
+  return { isOpen: false, text: "Closed" };
+}
+
+function SectionRenderer({ section, card }: { section: any; card: CardData }) {
+  if (!section.enabled) return null;
+
+  switch (section.type) {
+    case "menu":
+      return <MenuSectionRenderer data={section.data} card={card} />;
+    case "gallery":
+      return <GallerySectionRenderer data={section.data} card={card} />;
+    case "services":
+      return <ServicesSectionRenderer data={section.data} card={card} />;
+    case "hours":
+      return <HoursSectionRenderer data={section.data} card={card} />;
+    case "location":
+      return <LocationSectionRenderer data={section.data} card={card} />;
+    case "review":
+      return <ReviewSectionRenderer data={section.data} card={card} />;
+    case "booking":
+      return <BookingSectionRenderer data={section.data} card={card} />;
+    case "wifi":
+      return <WifiSectionRenderer data={section.data} card={card} />;
+    case "lead_capture":
+      return <LeadCaptureSectionRenderer data={section.data} card={card} />;
+    case "amenities":
+      return <AmenitiesSectionRenderer data={section.data} card={card} />;
+    case "schedule":
+      return <ScheduleSectionRenderer data={section.data} card={card} />;
+    case "pricing_table":
+      return <PricingTableSectionRenderer data={section.data} card={card} />;
+    case "featured_products":
+      return <FeaturedProductsSectionRenderer data={section.data} card={card} />;
+    case "courses":
+      return <CoursesSectionRenderer data={section.data} card={card} />;
+    case "contact":
+      return <ContactSectionRenderer card={card} />;
+    case "socials":
+      return <SocialsSectionRenderer card={card} />;
+    default:
+      return null;
+  }
+}
+
+export default function CardPreview({ data, onSaveContact, onDownloadCard }: Props) {
+  const sections = data.sections || [];
+  const hasSection = (type: string) => sections.some((s: any) => s.type === type && s.enabled !== false);
+  const getSectionData = (type: string) => {
+    const sec = sections.find((s: any) => s.type === type);
+    return sec?.data || {};
+  };
+
+  const tabs: { id: string; label: string; emoji: string }[] = [
+    { id: "profile", label: "About", emoji: "👤" }
+  ];
+
+  if (hasSection("menu")) tabs.push({ id: "menu", label: "Menu", emoji: "🍽️" });
+  if (hasSection("services") || hasSection("courses")) tabs.push({ id: "services", label: "Services", emoji: "✂️" });
+  if (hasSection("gallery")) tabs.push({ id: "gallery", label: "Gallery", emoji: "📷" });
+  if (hasSection("featured_products") || hasSection("pricing_table")) tabs.push({ id: "products", label: "Products", emoji: "🛍️" });
+  if (hasSection("wifi")) tabs.push({ id: "wifi", label: "WiFi", emoji: "📶" });
+  if (hasSection("location") || hasSection("hours")) tabs.push({ id: "location", label: "Location", emoji: "📍" });
+  if (hasSection("booking") || hasSection("lead_capture")) tabs.push({ id: "booking", label: "Book", emoji: "📅" });
+  if (hasSection("review")) tabs.push({ id: "review", label: "Review", emoji: "⭐" });
+  tabs.push({ id: "share", label: "Share", emoji: "🔗" });
+
+  const getLandingTab = () => {
+    const activeTabIds = tabs.map(t => t.id);
+    if (data.business_type === "restaurant" && activeTabIds.includes("menu")) return "menu";
+    if (["salon", "clinic", "consultancy", "education"].includes(data.business_type || "") && activeTabIds.includes("services")) return "services";
+    if (["tattoo", "creative"].includes(data.business_type || "") && activeTabIds.includes("gallery")) return "gallery";
+    if (data.business_type === "retail" && activeTabIds.includes("products")) return "products";
+    if (data.business_type === "hotel" && activeTabIds.includes("location")) return "location";
+    
+    // Fallback priorities
+    if (activeTabIds.includes("menu")) return "menu";
+    if (activeTabIds.includes("services")) return "services";
+    if (activeTabIds.includes("gallery")) return "gallery";
+    if (activeTabIds.includes("products")) return "products";
+    return "profile";
+  };
+
+  const initialTab = getLandingTab();
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Sync activeTab dynamically on client-side state edits
+  useEffect(() => {
+    setActiveTab(getLandingTab());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.business_type, sections.length]);
+
+  const initials = getInitials(data.member_name || data.business_name || "Your Business");
+  const color = data.brand_color || "#085041";
+
+  return (
+    <div className="w-full max-w-sm mx-auto flex flex-col gap-3">
+      {/* Scrollable Tab Navigation */}
+      {tabs.length > 1 && (
+        <div className="flex overflow-x-auto gap-2 pb-2.5 scrollbar-none border-b border-stone-200/50 mb-1 snap-x snap-mandatory">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                style={isActive ? { backgroundColor: color, borderColor: color } : {}}
+                className={`px-3.5 py-2 rounded-xl border text-xs font-semibold shrink-0 cursor-pointer transition-all flex items-center gap-1.5 snap-center ${
+                  isActive ? "bg-brand text-white border-brand shadow-sm" : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+                }`}
+              >
+                <span>{tab.emoji}</span>
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Mini Brand Header if not on Profile tab */}
+      {activeTab !== "profile" && (
+        <div className="w-full bg-white border border-stone-200 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm mb-1 text-left">
+          <Logo data={data} initials={initials} color={color} size={40} />
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xs font-bold text-stone-900 truncate">{data.business_name || "Your Business"}</h1>
+            {data.tagline && <p className="text-[9px] text-stone-500 truncate mt-0.5">{data.tagline}</p>}
+          </div>
+          <OpenStatusBadge hours={data.opening_hours} inverse={true} />
+        </div>
+      )}
+
+      {/* Tab Content Display */}
+      <div className="w-full flex flex-col gap-4">
+        {activeTab === "profile" && (
+          <CardMockup data={data} onSaveContact={onSaveContact} onDownloadCard={onDownloadCard} />
+        )}
+        {activeTab === "menu" && hasSection("menu") && (
+          <MenuSectionRenderer data={getSectionData("menu")} card={data} />
+        )}
+        {activeTab === "services" && (
+          <>
+            {hasSection("services") && <ServicesSectionRenderer data={getSectionData("services")} card={data} />}
+            {hasSection("courses") && <CoursesSectionRenderer data={getSectionData("courses")} card={data} />}
+          </>
+        )}
+        {activeTab === "gallery" && hasSection("gallery") && (
+          <GallerySectionRenderer data={getSectionData("gallery")} card={data} />
+        )}
+        {activeTab === "products" && (
+          <>
+            {hasSection("featured_products") && <FeaturedProductsSectionRenderer data={getSectionData("featured_products")} card={data} />}
+            {hasSection("pricing_table") && <PricingTableSectionRenderer data={getSectionData("pricing_table")} card={data} />}
+          </>
+        )}
+        {activeTab === "wifi" && hasSection("wifi") && (
+          <WifiSectionRenderer data={getSectionData("wifi")} card={data} />
+        )}
+        {activeTab === "location" && (
+          <>
+            {hasSection("location") && <LocationSectionRenderer data={getSectionData("location")} card={data} />}
+            {hasSection("hours") && <HoursSectionRenderer data={getSectionData("hours")} card={data} />}
+          </>
+        )}
+        {activeTab === "booking" && (
+          <>
+            {hasSection("booking") && <BookingSectionRenderer data={getSectionData("booking")} card={data} />}
+            {hasSection("lead_capture") && <LeadCaptureSectionRenderer data={getSectionData("lead_capture")} card={data} />}
+          </>
+        )}
+        {activeTab === "review" && hasSection("review") && (
+          <ReviewSectionRenderer data={getSectionData("review")} card={data} />
+        )}
+        {activeTab === "share" && (
+          <div className="w-full flex justify-center">
+            <ShareQR data={data} url={`${SITE.baseUrl}/card/${data.slug || ""}`} />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

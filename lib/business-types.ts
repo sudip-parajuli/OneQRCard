@@ -1,3 +1,5 @@
+import { ThemeId } from "./types";
+
 export type SectionType =
   | "hero"
   | "menu"
@@ -23,6 +25,7 @@ export interface SectionConfig {
   title: string;
   enabled: boolean;
   data: any;
+  theme?: ThemeId;
 }
 
 export interface BusinessTypeDetail {

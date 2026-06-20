@@ -27,6 +27,14 @@ const EMPTY: CardData = {
   owner_email: "",
   custom_links: [],
   address: "",
+  design_settings: {
+    vibe: null,
+    bg_texture: "none",
+    embossed_effect: false,
+    alignment: "center",
+    default_nav_tab: null,
+    animation: "none",
+  },
 };
 
 export default function AdminCreateClient() {

@@ -51,12 +51,20 @@ export async function generateQRCodeWithLogo(
   businessName: string,
   embedLogo: boolean = false,
   customization?: {
-    dotStyle?: "square" | "rounded" | "dots";
-    cornerStyle?: "square" | "rounded";
+    dotStyle?: "square" | "rounded" | "dots" | "waves" | "teardrops";
+    cornerStyle?: "square" | "rounded" | "custom_frame";
+    logoEnabled?: boolean;
+    centerLogoType?: "standard" | "pixelated";
+    colorStyle?: "solid" | "gradient" | "spotlight";
+    gradientColor1?: string;
+    gradientColor2?: string;
+    spotlightColor?: string;
+    custom_cta_frame?: string;
   } | null
 ): Promise<string> {
   const dotStyle = customization?.dotStyle || "square";
   const cornerStyle = customization?.cornerStyle || "square";
+  const hasCta = customization?.custom_cta_frame && customization.custom_cta_frame.trim().length > 0;
 
   // 1. Create raw QR code matrix with High error correction
   const qr = QRCode.create(url, { errorCorrectionLevel: "H" });
@@ -66,7 +74,7 @@ export async function generateQRCodeWithLogo(
 
   // 2. Setup canvas
   const canvasWidth = 400;
-  const canvasHeight = 400;
+  const canvasHeight = hasCta ? 460 : 400;
   const canvas = document.createElement("canvas");
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
@@ -86,8 +94,22 @@ export async function generateQRCodeWithLogo(
   const centerStart = Math.floor(size / 2) - 3;
   const centerEnd = Math.floor(size / 2) + 3;
 
+  // Setup color styles
+  const isSpotlight = customization?.colorStyle === "spotlight";
+  const finderPatternColor = isSpotlight && customization?.spotlightColor ? customization.spotlightColor : brandColor;
+
+  let mainModulesStyle: string | CanvasGradient = brandColor;
+  if (customization?.colorStyle === "gradient") {
+    const grad = ctx.createLinearGradient(0, 0, canvasWidth, canvasWidth);
+    grad.addColorStop(0, customization.gradientColor1 || brandColor);
+    grad.addColorStop(1, customization.gradientColor2 || "#10b981");
+    mainModulesStyle = grad;
+  } else if (isSpotlight) {
+    mainModulesStyle = brandColor + "a0"; // softer tint for body cells
+  }
+
   // Draw modules
-  ctx.fillStyle = brandColor;
+  ctx.fillStyle = mainModulesStyle;
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
       // Skip finder patterns (drawn separately)
@@ -111,6 +133,24 @@ export async function generateQRCodeWithLogo(
         ctx.fill();
       } else if (dotStyle === "rounded") {
         drawRoundedRect(ctx, x, y, cellSize, cellSize, cellSize * 0.25);
+      } else if (dotStyle === "waves") {
+        ctx.beginPath();
+        ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = cellSize * 0.2;
+        ctx.beginPath();
+        ctx.moveTo(x, y + cellSize / 2);
+        ctx.quadraticCurveTo(x + cellSize / 2, y, x + cellSize, y + cellSize / 2);
+        ctx.stroke();
+      } else if (dotStyle === "teardrops") {
+        ctx.beginPath();
+        ctx.moveTo(x + cellSize / 2, y);
+        ctx.quadraticCurveTo(x + cellSize, y, x + cellSize, y + cellSize / 2);
+        ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2, 0, Math.PI, false);
+        ctx.quadraticCurveTo(x, y, x + cellSize / 2, y);
+        ctx.closePath();
+        ctx.fill();
       } else {
         ctx.fillRect(x, y, cellSize, cellSize);
       }
@@ -127,29 +167,40 @@ export async function generateQRCodeWithLogo(
     const eyeOffset = 2 * cellSize;
     const eyeSize = 3 * cellSize;
 
-    ctx.fillStyle = brandColor;
+    const eyeColor = isSpotlight && customization?.spotlightColor 
+      ? customization.spotlightColor 
+      : (customization?.colorStyle === "gradient" ? customization.gradientColor1 || brandColor : brandColor);
+
+    ctx.fillStyle = eyeColor;
     if (cornerStyle === "rounded") {
-      // Outer ring
       drawRoundedRect(ctx, x, y, outerSize, outerSize, 1.5 * cellSize);
-      // Cutout inner spacer
       ctx.fillStyle = "#ffffff";
       drawRoundedRect(ctx, x + innerOffset, y + innerOffset, middleSize, middleSize, 1.0 * cellSize);
-      // Inner eye
-      ctx.fillStyle = brandColor;
+      ctx.fillStyle = eyeColor;
       drawRoundedRect(ctx, x + eyeOffset, y + eyeOffset, eyeSize, eyeSize, 0.5 * cellSize);
+    } else if (cornerStyle === "custom_frame") {
+      ctx.beginPath();
+      ctx.arc(x + outerSize / 2, y + outerSize / 2, outerSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(x + outerSize / 2, y + outerSize / 2, outerSize / 2 - cellSize, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = eyeColor;
+      ctx.beginPath();
+      ctx.arc(x + outerSize / 2, y + outerSize / 2, outerSize / 2 - 2 * cellSize, 0, Math.PI * 2);
+      ctx.fill();
     } else {
-      // Outer ring
       ctx.fillRect(x, y, outerSize, outerSize);
-      // Cutout inner spacer
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(x + innerOffset, y + innerOffset, middleSize, middleSize);
-      // Inner eye
-      ctx.fillStyle = brandColor;
+      ctx.fillStyle = eyeColor;
       ctx.fillRect(x + eyeOffset, y + eyeOffset, eyeSize, eyeSize);
     }
   };
 
-  // Draw Top-Left, Top-Right, and Bottom-Left eyes
   drawEye(0, 0);
   drawEye(0, size - 7);
   drawEye(size - 7, 0);
@@ -158,12 +209,16 @@ export async function generateQRCodeWithLogo(
   if (embedLogo) {
     const logoSize = 88;
     const x = (canvasWidth - logoSize) / 2;
-    const y = (canvasHeight - logoSize) / 2;
+    const y = (canvasWidth - logoSize) / 2;
+    const isPixelated = customization?.centerLogoType === "pixelated";
 
-    // Draw white circular background block
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(canvasWidth / 2, canvasHeight / 2, logoSize / 2 + 4, 0, Math.PI * 2);
+    if (isPixelated) {
+      ctx.rect(x - 4, y - 4, logoSize + 8, logoSize + 8);
+    } else {
+      ctx.arc(canvasWidth / 2, canvasWidth / 2, logoSize / 2 + 4, 0, Math.PI * 2);
+    }
     ctx.fill();
 
     if (logoDataUrl) {
@@ -173,32 +228,62 @@ export async function generateQRCodeWithLogo(
         logoImg.onload = () => {
           ctx.save();
           ctx.beginPath();
-          ctx.arc(canvasWidth / 2, canvasHeight / 2, logoSize / 2, 0, Math.PI * 2);
+          if (isPixelated) {
+            ctx.rect(x, y, logoSize, logoSize);
+          } else {
+            ctx.arc(canvasWidth / 2, canvasWidth / 2, logoSize / 2, 0, Math.PI * 2);
+          }
           ctx.clip();
           ctx.drawImage(logoImg, x, y, logoSize, logoSize);
           ctx.restore();
 
-          // Subtle inner border
           ctx.strokeStyle = "rgba(0,0,0,0.08)";
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(canvasWidth / 2, canvasHeight / 2, logoSize / 2, 0, Math.PI * 2);
+          if (isPixelated) {
+            ctx.rect(x, y, logoSize, logoSize);
+          } else {
+            ctx.arc(canvasWidth / 2, canvasWidth / 2, logoSize / 2, 0, Math.PI * 2);
+          }
           ctx.stroke();
+
+          // CTA Frame if present
+          if (hasCta && customization?.custom_cta_frame) {
+            drawCtaFrame(ctx, brandColor, customization.custom_cta_frame, canvasWidth);
+          }
 
           resolve(canvas.toDataURL("image/png"));
         };
         logoImg.onerror = () => {
-          drawInitials(ctx, x, y, logoSize, brandColor, businessName);
+          drawInitials(ctx, x, y, logoSize, brandColor, businessName, isPixelated);
+          if (hasCta && customization?.custom_cta_frame) {
+            drawCtaFrame(ctx, brandColor, customization.custom_cta_frame, canvasWidth);
+          }
           resolve(canvas.toDataURL("image/png"));
         };
         logoImg.src = logoDataUrl;
       });
     } else {
-      drawInitials(ctx, x, y, logoSize, brandColor, businessName);
+      drawInitials(ctx, x, y, logoSize, brandColor, businessName, isPixelated);
     }
   }
 
+  // Draw bottom CTA Frame if present
+  if (hasCta && customization?.custom_cta_frame) {
+    drawCtaFrame(ctx, brandColor, customization.custom_cta_frame, canvasWidth);
+  }
+
   return canvas.toDataURL("image/png");
+}
+
+function drawCtaFrame(ctx: CanvasRenderingContext2D, brandColor: string, text: string, width: number) {
+  ctx.fillStyle = brandColor;
+  ctx.fillRect(0, 400, width, 60);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 15px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text.toUpperCase(), width / 2, 430);
 }
 
 function drawInitials(
@@ -207,18 +292,21 @@ function drawInitials(
   y: number,
   size: number,
   brandColor: string,
-  businessName: string
+  businessName: string,
+  isPixelated?: boolean
 ) {
-  // Draw brand color circle
   ctx.fillStyle = brandColor;
   ctx.beginPath();
-  ctx.arc(200, 200, size / 2, 0, Math.PI * 2);
+  if (isPixelated) {
+    ctx.rect(x, y, size, size);
+  } else {
+    ctx.arc(200, 200, size / 2, 0, Math.PI * 2);
+  }
   ctx.fill();
 
-  // Draw initials text
   const initials = getInitials(businessName);
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 28px sans-serif";
+  ctx.font = isPixelated ? "bold 26px monospace" : "bold 28px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(initials, 200, 200);

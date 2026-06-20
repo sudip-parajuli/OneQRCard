@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CardData } from "@/lib/types";
+import { CardData, THEME_LABELS, ThemeId } from "@/lib/types";
 import { darken, getInitials, lighten, normalizePhone } from "@/lib/utils";
 import { motion } from "framer-motion";
 import ShareQR from "@/components/ShareQR";
+import DownloadBusinessCard from "@/components/DownloadBusinessCard";
 import { SITE } from "@/lib/config";
 import { 
   MenuSectionRenderer, 
@@ -72,6 +73,37 @@ const icons = {
       <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
     </svg>
   ),
+  viber: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="10" r="1.5" />
+      <path d="M8 10.5c.5-1.5 2-2 3.5-1.5" />
+    </svg>
+  ),
+  x_twitter: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
+      <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" />
+    </svg>
+  ),
+  threads: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M12 2a10 10 0 1 0 10 10c0-2.5-2.5-4-5-4s-4 1.5-4 4 1.5 4 4 4 5-1.5 5-4" />
+    </svg>
+  ),
+  linkedin: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+      <rect x="2" y="9" width="4" height="12" />
+      <circle cx="4" cy="4" r="2" />
+    </svg>
+  ),
+  telegram: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  ),
   email: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
@@ -128,6 +160,32 @@ function buildLinks(data: CardData): LinkItem[] {
   if (data.instagram) items.push({ key: "instagram", label: "Instagram", href: data.instagram, icon: icons.instagram });
   if (data.tiktok) items.push({ key: "tiktok", label: "TikTok", href: data.tiktok, icon: icons.tiktok });
   if (data.youtube) items.push({ key: "youtube", label: "YouTube", href: data.youtube, icon: icons.youtube });
+  
+  if (data.viber) {
+    items.push({
+      key: "viber",
+      label: "Viber",
+      href: `viber://chat?number=%2B${normalizePhone(data.viber)}`,
+      icon: icons.viber,
+    });
+  }
+  if (data.x_twitter) {
+    const href = data.x_twitter.startsWith("http") ? data.x_twitter : `https://x.com/${data.x_twitter}`;
+    items.push({ key: "x_twitter", label: "X (Twitter)", href, icon: icons.x_twitter });
+  }
+  if (data.threads) {
+    const href = data.threads.startsWith("http") ? data.threads : `https://threads.net/@${data.threads}`;
+    items.push({ key: "threads", label: "Threads", href, icon: icons.threads });
+  }
+  if (data.linkedin) {
+    const href = data.linkedin.startsWith("http") ? data.linkedin : `https://linkedin.com/in/${data.linkedin}`;
+    items.push({ key: "linkedin", label: "LinkedIn", href, icon: icons.linkedin });
+  }
+  if (data.telegram) {
+    const href = data.telegram.startsWith("http") ? data.telegram : `https://t.me/${data.telegram.replace("@", "")}`;
+    items.push({ key: "telegram", label: "Telegram", href, icon: icons.telegram });
+  }
+
   if (data.email) items.push({ key: "email", label: "Email", href: `mailto:${data.email}`, icon: icons.email });
 
   if (data.plan === "business" && data.custom_links && Array.isArray(data.custom_links)) {
@@ -151,6 +209,8 @@ interface Props {
   data: CardData;
   onSaveContact?: () => void;
   onDownloadCard?: () => void;
+  isEditing?: boolean;
+  onChange?: (updatedData: Partial<CardData>) => void;
 }
 
 /**
@@ -160,10 +220,37 @@ interface Props {
 function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
   const links = buildLinks(data);
   const initials = getInitials(data.member_name || data.business_name || "Your Business");
-  const color = data.brand_color || "#085041";
 
-  const hasBg = data.plan === "business" && data.background_data_url;
-  const bgStyle = hasBg
+  // Premium design features (Business tier only)
+  const isBusiness = data.plan === "business";
+  const vibe = isBusiness ? data.design_settings?.vibe : null;
+  const texture = isBusiness ? data.design_settings?.bg_texture : null;
+  const embossed = isBusiness ? data.design_settings?.embossed_effect : false;
+  const alignment = isBusiness ? data.design_settings?.alignment || "center" : "center";
+  const anim = isBusiness ? data.design_settings?.animation || "none" : "none";
+
+  let brandColor = data.brand_color || "#085041";
+  const isPaid = data.plan !== "basic";
+  const customTextColor = (isPaid && data.text_color) ? data.text_color : null;
+  let textColor = customTextColor || "#ffffff";
+
+  // Vibe Presets Override
+  if (vibe === "corporate") {
+    brandColor = "#1e40af"; // Navy
+    textColor = customTextColor || "#ffffff";
+  } else if (vibe === "luxury") {
+    brandColor = "#d4af37"; // Gold accent
+    textColor = customTextColor || "#f5f5f5";
+  } else if (vibe === "creative") {
+    brandColor = "#ec4899"; // Vibrant Pink
+    textColor = customTextColor || "#ffffff";
+  } else if (vibe === "eco") {
+    brandColor = "#15803d"; // Earthy Green
+    textColor = customTextColor || "#ffffff";
+  }
+
+  const hasBg = isBusiness && data.background_data_url;
+  let bgStyle: React.CSSProperties = hasBg
     ? {
         backgroundImage: `url(${data.background_data_url})`,
         backgroundSize: "cover",
@@ -171,40 +258,121 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
       }
     : {};
 
-  const isPaid = data.plan !== "basic";
-  const customTextColor = (isPaid && data.text_color) ? data.text_color : null;
+  if (!hasBg) {
+    if (vibe === "corporate") {
+      bgStyle.backgroundColor = "#0f172a"; // Slate-900
+    } else if (vibe === "luxury") {
+      bgStyle.backgroundColor = "#121212"; // Matte black
+    } else if (vibe === "creative") {
+      bgStyle.background = "linear-gradient(135deg, #8b5cf6 0%, #f97316 100%)";
+    } else if (vibe === "eco") {
+      bgStyle.backgroundColor = "#1c2e1f"; // Dark Forest Green
+    }
+  }
+
+  // Apply background textures
+  if (!hasBg && texture && texture !== "none") {
+    if (texture === "metal") {
+      bgStyle.background = "linear-gradient(135deg, #334155 0%, #0f172a 100%), repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 2px, transparent 2px, transparent 8px)";
+      bgStyle.boxShadow = "inset 0 0 40px rgba(0, 0, 0, 0.5)";
+    } else if (texture === "wood") {
+      bgStyle.background = "linear-gradient(135deg, #451a03 0%, #78350f 100%), repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 4px, transparent 4px, transparent 20px)";
+    } else if (texture === "geometric") {
+      const gridColor = vibe === "luxury" ? "rgba(212,175,55,0.06)" : "rgba(255,255,255,0.05)";
+      bgStyle.backgroundColor = bgStyle.backgroundColor || (vibe === "corporate" ? "#0f172a" : "#18181b");
+      bgStyle.backgroundImage = `radial-gradient(${gridColor} 1px, transparent 1px)`;
+      bgStyle.backgroundSize = "16px 16px";
+    } else if (texture === "motion") {
+      bgStyle.background = "linear-gradient(270deg, #1e1b4b, #2e1065, #030712)";
+      bgStyle.backgroundSize = "400% 400%";
+      bgStyle.animation = "gradientMotion 12s ease infinite";
+    }
+  }
+
+  // Neomorphic shadows helper
+  const isDarkTheme = data.theme === "neonDark" || vibe === "luxury" || vibe === "corporate" || vibe === "creative" || vibe === "eco" || data.theme === "glassmorphic";
+  const getNeomorphicStyle = (isButton = false): React.CSSProperties => {
+    if (!embossed) return {};
+    if (isDarkTheme) {
+      return {
+        boxShadow: isButton
+          ? "inset -1px -1px 3px rgba(255,255,255,0.05), inset 2px 2px 4px rgba(0,0,0,0.6), -2px -2px 6px rgba(255,255,255,0.05), 3px 3px 8px rgba(0,0,0,0.5)"
+          : "-4px -4px 12px rgba(255,255,255,0.03), 4px 4px 12px rgba(0,0,0,0.6)",
+        border: "none",
+      };
+    } else {
+      return {
+        boxShadow: isButton
+          ? "inset -1px -1px 3px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(0,0,0,0.08), -2px -2px 6px rgba(255,255,255,0.8), 3px 3px 8px rgba(0,0,0,0.08)"
+          : "-5px -5px 12px rgba(255,255,255,0.8), 5px 5px 12px rgba(0,0,0,0.06)",
+        border: "none",
+      };
+    }
+  };
+
+  // Alignment classes mapping
+  const alignClass = alignment === "left" ? "text-left items-start" : alignment === "right" ? "text-right items-end" : "text-center items-center";
+  const alignFlexClass = alignment === "left" ? "justify-start" : alignment === "right" ? "justify-end" : "justify-center";
+
+  // Animation variants mapping
+  let animVariants = {};
+  if (anim === "float") {
+    animVariants = {
+      animate: { y: [0, -6, 0], transition: { duration: 4, repeat: Infinity, ease: "easeInOut" } }
+    };
+  } else if (anim === "pulse") {
+    animVariants = {
+      animate: { scale: [1, 1.02, 1], transition: { duration: 3, repeat: Infinity, ease: "easeInOut" } }
+    };
+  } else if (anim === "fade") {
+    animVariants = {
+      initial: { opacity: 0 },
+      animate: { opacity: 1, transition: { duration: 0.8 } }
+    };
+  }
+
+  const motionProps = anim !== "none" ? {
+    variants: animVariants,
+    animate: "animate",
+    initial: anim === "fade" ? "initial" : undefined
+  } : {};
 
   if (data.theme === "glassmorphic") {
-    const txtColor = customTextColor || "#ffffff";
-    const mutedTxtColor = customTextColor ? `${customTextColor}dd` : "rgba(255, 255, 255, 0.75)";
-    const borderCol = customTextColor ? `${customTextColor}26` : "rgba(255, 255, 255, 0.2)";
-    const linkBorderCol = customTextColor ? `${customTextColor}1a` : "rgba(255, 255, 255, 0.1)";
+    const txtColor = textColor;
+    const mutedTxtColor = vibe ? `${textColor}cc` : "rgba(255, 255, 255, 0.75)";
+    const borderCol = vibe ? `${brandColor}33` : "rgba(255, 255, 255, 0.2)";
+    const linkBorderCol = vibe ? `${brandColor}22` : "rgba(255, 255, 255, 0.1)";
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        {...motionProps}
         className="rounded-3xl p-1.5 max-w-sm w-full mx-auto relative overflow-hidden shadow-xl"
-        style={bgStyle}
+        style={{ ...bgStyle, ...getNeomorphicStyle() }}
       >
-        {!hasBg && (
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes gradientMotion {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+          }
+        `}} />
+        {!hasBg && !vibe && (
           <div className="absolute inset-0 -z-10 bg-stone-950 overflow-hidden">
             <div
               className="absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl opacity-50"
-              style={{ backgroundColor: color }}
+              style={{ backgroundColor: brandColor }}
             ></div>
             <div
               className="absolute -bottom-16 -right-16 w-52 h-52 rounded-full blur-3xl opacity-40"
-              style={{ backgroundColor: lighten(color, 0.3) }}
+              style={{ backgroundColor: lighten(brandColor, 0.3) }}
             ></div>
           </div>
         )}
         <div 
           style={{ borderColor: borderCol }}
-          className="bg-white/10 backdrop-blur-xl border rounded-2xl p-6 text-center shadow-2xl"
+          className={`bg-white/10 backdrop-blur-xl border rounded-2xl p-6 shadow-2xl flex flex-col ${alignClass}`}
         >
-          <Logo data={data} initials={initials} color={color} size={76} inverse />
+          <Logo data={data} initials={initials} color={brandColor} size={76} inverse />
           <div 
             style={{ color: txtColor }}
             className="text-xl font-bold mt-4 drop-shadow-sm"
@@ -219,6 +387,14 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             </div>
           )}
           <OpenStatusBadge hours={data.opening_hours} inverse={false} />
+          {data.bio && (
+            <p 
+              style={{ color: mutedTxtColor }} 
+              className="text-xs mt-3 px-4 leading-relaxed whitespace-pre-line"
+            >
+              {data.bio}
+            </p>
+          )}
 
           <motion.div
             variants={{
@@ -232,16 +408,16 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             }}
             initial="hidden"
             animate="show"
-            className="mt-6 flex flex-col gap-2"
+            className="mt-6 flex flex-col gap-2 w-full"
           >
-            <SaveButton color="rgba(255, 255, 255, 0.22)" textColor="#fff" onClick={onSaveContact} />
-            {onDownloadCard && <DownloadButton color={txtColor} onClick={onDownloadCard} />}
+            <SaveButton color="rgba(255, 255, 255, 0.22)" textColor="#fff" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
+            {onDownloadCard && <DownloadButton color={txtColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
             
             {data.google_review && (
               <GoogleReviewGate
                 cardId={data.id}
                 googleReviewUrl={data.google_review}
-                brandColor={color}
+                brandColor={brandColor}
               />
             )}
 
@@ -257,8 +433,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
                 href={l.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: txtColor, borderColor: linkBorderCol }}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-white/5 hover:bg-white/15 text-sm transition-all cursor-pointer"
+                style={{ color: txtColor, borderColor: linkBorderCol, ...getNeomorphicStyle(true) }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border bg-white/5 hover:bg-white/15 text-sm transition-all cursor-pointer ${alignFlexClass}`}
               >
                 <span style={{ color: mutedTxtColor }}>{l.icon}</span>
                 {l.label}
@@ -266,10 +442,7 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             ))}
 
             {data.plan === "business" && (
-              <>
-                <LeadCaptureForm cardId={data.id} brandColor={color} />
-                <WalletButton cardId={data.id} brandColor={color} />
-              </>
+              <WalletButton cardId={data.id} brandColor={brandColor} />
             )}
           </motion.div>
         </div>
@@ -278,26 +451,31 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
   }
 
   if (data.theme === "neonDark") {
-    const txtColor = customTextColor || "#ffffff";
-    const mutedTxtColor = customTextColor ? `${customTextColor}b3` : "#a1a1aa";
+    const txtColor = textColor;
+    const mutedTxtColor = vibe ? `${textColor}cc` : "#a1a1aa";
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        {...motionProps}
         className="bg-stone-950 rounded-3xl overflow-hidden max-w-sm w-full mx-auto border-2 p-6 transition-all"
         style={{
-          borderColor: color,
-          boxShadow: `0 0 20px ${color}33`,
+          borderColor: brandColor,
+          boxShadow: embossed ? getNeomorphicStyle().boxShadow : `0 0 20px ${brandColor}33`,
           ...bgStyle,
         }}
       >
-        <div className="text-center pb-6 border-b border-stone-800/60 bg-stone-950/70 backdrop-blur-sm rounded-t-xl">
-          <Logo data={data} initials={initials} color={color} size={76} />
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes gradientMotion {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+          }
+        `}} />
+        <div className={`text-center pb-6 border-b border-stone-800/60 bg-stone-950/70 backdrop-blur-sm rounded-t-xl flex flex-col ${alignClass}`}>
+          <Logo data={data} initials={initials} color={brandColor} size={76} />
           <div
             className="text-xl font-extrabold tracking-tight mt-4"
-            style={{ textShadow: `0 0 10px ${color}66`, color: txtColor }}
+            style={{ textShadow: `0 0 10px ${brandColor}66`, color: txtColor }}
           >
             {data.member_name ? data.member_name : (data.business_name || "Your Business")}
           </div>
@@ -309,6 +487,14 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             </div>
           )}
           <OpenStatusBadge hours={data.opening_hours} inverse={false} />
+          {data.bio && (
+            <p 
+              style={{ color: mutedTxtColor }} 
+              className="text-xs mt-3 px-4 leading-relaxed whitespace-pre-line"
+            >
+              {data.bio}
+            </p>
+          )}
         </div>
         <motion.div
           variants={{
@@ -324,14 +510,14 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
           animate="show"
           className="pt-6 flex flex-col gap-2 bg-stone-950/70 backdrop-blur-sm rounded-b-xl px-1"
         >
-          <SaveButton color={color} textColor="#0c0a09" onClick={onSaveContact} />
-          {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
+          <SaveButton color={brandColor} textColor="#0c0a09" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
+          {onDownloadCard && <DownloadButton color={brandColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
           
           {data.google_review && (
             <GoogleReviewGate
               cardId={data.id}
               googleReviewUrl={data.google_review}
-              brandColor={color}
+              brandColor={brandColor}
             />
           )}
 
@@ -349,8 +535,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
                 href={l.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: isGoogleReview ? undefined : txtColor }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${
+                style={{ color: isGoogleReview ? undefined : txtColor, ...getNeomorphicStyle(true) }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${alignFlexClass} ${
                   isGoogleReview
                     ? "border-amber-500/30 bg-amber-500/5 text-amber-300 hover:bg-amber-500/10"
                     : "border-stone-800 hover:bg-stone-900"
@@ -368,10 +554,7 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
           })}
 
           {data.plan === "business" && (
-            <>
-              <LeadCaptureForm cardId={data.id} brandColor={color} />
-              <WalletButton cardId={data.id} brandColor={color} />
-            </>
+            <WalletButton cardId={data.id} brandColor={brandColor} />
           )}
         </motion.div>
       </motion.div>
@@ -379,19 +562,24 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
   }
 
   if (data.theme === "minimal") {
-    const txtColor = customTextColor || "#0f172a";
-    const mutedTxtColor = customTextColor ? `${customTextColor}b3` : "#6b7280";
+    const txtColor = customTextColor || (vibe ? textColor : "#0f172a");
+    const mutedTxtColor = customTextColor ? `${customTextColor}b3` : (vibe ? `${textColor}cc` : "#6b7280");
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        {...motionProps}
         className="bg-white rounded-2xl overflow-hidden border border-stone-200 max-w-sm w-full mx-auto"
-        style={bgStyle}
+        style={{ ...bgStyle, ...getNeomorphicStyle() }}
       >
-        <div className={`pt-8 px-6 pb-6 text-center ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}>
-          <Logo data={data} initials={initials} color={color} size={72} />
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes gradientMotion {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+          }
+        `}} />
+        <div className={`pt-8 px-6 pb-6 flex flex-col ${alignClass} ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}>
+          <Logo data={data} initials={initials} color={brandColor} size={72} />
           <div style={{ color: txtColor }} className="text-lg font-semibold mt-4">
             {data.member_name ? data.member_name : (data.business_name || "Your Business")}
           </div>
@@ -403,6 +591,14 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             </div>
           )}
           <OpenStatusBadge hours={data.opening_hours} inverse={true} />
+          {data.bio && (
+            <p 
+              style={{ color: mutedTxtColor }} 
+              className="text-xs mt-3 px-4 leading-relaxed whitespace-pre-line"
+            >
+              {data.bio}
+            </p>
+          )}
         </div>
         <motion.div
           variants={{
@@ -418,14 +614,14 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
           animate="show"
           className={`px-6 pb-6 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}
         >
-          <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
-          {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
+          <SaveButton color={brandColor} textColor="#fff" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
+          {onDownloadCard && <DownloadButton color={brandColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
           
           {data.google_review && (
             <GoogleReviewGate
               cardId={data.id}
               googleReviewUrl={data.google_review}
-              brandColor={color}
+              brandColor={brandColor}
             />
           )}
 
@@ -443,8 +639,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
                 href={l.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: isGoogleReview ? undefined : txtColor }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${
+                style={{ color: isGoogleReview ? undefined : txtColor, ...getNeomorphicStyle(true) }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${alignFlexClass} ${
                   isGoogleReview
                     ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
                     : "border-stone-200 hover:bg-stone-50"
@@ -462,10 +658,7 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
           })}
 
           {data.plan === "business" && (
-            <>
-              <LeadCaptureForm cardId={data.id} brandColor={color} />
-              <WalletButton cardId={data.id} brandColor={color} />
-            </>
+            <WalletButton cardId={data.id} brandColor={brandColor} />
           )}
         </motion.div>
       </motion.div>
@@ -473,19 +666,24 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
   }
 
   if (data.theme === "bold") {
-    const txtColor = customTextColor || lighten(color, 0.92);
-    const mutedTxtColor = customTextColor ? `${customTextColor}cc` : lighten(color, 0.6);
+    const txtColor = customTextColor || (vibe ? textColor : lighten(brandColor, 0.92));
+    const mutedTxtColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : lighten(brandColor, 0.6));
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        {...motionProps}
         className="rounded-2xl overflow-hidden max-w-sm w-full mx-auto"
-        style={{ backgroundColor: color, ...bgStyle }}
+        style={{ backgroundColor: brandColor, ...bgStyle, ...getNeomorphicStyle() }}
       >
-        <div className={`pt-10 px-6 pb-8 text-center ${hasBg ? "bg-black/30 backdrop-blur-[2px]" : ""}`}>
-          <Logo data={data} initials={initials} color={color} size={80} inverse />
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes gradientMotion {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+          }
+        `}} />
+        <div className={`pt-10 px-6 pb-8 flex flex-col ${alignClass} ${hasBg ? "bg-black/30 backdrop-blur-[2px]" : ""}`}>
+          <Logo data={data} initials={initials} color={brandColor} size={80} inverse />
           <div style={{ color: txtColor }} className="text-xl font-semibold mt-4">
             {data.member_name ? data.member_name : (data.business_name || "Your Business")}
           </div>
@@ -497,6 +695,14 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             </div>
           )}
           <OpenStatusBadge hours={data.opening_hours} inverse={false} />
+          {data.bio && (
+            <p 
+              style={{ color: txtColor }} 
+              className="text-xs mt-3 px-4 leading-relaxed whitespace-pre-line"
+            >
+              {data.bio}
+            </p>
+          )}
         </div>
         <motion.div
           variants={{
@@ -512,26 +718,51 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
           animate="show"
           className={`bg-white rounded-t-3xl px-6 py-6 flex flex-col gap-2 ${hasBg ? "bg-white/90 backdrop-blur-md" : ""}`}
         >
-          <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
-          {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
+          <SaveButton color={brandColor} textColor="#fff" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
+          {onDownloadCard && <DownloadButton color={brandColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
           
           {data.google_review && (
             <GoogleReviewGate
               cardId={data.id}
               googleReviewUrl={data.google_review}
-              brandColor={color}
+              brandColor={brandColor}
             />
           )}
 
-          {links.map((l) => (
-            <LinkRow key={l.key} item={l} variant="outline" />
-          ))}
+          {links.map((l) => {
+            const isGoogleReview = l.key === "google_review";
+            return (
+              <motion.a
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: { opacity: 1, y: 0 }
+                }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                key={l.key}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: isGoogleReview ? undefined : (customTextColor || "#0f172a"), ...getNeomorphicStyle(true) }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${alignFlexClass} ${
+                  isGoogleReview
+                    ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
+                    : "border-stone-200 hover:bg-stone-50"
+                }`}
+              >
+                <span 
+                  style={{ color: isGoogleReview ? undefined : "#6b7280" }}
+                  className={isGoogleReview ? "text-amber-505" : ""}
+                >
+                  {l.icon}
+                </span>
+                {l.label}
+              </motion.a>
+            );
+          })}
 
           {data.plan === "business" && (
-            <>
-              <LeadCaptureForm cardId={data.id} brandColor={color} />
-              <WalletButton cardId={data.id} brandColor={color} />
-            </>
+            <WalletButton cardId={data.id} brandColor={brandColor} />
           )}
         </motion.div>
       </motion.div>
@@ -539,26 +770,31 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
   }
 
   if (data.theme === "gradient") {
-    const txtColor = customTextColor || lighten(color, 0.92);
-    const mutedTxtColor = customTextColor ? `${customTextColor}cc` : lighten(color, 0.7);
+    const txtColor = customTextColor || (vibe ? textColor : lighten(brandColor, 0.92));
+    const mutedTxtColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : lighten(brandColor, 0.7));
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        {...motionProps}
         className="rounded-2xl overflow-hidden max-w-sm w-full mx-auto border border-stone-200 bg-white"
-        style={bgStyle}
+        style={{ ...bgStyle, ...getNeomorphicStyle() }}
       >
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes gradientMotion {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+          }
+        `}} />
         <div
-          className={`pt-10 px-6 pb-12 text-center relative ${hasBg ? "backdrop-blur-[2px]" : ""}`}
+          className={`pt-10 px-6 pb-12 flex flex-col ${alignClass} relative ${hasBg ? "backdrop-blur-[2px]" : ""}`}
           style={{
             background: hasBg
               ? "rgba(0,0,0,0.3)"
-              : `linear-gradient(135deg, ${color} 0%, ${lighten(color, 0.4)} 100%)`,
+              : `linear-gradient(135deg, ${brandColor} 0%, ${lighten(brandColor, 0.4)} 100%)`,
           }}
         >
-          <Logo data={data} initials={initials} color={color} size={76} inverse />
+          <Logo data={data} initials={initials} color={brandColor} size={76} inverse />
           <div style={{ color: txtColor }} className="text-lg font-semibold mt-4">
             {data.member_name ? data.member_name : (data.business_name || "Your Business")}
           </div>
@@ -570,6 +806,14 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             </div>
           )}
           <OpenStatusBadge hours={data.opening_hours} inverse={false} />
+          {data.bio && (
+            <p 
+              style={{ color: mutedTxtColor }} 
+              className="text-xs mt-3 px-4 leading-relaxed whitespace-pre-line"
+            >
+              {data.bio}
+            </p>
+          )}
         </div>
         <motion.div
           variants={{
@@ -585,26 +829,51 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
           animate="show"
           className={`px-6 pt-6 pb-6 -mt-6 mx-4 mb-2 bg-white rounded-2xl shadow-sm flex flex-col gap-2 relative ${hasBg ? "bg-white/90 backdrop-blur-md" : ""}`}
         >
-          <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
-          {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
+          <SaveButton color={brandColor} textColor="#fff" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
+          {onDownloadCard && <DownloadButton color={brandColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
           
           {data.google_review && (
             <GoogleReviewGate
               cardId={data.id}
               googleReviewUrl={data.google_review}
-              brandColor={color}
+              brandColor={brandColor}
             />
           )}
 
-          {links.map((l) => (
-            <LinkRow key={l.key} item={l} variant="outline" />
-          ))}
+          {links.map((l) => {
+            const isGoogleReview = l.key === "google_review";
+            return (
+              <motion.a
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: { opacity: 1, y: 0 }
+                }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                key={l.key}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: isGoogleReview ? undefined : (customTextColor || "#0f172a"), ...getNeomorphicStyle(true) }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${alignFlexClass} ${
+                  isGoogleReview
+                    ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
+                    : "border-stone-200 hover:bg-stone-50"
+                }`}
+              >
+                <span 
+                  style={{ color: isGoogleReview ? undefined : "#6b7280" }}
+                  className={isGoogleReview ? "text-amber-505" : ""}
+                >
+                  {l.icon}
+                </span>
+                {l.label}
+              </motion.a>
+            );
+          })}
 
           {data.plan === "business" && (
-            <>
-              <LeadCaptureForm cardId={data.id} brandColor={color} />
-              <WalletButton cardId={data.id} brandColor={color} />
-            </>
+            <WalletButton cardId={data.id} brandColor={brandColor} />
           )}
         </motion.div>
       </motion.div>
@@ -612,24 +881,29 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
   }
 
   // "classic" — default
-  const classicHeaderTextColor = customTextColor || lighten(color, 0.92);
-  const classicHeaderMutedColor = customTextColor ? `${customTextColor}cc` : lighten(color, 0.6);
-  const classicBodyTextColor = customTextColor || "#0f172a";
-  const classicBodyMutedColor = customTextColor ? `${customTextColor}b3` : "#6b7280";
+  const classicHeaderTextColor = customTextColor || (vibe ? textColor : lighten(brandColor, 0.92));
+  const classicHeaderMutedColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : lighten(brandColor, 0.6));
+  const classicBodyTextColor = customTextColor || (vibe ? textColor : "#0f172a");
+  const classicBodyMutedColor = customTextColor ? `${customTextColor}b3` : (vibe ? `${textColor}b3` : "#6b7280");
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      {...motionProps}
       className="bg-white rounded-2xl overflow-hidden border border-stone-200 max-w-sm w-full mx-auto"
-      style={bgStyle}
+      style={{ ...bgStyle, ...getNeomorphicStyle() }}
     >
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes gradientMotion {
+          0%{background-position:0% 50%}
+          50%{background-position:100% 50%}
+          100%{background-position:0% 50%}
+        }
+      `}} />
       <div
-        className={`pt-8 px-6 pb-10 text-center ${hasBg ? "backdrop-blur-[2px]" : ""}`}
-        style={{ backgroundColor: hasBg ? "rgba(0,0,0,0.35)" : color }}
+        className={`pt-8 px-6 pb-10 flex flex-col ${alignClass} ${hasBg ? "backdrop-blur-[2px]" : ""}`}
+        style={{ backgroundColor: hasBg ? "rgba(0,0,0,0.35)" : brandColor }}
       >
-        <Logo data={data} initials={initials} color={color} size={64} inverse />
+        <Logo data={data} initials={initials} color={brandColor} size={64} inverse />
         <div style={{ color: classicHeaderTextColor }} className="text-base font-semibold mt-3">
           {data.member_name ? data.member_name : (data.business_name || "Your Business")}
         </div>
@@ -641,6 +915,14 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
           </div>
         )}
         <OpenStatusBadge hours={data.opening_hours} inverse={false} />
+        {data.bio && (
+          <p 
+            style={{ color: classicHeaderMutedColor }} 
+            className="text-xs mt-3 px-4 leading-relaxed whitespace-pre-line"
+          >
+            {data.bio}
+          </p>
+        )}
       </div>
       <motion.div
         variants={{
@@ -656,14 +938,14 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
         animate="show"
         className={`px-5 py-5 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}
       >
-        <SaveButton color={color} textColor="#fff" onClick={onSaveContact} />
-        {onDownloadCard && <DownloadButton color={color} onClick={onDownloadCard} />}
+        <SaveButton color={brandColor} textColor="#fff" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
+        {onDownloadCard && <DownloadButton color={brandColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
         
         {data.google_review && (
           <GoogleReviewGate
             cardId={data.id}
             googleReviewUrl={data.google_review}
-            brandColor={color}
+            brandColor={brandColor}
           />
         )}
 
@@ -681,8 +963,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
               href={l.href}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: isGoogleReview ? undefined : classicBodyTextColor }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${
+              style={{ color: isGoogleReview ? undefined : classicBodyTextColor, ...getNeomorphicStyle(true) }}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${alignFlexClass} ${
                 isGoogleReview
                   ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
                   : "border-stone-200 hover:bg-stone-50"
@@ -700,10 +982,7 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
         })}
 
         {data.plan === "business" && (
-          <>
-            <LeadCaptureForm cardId={data.id} brandColor={color} />
-            <WalletButton cardId={data.id} brandColor={color} />
-          </>
+          <WalletButton cardId={data.id} brandColor={brandColor} />
         )}
       </motion.div>
     </motion.div>
@@ -755,10 +1034,12 @@ function SaveButton({
   color,
   textColor,
   onClick,
+  style,
 }: {
   color: string;
   textColor: string;
   onClick?: () => void;
+  style?: React.CSSProperties;
 }) {
   const [saved, setSaved] = useState(false);
 
@@ -773,7 +1054,7 @@ function SaveButton({
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={handleSave}
-      style={{ backgroundColor: color, color: textColor }}
+      style={{ backgroundColor: color, color: textColor, ...style }}
       className="w-full py-3 rounded-xl text-sm font-semibold mb-1 flex items-center justify-center gap-2 cursor-pointer"
     >
       {saved ? (
@@ -793,16 +1074,18 @@ function SaveButton({
 function DownloadButton({
   color,
   onClick,
+  style,
 }: {
   color: string;
   onClick?: () => void;
+  style?: React.CSSProperties;
 }) {
   return (
     <motion.button
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      style={{ borderColor: color, color: color }}
+      style={{ borderColor: color, color: color, ...style }}
       className="w-full py-3 rounded-xl text-sm font-semibold border-2 hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 mb-1 cursor-pointer"
     >
       <svg
@@ -947,89 +1230,6 @@ function GoogleReviewGate({
   );
 }
 
-function LeadCaptureForm({ cardId, brandColor }: { cardId?: string; brandColor: string }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [message, setMessage] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  if (submitted) {
-    return (
-      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center text-xs text-emerald-800 animate-fade-in mt-4 w-full">
-        Message sent successfully!
-      </div>
-    );
-  }
-
-  return (
-    <div className="border border-stone-200 rounded-xl p-4 bg-white shadow-sm mt-4 text-left text-xs w-full">
-      <h3 className="font-bold text-stone-850 mb-2">Get in touch</h3>
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          if (!name.trim() || !phone.trim()) return;
-          setSubmitting(true);
-          if (cardId) {
-            try {
-              await fetch(`/api/cards/${cardId}/leads`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, phone, message }),
-              });
-            } catch (err) {
-              console.error(err);
-            }
-          }
-          setSubmitting(false);
-          setSubmitted(true);
-        }}
-        className="space-y-2.5"
-      >
-        <div>
-          <label className="block text-[10px] font-semibold text-stone-500 mb-0.5">Name</label>
-          <input
-            required
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            className="w-full border border-stone-300 rounded-lg p-1.5 text-xs focus:ring-1 focus:ring-brand bg-stone-50/50"
-          />
-        </div>
-        <div>
-          <label className="block text-[10px] font-semibold text-stone-500 mb-0.5">Phone Number</label>
-          <input
-            required
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="e.g. 9860000000"
-            className="w-full border border-stone-300 rounded-lg p-1.5 text-xs focus:ring-1 focus:ring-brand bg-stone-50/50"
-          />
-        </div>
-        <div>
-          <label className="block text-[10px] font-semibold text-stone-500 mb-0.5">Message</label>
-          <textarea
-            rows={2}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Your message..."
-            className="w-full border border-stone-300 rounded-lg p-1.5 text-xs focus:ring-1 focus:ring-brand bg-stone-50/50"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          style={{ backgroundColor: brandColor }}
-          className="w-full text-white py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 text-center cursor-pointer"
-        >
-          {submitting ? "Sending..." : "Send Message"}
-        </button>
-      </form>
-    </div>
-  );
-}
 
 function WalletButton({ cardId, brandColor }: { cardId?: string; brandColor: string }) {
   if (!cardId) return null;
@@ -1098,40 +1298,44 @@ function getOpenStatus(hours: any): { isOpen: boolean; text: string } | null {
 
 function SectionRenderer({ section, card }: { section: any; card: CardData }) {
   if (!section.enabled) return null;
+  const resolvedCard = {
+    ...card,
+    theme: (card.plan === "business" && section.theme) ? section.theme : card.theme
+  };
 
   switch (section.type) {
     case "menu":
-      return <MenuSectionRenderer data={section.data} card={card} />;
+      return <MenuSectionRenderer data={section.data} card={resolvedCard} />;
     case "gallery":
-      return <GallerySectionRenderer data={section.data} card={card} />;
+      return <GallerySectionRenderer data={section.data} card={resolvedCard} />;
     case "services":
-      return <ServicesSectionRenderer data={section.data} card={card} />;
+      return <ServicesSectionRenderer data={section.data} card={resolvedCard} />;
     case "hours":
-      return <HoursSectionRenderer data={section.data} card={card} />;
+      return <HoursSectionRenderer data={section.data} card={resolvedCard} />;
     case "location":
-      return <LocationSectionRenderer data={section.data} card={card} />;
+      return <LocationSectionRenderer data={section.data} card={resolvedCard} />;
     case "review":
-      return <ReviewSectionRenderer data={section.data} card={card} />;
+      return <ReviewSectionRenderer data={section.data} card={resolvedCard} />;
     case "booking":
-      return <BookingSectionRenderer data={section.data} card={card} />;
+      return <BookingSectionRenderer data={section.data} card={resolvedCard} />;
     case "wifi":
-      return <WifiSectionRenderer data={section.data} card={card} />;
+      return <WifiSectionRenderer data={section.data} card={resolvedCard} />;
     case "lead_capture":
-      return <LeadCaptureSectionRenderer data={section.data} card={card} />;
+      return <LeadCaptureSectionRenderer data={section.data} card={resolvedCard} />;
     case "amenities":
-      return <AmenitiesSectionRenderer data={section.data} card={card} />;
+      return <AmenitiesSectionRenderer data={section.data} card={resolvedCard} />;
     case "schedule":
-      return <ScheduleSectionRenderer data={section.data} card={card} />;
+      return <ScheduleSectionRenderer data={section.data} card={resolvedCard} />;
     case "pricing_table":
-      return <PricingTableSectionRenderer data={section.data} card={card} />;
+      return <PricingTableSectionRenderer data={section.data} card={resolvedCard} />;
     case "featured_products":
-      return <FeaturedProductsSectionRenderer data={section.data} card={card} />;
+      return <FeaturedProductsSectionRenderer data={section.data} card={resolvedCard} />;
     case "courses":
-      return <CoursesSectionRenderer data={section.data} card={card} />;
+      return <CoursesSectionRenderer data={section.data} card={resolvedCard} />;
     case "contact":
-      return <ContactSectionRenderer card={card} />;
+      return <ContactSectionRenderer card={resolvedCard} />;
     case "socials":
-      return <SocialsSectionRenderer card={card} />;
+      return <SocialsSectionRenderer card={resolvedCard} />;
     default:
       return null;
   }
@@ -1161,6 +1365,11 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
 
   const getLandingTab = () => {
     const activeTabIds = tabs.map(t => t.id);
+    const customDefaultTab = data.plan === "business" ? data.design_settings?.default_nav_tab : null;
+    if (customDefaultTab && activeTabIds.includes(customDefaultTab)) {
+      return customDefaultTab;
+    }
+
     if (data.business_type === "restaurant" && activeTabIds.includes("menu")) return "menu";
     if (["salon", "clinic", "consultancy", "education"].includes(data.business_type || "") && activeTabIds.includes("services")) return "services";
     if (["tattoo", "creative"].includes(data.business_type || "") && activeTabIds.includes("gallery")) return "gallery";
@@ -1187,6 +1396,15 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
   const initials = getInitials(data.member_name || data.business_name || "Your Business");
   const color = data.brand_color || "#085041";
 
+  const getResolvedCard = (type: string) => {
+    const sec = sections.find((s: any) => s.type === type);
+    if (!sec || !sec.theme) return data;
+    return {
+      ...data,
+      theme: (data.plan === "business" && sec.theme) ? sec.theme : data.theme
+    };
+  };
+
   return (
     <div className="w-full max-w-sm mx-auto flex flex-col gap-3">
       {/* Scrollable Tab Navigation */}
@@ -1212,59 +1430,69 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
         </div>
       )}
 
-      {/* Mini Brand Header if not on Profile tab */}
-      {activeTab !== "profile" && (
-        <div className="w-full bg-white border border-stone-200 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm mb-1 text-left">
-          <Logo data={data} initials={initials} color={color} size={40} />
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xs font-bold text-stone-900 truncate">{data.business_name || "Your Business"}</h1>
-            {data.tagline && <p className="text-[9px] text-stone-500 truncate mt-0.5">{data.tagline}</p>}
-          </div>
-          <OpenStatusBadge hours={data.opening_hours} inverse={true} />
-        </div>
-      )}
-
       {/* Tab Content Display */}
       <div className="w-full flex flex-col gap-4">
         {activeTab === "profile" && (
-          <CardMockup data={data} onSaveContact={onSaveContact} onDownloadCard={onDownloadCard} />
+          <div className="w-full flex flex-col gap-4">
+            <CardMockup data={data} onSaveContact={onSaveContact} onDownloadCard={onDownloadCard} />
+            <div className="w-full flex justify-center mt-1">
+              <DownloadBusinessCard data={data} />
+            </div>
+          </div>
         )}
-        {activeTab === "menu" && hasSection("menu") && (
-          <MenuSectionRenderer data={getSectionData("menu")} card={data} />
+
+        {activeTab !== "profile" && activeTab !== "share" && (
+          <div className="w-full flex flex-col gap-3 animate-fade-in">
+            {/* Brand Header */}
+            <div className="w-full bg-white border border-stone-200 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm text-left">
+              <Logo data={data} initials={initials} color={color} size={40} />
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xs font-bold text-stone-900 truncate">{data.business_name || "Your Business"}</h1>
+                {data.tagline && <p className="text-[9px] text-stone-500 truncate mt-0.5">{data.tagline}</p>}
+              </div>
+              <OpenStatusBadge hours={data.opening_hours} inverse={true} />
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === "menu" && hasSection("menu") && (
+              <MenuSectionRenderer data={getSectionData("menu")} card={getResolvedCard("menu")} />
+            )}
+            {activeTab === "services" && (
+              <div className="flex flex-col gap-3">
+                {hasSection("services") && <ServicesSectionRenderer data={getSectionData("services")} card={getResolvedCard("services")} />}
+                {hasSection("courses") && <CoursesSectionRenderer data={getSectionData("courses")} card={getResolvedCard("courses")} />}
+              </div>
+            )}
+            {activeTab === "gallery" && hasSection("gallery") && (
+              <GallerySectionRenderer data={getSectionData("gallery")} card={getResolvedCard("gallery")} />
+            )}
+            {activeTab === "products" && (
+              <div className="flex flex-col gap-3">
+                {hasSection("featured_products") && <FeaturedProductsSectionRenderer data={getSectionData("featured_products")} card={getResolvedCard("featured_products")} />}
+                {hasSection("pricing_table") && <PricingTableSectionRenderer data={getSectionData("pricing_table")} card={getResolvedCard("pricing_table")} />}
+              </div>
+            )}
+            {activeTab === "wifi" && hasSection("wifi") && (
+              <WifiSectionRenderer data={getSectionData("wifi")} card={getResolvedCard("wifi")} />
+            )}
+            {activeTab === "location" && (
+              <div className="flex flex-col gap-3">
+                {hasSection("location") && <LocationSectionRenderer data={getSectionData("location")} card={getResolvedCard("location")} />}
+                {hasSection("hours") && <HoursSectionRenderer data={getSectionData("hours")} card={getResolvedCard("hours")} />}
+              </div>
+            )}
+            {activeTab === "booking" && (
+              <div className="flex flex-col gap-3">
+                {hasSection("booking") && <BookingSectionRenderer data={getSectionData("booking")} card={getResolvedCard("booking")} />}
+                {hasSection("lead_capture") && <LeadCaptureSectionRenderer data={getSectionData("lead_capture")} card={getResolvedCard("lead_capture")} />}
+              </div>
+            )}
+            {activeTab === "review" && hasSection("review") && (
+              <ReviewSectionRenderer data={getSectionData("review")} card={getResolvedCard("review")} />
+            )}
+          </div>
         )}
-        {activeTab === "services" && (
-          <>
-            {hasSection("services") && <ServicesSectionRenderer data={getSectionData("services")} card={data} />}
-            {hasSection("courses") && <CoursesSectionRenderer data={getSectionData("courses")} card={data} />}
-          </>
-        )}
-        {activeTab === "gallery" && hasSection("gallery") && (
-          <GallerySectionRenderer data={getSectionData("gallery")} card={data} />
-        )}
-        {activeTab === "products" && (
-          <>
-            {hasSection("featured_products") && <FeaturedProductsSectionRenderer data={getSectionData("featured_products")} card={data} />}
-            {hasSection("pricing_table") && <PricingTableSectionRenderer data={getSectionData("pricing_table")} card={data} />}
-          </>
-        )}
-        {activeTab === "wifi" && hasSection("wifi") && (
-          <WifiSectionRenderer data={getSectionData("wifi")} card={data} />
-        )}
-        {activeTab === "location" && (
-          <>
-            {hasSection("location") && <LocationSectionRenderer data={getSectionData("location")} card={data} />}
-            {hasSection("hours") && <HoursSectionRenderer data={getSectionData("hours")} card={data} />}
-          </>
-        )}
-        {activeTab === "booking" && (
-          <>
-            {hasSection("booking") && <BookingSectionRenderer data={getSectionData("booking")} card={data} />}
-            {hasSection("lead_capture") && <LeadCaptureSectionRenderer data={getSectionData("lead_capture")} card={data} />}
-          </>
-        )}
-        {activeTab === "review" && hasSection("review") && (
-          <ReviewSectionRenderer data={getSectionData("review")} card={data} />
-        )}
+
         {activeTab === "share" && (
           <div className="w-full flex justify-center">
             <ShareQR data={data} url={`${SITE.baseUrl}/card/${data.slug || ""}`} />

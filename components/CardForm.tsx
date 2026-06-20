@@ -28,16 +28,16 @@ import {
   SocialsEditor
 } from "@/components/SectionEditors";
 import { isSectionLocked } from "@/lib/sections";
-import { DEFAULT_TITLES, DEFAULT_DATA, SectionType } from "@/lib/business-types";
+import { DEFAULT_TITLES, DEFAULT_DATA, SectionType, BUSINESS_TYPE_DEFAULTS, getDefaultSectionsForType } from "@/lib/business-types";
 
 const MAX_LOGO_BYTES = 300 * 1024; // ~300KB
 
 const STEPS = [
-  { number: 1, label: "Plan & Account", short: "Plan" },
-  { number: 2, label: "Business Details", short: "Details" },
-  { number: 3, label: "Brand & Styling", short: "Style" },
-  { number: 4, label: "Contact & Hours", short: "Contact" },
-  { number: 5, label: "Card Content", short: "Content" },
+  { number: 1, label: "Category", short: "Category" },
+  { number: 2, label: "The Basics", short: "Basics" },
+  { number: 3, label: "Content & Sections", short: "Content" },
+  { number: 4, label: "Style & Layout", short: "Styling" },
+  { number: 5, label: "Review & Pay", short: "Pay" },
 ];
 
 interface CardFormProps {
@@ -61,6 +61,7 @@ export default function CardForm({
 }: CardFormProps) {
   const searchParams = useSearchParams();
   const workspaceId = searchParams.get("workspaceId");
+  
   const [data, setData] = useState<CardData>(initialData);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [bgImageError, setBgImageError] = useState<string | null>(null);
@@ -71,65 +72,11 @@ export default function CardForm({
   const [previewTab, setPreviewTab] = useState<"digital" | "business">("digital");
   const [businessCardPreview, setBusinessCardPreview] = useState<string | null>(null);
   const [generatingPreview, setGeneratingPreview] = useState(false);
-
+  
   // Wizard flow states (Create Mode Only)
   const isWizard = mode === "create";
-  const [currentStep, setCurrentStep] = useState(1);
-
-  const nextStep = () => {
-    if (currentStep === 1) {
-      if (!data.owner_email || !data.owner_email.trim()) {
-        setSubmitError("Account email is required.");
-        return;
-      }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(data.owner_email)) {
-        setSubmitError("Please enter a valid email address.");
-        return;
-      }
-    }
-    if (currentStep === 2) {
-      if (!data.business_name || !data.business_name.trim()) {
-        setSubmitError("Business name is required.");
-        return;
-      }
-    }
-    setSubmitError(null);
-    setCurrentStep((prev) => Math.min(prev + 1, 5));
-  };
-
-  const prevStep = () => {
-    setSubmitError(null);
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
-  };
-
-  const handleStepClick = (targetStep: number) => {
-    if (targetStep === currentStep) return;
-    
-    // Validate Step 1 if moving past it
-    if (currentStep === 1 || targetStep > 1) {
-      if (!data.owner_email || !data.owner_email.trim()) {
-        setSubmitError("Account email is required.");
-        return;
-      }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(data.owner_email)) {
-        setSubmitError("Please enter a valid email address.");
-        return;
-      }
-    }
-    
-    // Validate Step 2 if moving past it
-    if (currentStep === 2 || targetStep > 2) {
-      if (!data.business_name || !data.business_name.trim()) {
-        setSubmitError("Business name is required.");
-        return;
-      }
-    }
-    
-    setSubmitError(null);
-    setCurrentStep(targetStep);
-  };
+  const [currentStep, setCurrentStep] = useState(data.parent_id || workspaceId ? 2 : 1);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
 
   // Initialize payment provider based on country
   const [paymentProvider, setPaymentProvider] = useState<"esewa" | "khalti" | "stripe">(
@@ -137,7 +84,6 @@ export default function CardForm({
   );
 
   const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || SITE.domain;
-  const isSubdomainPlan = false; // Disabled until custom domain is ready
   const previewSlug = data.business_name ? slugify(data.business_name) : "your-business";
   const previewUrl = `https://${baseDomain}/card/${previewSlug}`;
 
@@ -148,7 +94,7 @@ export default function CardForm({
     }
   }, [defaultCountry]);
 
-  // Regenerate QR preview whenever the resulting URL, brand color, logo, business name, or plan changes
+  // Regenerate QR preview
   useEffect(() => {
     setQrLoading(true);
     const isPaid = data.plan !== "basic";
@@ -171,7 +117,7 @@ export default function CardForm({
       });
   }, [previewUrl, data.brand_color, data.logo_data_url, data.business_name, data.plan, data.qr_customization]);
 
-  // Enforce plan constraints based on tier
+  // Enforce plan constraints
   useEffect(() => {
     if (data.plan === "basic") {
       setData((d) => ({
@@ -193,7 +139,7 @@ export default function CardForm({
     }
   }, [data.plan]);
 
-  // Generate physical business card preview when active tab is business card
+  // Generate business card preview
   useEffect(() => {
     if (previewTab !== "business") return;
 
@@ -254,6 +200,52 @@ export default function CardForm({
     reader.readAsDataURL(file);
   }
 
+  const handleCategorySelect = (key: string) => {
+    const defaults = BUSINESS_TYPE_DEFAULTS[key] || BUSINESS_TYPE_DEFAULTS.general;
+    const sections = getDefaultSectionsForType(key);
+    setData((d) => ({
+      ...d,
+      business_type: key,
+      brand_color: defaults.suggestedColor,
+      sections: sections,
+      section_order: sections.map((s) => s.type),
+    }));
+    setTimeout(() => {
+      setCurrentStep(2);
+    }, 300);
+  };
+
+  const nextStep = () => {
+    if (currentStep === 2) {
+      if (!data.business_name || !data.business_name.trim()) {
+        setSubmitError("Business name is required.");
+        return;
+      }
+      if (!data.owner_email || !data.owner_email.trim()) {
+        setSubmitError("Account email is required.");
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(data.owner_email)) {
+        setSubmitError("Please enter a valid email address.");
+        return;
+      }
+    }
+    setSubmitError(null);
+    setCurrentStep((prev) => Math.min(prev + 1, 5));
+  };
+
+  const prevStep = () => {
+    setSubmitError(null);
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleStepClick = (targetStep: number) => {
+    if (targetStep >= currentStep) return; // Can only jump back to completed steps
+    setSubmitError(null);
+    setCurrentStep(targetStep);
+  };
+
   async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isWizard && currentStep < 5) {
@@ -285,1421 +277,1828 @@ export default function CardForm({
     URL.revokeObjectURL(url);
   }
 
-  async function handleDownloadCard() {
-    try {
-      const dataUrl = await generateBusinessCard(data);
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `${data.business_name || "business"}_card.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (err) {
-      console.error("Failed to generate business card:", err);
-      alert("Failed to generate your business card. Please try again.");
-    }
-  }
-
-  function handleDownloadQR() {
-    if (!qr) return;
-    const a = document.createElement("a");
-    a.href = qr;
-    a.download = `${data.business_name || "card"}_qr_code.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
-  const renderSection = (stepNum: number, children: React.ReactNode) => {
-    if (isWizard && currentStep !== stepNum) return null;
-    return children;
-  };
-
   const brandColor = data.brand_color || "#085041";
 
-  return (
-    <form onSubmit={handleFormSubmit} className="grid lg:grid-cols-[1fr_380px] gap-10">
-      {/* Form Fields */}
-      <div className="space-y-8">
-        {isWizard && (
-          <div className="bg-white border border-stone-200 rounded-2xl p-4 sm:p-5 shadow-sm">
-            <div className="relative flex items-center justify-between w-full">
-              {/* Connection Line */}
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-stone-100 rounded-full z-0">
-                <div
-                  className="h-full transition-all duration-300 rounded-full"
-                  style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%`, backgroundColor: brandColor }}
-                />
-              </div>
+  // RENDER STEP 1: CATEGORY SELECTION (Full Screen)
+  if (isWizard && currentStep === 1) {
+    return (
+      <main className="max-w-4xl mx-auto px-6 py-12">
+        {/* Step Indicator Header */}
+        <div className="flex items-center justify-between max-w-xs mx-auto mb-8 border border-stone-200 bg-white rounded-full py-2 px-4 shadow-sm text-xs font-semibold text-stone-500">
+          <span>Step 1 of 5</span>
+          <div className="flex gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-brand"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-stone-200"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-stone-200"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-stone-200"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-stone-200"></span>
+          </div>
+        </div>
 
-              {/* Steps */}
-              {STEPS.map((step) => {
-                const isCompleted = currentStep > step.number;
-                const isActive = currentStep === step.number;
-                return (
-                  <button
-                    key={step.number}
-                    type="button"
-                    onClick={() => handleStepClick(step.number)}
-                    className="relative z-10 flex flex-col items-center group focus:outline-none"
+        <div className="text-center max-w-xl mx-auto mb-10">
+          <h1 className="text-3xl font-extrabold tracking-tight text-stone-900 sm:text-4xl">
+            What kind of business do you run?
+          </h1>
+          <p className="mt-3 text-sm text-stone-500">
+            Select a category to pre-configure your default sections, suggested theme colors, and visual layout. You can customize everything later.
+          </p>
+        </div>
+
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 max-w-4xl mx-auto">
+          {Object.entries(BUSINESS_TYPE_DEFAULTS).map(([key, detail]) => {
+            const isSelected = data.business_type === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleCategorySelect(key)}
+                className={`relative flex flex-col items-center text-center p-5 bg-white border rounded-2xl cursor-pointer select-none h-full justify-between gap-4 transition-all duration-200 hover:-translate-y-0.5 ${
+                  isSelected
+                    ? "border-brand bg-brand-light/30 ring-2 ring-brand"
+                    : "border-stone-200 hover:border-stone-300 hover:shadow-xs"
+                }`}
+              >
+                <div className="w-14 h-14 rounded-full bg-stone-50 flex items-center justify-center text-3xl border border-stone-100/50 shadow-inner">
+                  {detail.emoji}
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-stone-900 text-sm leading-tight">
+                    {detail.label}
+                  </h3>
+                  <p className="text-[11px] text-stone-500 leading-normal max-w-[180px] mx-auto">
+                    {detail.description}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="text-center mt-8">
+          <button
+            type="button"
+            onClick={() => handleCategorySelect("general")}
+            className="text-xs text-stone-400 hover:text-stone-700 underline font-medium cursor-pointer"
+          >
+            Skip — General business
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <form onSubmit={handleFormSubmit} className="space-y-8 max-w-7xl mx-auto px-4 py-6">
+      
+      {/* Step Indicator Header (Steps 2-4) */}
+      {isWizard && (
+        <div className="bg-white border border-stone-250/60 rounded-2xl p-4 shadow-sm max-w-xl mx-auto mb-6">
+          <div className="flex items-center justify-between">
+            {STEPS.map((step) => {
+              const isCompleted = currentStep > step.number;
+              const isActive = currentStep === step.number;
+              return (
+                <button
+                  key={step.number}
+                  type="button"
+                  disabled={!isCompleted}
+                  onClick={() => handleStepClick(step.number)}
+                  className={`flex flex-col items-center group ${isCompleted ? "cursor-pointer" : "cursor-default"}`}
+                >
+                  <div
+                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs border transition-all ${
+                      isCompleted
+                        ? "text-white"
+                        : isActive
+                        ? "bg-white font-bold"
+                        : "bg-white text-stone-300 border-stone-200"
+                    }`}
+                    style={
+                      isCompleted
+                        ? { backgroundColor: brandColor, borderColor: brandColor }
+                        : isActive
+                        ? { borderColor: brandColor, color: brandColor, boxShadow: `0 0 0 3px ${brandColor}20` }
+                        : {}
+                    }
                   >
-                    <div
-                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-300 border shadow-sm ${
-                        isCompleted
-                          ? "text-white"
-                          : isActive
-                          ? "bg-white font-bold"
-                          : "bg-white text-stone-400 border-stone-200 hover:border-stone-300 hover:text-stone-600"
+                    {isCompleted ? "✓" : step.number}
+                  </div>
+                  <span
+                    className={`text-[9px] font-bold mt-1 uppercase tracking-wider ${
+                      isActive ? "font-bold" : isCompleted ? "text-stone-700" : "text-stone-300"
+                    }`}
+                    style={isActive ? { color: brandColor } : {}}
+                  >
+                    {step.short}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Back button link */}
+      {isWizard && currentStep > 1 && (
+        <div className="max-w-5xl mx-auto flex items-center">
+          <button
+            type="button"
+            onClick={prevStep}
+            className="text-xs font-semibold text-stone-500 hover:text-stone-850 flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            &larr; Back
+          </button>
+        </div>
+      )}
+
+      {/* SUBMISSION ERROR */}
+      {(submitError || externalSubmitError) && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-semibold max-w-xl mx-auto">
+          {submitError || externalSubmitError}
+        </div>
+      )}
+
+      {/* STEP 2: THE BASICS */}
+      {isWizard && currentStep === 2 && (
+        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-10 max-w-5xl mx-auto items-start">
+          <div className="bg-white border border-stone-200 rounded-3xl p-8 space-y-6 shadow-sm">
+            <h2 className="text-xl font-bold text-stone-900 border-b border-stone-100 pb-3">The basics</h2>
+            
+            <div className="space-y-4">
+              <Field label="Business name" required>
+                <input
+                  required
+                  autoFocus
+                  value={data.business_name}
+                  onChange={(e) => update("business_name", e.target.value)}
+                  placeholder="e.g. The Himalayan Bistro"
+                  className="input text-lg font-bold"
+                />
+              </Field>
+
+              <Field label="Tagline (optional)">
+                <input
+                  value={data.tagline || ""}
+                  onChange={(e) => update("tagline", e.target.value)}
+                  placeholder="e.g. Taste the authentic Himalayan spice"
+                  className="input"
+                />
+              </Field>
+
+              <Field label="Account email" required>
+                <input
+                  type="email"
+                  required
+                  value={data.owner_email || ""}
+                  onChange={(e) => update("owner_email", e.target.value)}
+                  placeholder="you@example.com"
+                  className="input"
+                />
+                <p className="text-[10px] text-stone-400 mt-1.5 leading-relaxed">
+                  No password needed. Enter this email on the <strong>/edit</strong> page to log in instantly via a magic link.
+                </p>
+              </Field>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-xs font-medium text-stone-600 block">Select pricing plan</label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { id: "basic", name: "Free Trial", price: "Rs 0" },
+                  { id: "pro", name: "Pro", price: "Rs 500" },
+                  { id: "business", name: "Business", price: "Rs 1,000" }
+                ].map((p) => {
+                  const isSel = data.plan === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => update("plan", p.id as PlanId)}
+                      className={`py-3 px-2 border rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+                        isSel 
+                          ? "border-brand bg-brand-light ring-2 ring-brand"
+                          : "border-stone-200 hover:border-stone-300 hover:bg-stone-50"
                       }`}
-                      style={
-                        isCompleted
-                          ? { backgroundColor: brandColor, borderColor: brandColor }
-                          : isActive
-                          ? { borderColor: brandColor, color: brandColor, boxShadow: `0 0 0 4px ${brandColor}25` }
-                          : {}
-                      }
                     >
-                      {isCompleted ? (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4 text-white">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      ) : (
-                        step.number
-                      )}
-                    </div>
-                    <span
-                      className={`text-[10px] sm:text-xs font-semibold mt-2 transition-colors duration-300 hidden sm:block ${
-                        isActive ? "font-bold" : isCompleted ? "text-stone-600" : "text-stone-400 group-hover:text-stone-500"
-                      }`}
-                      style={isActive ? { color: brandColor } : {}}
-                    >
-                      {step.label}
-                    </span>
-                    <span
-                      className={`text-[9px] font-semibold mt-1 transition-colors duration-300 sm:hidden ${
-                        isActive ? "font-bold" : isCompleted ? "text-stone-600" : "text-stone-400"
-                      }`}
-                      style={isActive ? { color: brandColor } : {}}
-                    >
-                      {step.short}
-                    </span>
-                  </button>
-                );
-              })}
+                      <span className="font-bold text-xs text-stone-900">{p.name}</span>
+                      <span className="text-[10px] text-stone-500 font-semibold mt-0.5">{p.price}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+
+
+            <div className="pt-4">
+              <button
+                type="button"
+                onClick={nextStep}
+                style={{ backgroundColor: brandColor }}
+                className="w-full py-3 bg-brand text-white rounded-2xl font-bold text-sm shadow-sm hover:opacity-95 transition-opacity cursor-pointer"
+              >
+                Continue &rarr;
+              </button>
             </div>
           </div>
-        )}
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={isWizard ? currentStep : "edit"}
-            initial={isWizard ? { opacity: 0, x: 15 } : undefined}
-            animate={isWizard ? { opacity: 1, x: 0 } : undefined}
-            exit={isWizard ? { opacity: 0, x: -15 } : undefined}
-            transition={{ duration: 0.2 }}
-            className="space-y-8"
-          >
-            {/* Account Email (Magic Link login target) */}
-            {renderSection(1, (
-              <motion.section
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.3 }}
-                className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm"
-              >
-                <h2 className="font-semibold text-stone-900 mb-3 text-sm">Account Details</h2>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <Field label="Account Email (Required for management & updates)" required>
-                    <input
-                      type="email"
-                      required
-                      value={data.owner_email || ""}
-                      onChange={(e) => update("owner_email", e.target.value)}
-                      placeholder="you@example.com"
-                      className="input"
-                    />
-                  </Field>
-                  {isAdmin && (
-                    <Field label="Payment Activation Status">
-                      <select
-                        value={data.payment_status}
-                        onChange={(e) => update("payment_status", e.target.value as any)}
-                        className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 py-1 text-sm outline-none focus:border-stone-500"
-                      >
-                        <option value="paid">Active (Paid)</option>
-                        <option value="pending">Pending Payment</option>
-                      </select>
-                    </Field>
-                  )}
-                </div>
-                <p className="text-[11px] text-stone-400 mt-2">
-                  This email is used to log in via a passwordless Magic Link to manage/edit your card in the future.
-                </p>
-              </motion.section>
-            ))}
+          {/* Sticky preview column */}
+          <div className="hidden lg:sticky lg:top-24 lg:flex flex-col gap-6">
+            <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Live card preview</h3>
+            <CardPreview data={data} onSaveContact={downloadVCardPreview} />
+          </div>
+        </div>
+      )}
 
-            {/* Plan Selection */}
-            {renderSection(1, (mode === "create" || isAdmin) && !data.parent_id && (
-              <motion.section
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.3 }}
-                className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm"
-              >
-                <h2 className="font-semibold text-stone-900 mb-3 text-sm">Choose Plan</h2>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  {Object.entries(PLAN_DETAILS).map(([id, plan]) => (
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      key={id}
-                      type="button"
-                      onClick={() => update("plan", id as PlanId)}
-                      className={`text-left rounded-xl border p-4 transition-all ${
-                        data.plan === id
-                          ? "border-brand ring-2 ring-brand bg-brand-light"
-                          : "border-stone-200 hover:border-stone-300 hover:bg-stone-50/50"
-                      }`}
-                    >
-                      <div className="font-semibold text-stone-900">{plan.name}</div>
-                      <div className="text-xs text-stone-500 mt-1">
-                        Rs {plan.priceNPR.toLocaleString()} / ${plan.priceUSD}
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              </motion.section>
-            ))}
+      {/* STEP 3: CONTENT & SECTIONS (Wizard) OR ALL EDITORS (Edit Mode) */}
+      {((isWizard && currentStep === 3) || !isWizard) && (
+        <div className={`grid gap-6 items-start ${isWizard ? "lg:grid-cols-[1.2fr_0.8fr]" : "lg:grid-cols-[1.1fr_1fr_0.9fr]"}`}>
+          {/* Column 1: Editors left */}
+          <div className="space-y-8">
+            {/* About & Bio Description */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
+              <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5">About &amp; Bio</h3>
+              <Field label="Bio Description (About summary)">
+                <textarea
+                  value={data.bio || ""}
+                  onChange={(e) => update("bio", e.target.value)}
+                  placeholder="Share a short description of your business or yourself..."
+                  rows={4}
+                  className="w-full border border-stone-300 rounded-xl p-3 text-xs focus:ring-1 focus:ring-brand outline-none"
+                />
+              </Field>
+            </div>
 
-            {/* Payment Method Selector (Create Mode Only) */}
-            {renderSection(1, mode === "create" && data.plan !== "basic" && !data.parent_id && (
-              <motion.section
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.3 }}
-                className="bg-stone-100 p-6 rounded-2xl border border-stone-200"
-              >
-                <h2 className="font-semibold text-stone-900 mb-1 text-sm">Payment Method</h2>
-                <p className="text-[11px] text-stone-500 mb-4">
-                  Select your payment method. Region-based default is auto-detected.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={() => setPaymentProvider("esewa")}
-                    className={`flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all cursor-pointer ${
-                      paymentProvider === "esewa"
-                        ? "border-emerald-600 bg-emerald-50/80 ring-2 ring-emerald-600 text-emerald-950 font-medium"
-                        : "border-stone-200 bg-white hover:border-stone-300 text-stone-700"
-                    }`}
-                  >
-                    <span className="font-semibold text-sm">eSewa (NPR)</span>
-                    <span className="text-[10px] opacity-75 mt-0.5">Rs {PLAN_DETAILS[data.plan].priceNPR.toLocaleString()}</span>
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={() => setPaymentProvider("khalti")}
-                    className={`flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all cursor-pointer ${
-                      paymentProvider === "khalti"
-                        ? "border-purple-600 bg-purple-50/80 ring-2 ring-purple-600 text-purple-950 font-medium"
-                        : "border-stone-200 bg-white hover:border-stone-300 text-stone-700"
-                    }`}
-                  >
-                    <span className="font-semibold text-sm">Khalti (NPR)</span>
-                    <span className="text-[10px] opacity-75 mt-0.5">Rs {PLAN_DETAILS[data.plan].priceNPR.toLocaleString()}</span>
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={() => setPaymentProvider("stripe")}
-                    className={`flex flex-col items-center justify-center py-4 px-3 rounded-xl border transition-all cursor-pointer ${
-                      paymentProvider === "stripe"
-                        ? "border-indigo-600 bg-indigo-50/80 ring-2 ring-indigo-600 text-indigo-950 font-medium"
-                        : "border-stone-200 bg-white hover:border-stone-300 text-stone-700"
-                    }`}
-                  >
-                    <span className="font-semibold text-sm">Card (USD)</span>
-                    <span className="text-[10px] opacity-75 mt-0.5">${PLAN_DETAILS[data.plan].priceUSD}</span>
-                  </motion.button>
-                </div>
-              </motion.section>
-            ))}
+            {/* Contact Details */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
+              <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5">Contact Details</h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="Phone number">
+                  <input
+                    value={data.phone || ""}
+                    onChange={(e) => update("phone", e.target.value)}
+                    placeholder="e.g. 98XXXXXXXX"
+                    className="input"
+                  />
+                </Field>
+                <Field label="WhatsApp (with country code)">
+                  <input
+                    value={data.whatsapp || ""}
+                    onChange={(e) => update("whatsapp", e.target.value)}
+                    placeholder="e.g. 97798XXXXXXXX"
+                    className="input"
+                  />
+                </Field>
+                <Field label="Public Email">
+                  <input
+                    value={data.email || ""}
+                    onChange={(e) => update("email", e.target.value)}
+                    placeholder="e.g. contact@business.com"
+                    className="input"
+                  />
+                </Field>
+                <Field label="Website">
+                  <input
+                    value={data.website || ""}
+                    onChange={(e) => update("website", e.target.value)}
+                    placeholder="e.g. https://www.yourdomain.com"
+                    className="input"
+                  />
+                </Field>
+              </div>
+            </div>
 
-            {/* Business details */}
-            {renderSection(2, (
-              <motion.section
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.3 }}
-                className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm"
-              >
-                <h2 className="font-semibold text-stone-900 mb-3 text-sm">Business details</h2>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <Field label="Business name" required>
-                    <input
-                      required
-                      value={data.business_name}
-                      onChange={(e) => update("business_name", e.target.value)}
-                      placeholder="Easymoto"
-                      className="input"
-                    />
-                  </Field>
-                  <Field label="Tagline">
-                    <input
-                      value={data.tagline || ""}
-                      onChange={(e) => update("tagline", e.target.value)}
-                      placeholder="Two-wheeler rentals, Kathmandu"
-                      className="input"
-                    />
-                  </Field>
-                  {data.plan !== "basic" && (
-                    <>
-                      <Field label="Member Name (Optional — e.g. for team cards)">
-                        <input
-                          value={data.member_name || ""}
-                          onChange={(e) => update("member_name", e.target.value)}
-                          placeholder="Sudip Parajuli"
-                          className="input"
-                        />
-                      </Field>
-                      <Field label="Member Role (Optional — e.g. Founder & CEO)">
-                        <input
-                          value={data.member_role || ""}
-                          onChange={(e) => update("member_role", e.target.value)}
-                          placeholder="Founder & CEO"
-                          className="input"
-                        />
-                      </Field>
-                    </>
-                  )}
-                  <Field label="Brand color">
-                    {data.plan === "basic" ? (
-                      <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-500 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full border border-stone-300" style={{ backgroundColor: "#085041" }}></div>
-                          <span>Locked to default branding.</span>
+            {/* Social Links */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
+              <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5">Social Media Profiles</h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="Facebook">
+                  <input
+                    value={data.facebook || ""}
+                    onChange={(e) => update("facebook", e.target.value)}
+                    placeholder="https://facebook.com/yourpage"
+                    className="input"
+                  />
+                </Field>
+                <Field label="Instagram">
+                  <input
+                    value={data.instagram || ""}
+                    onChange={(e) => update("instagram", e.target.value)}
+                    placeholder="https://instagram.com/yourpage"
+                    className="input"
+                  />
+                </Field>
+                <Field label="TikTok">
+                  <input
+                    value={data.tiktok || ""}
+                    onChange={(e) => update("tiktok", e.target.value)}
+                    placeholder="https://tiktok.com/@username"
+                    className="input"
+                  />
+                </Field>
+                <Field label="YouTube">
+                  <input
+                    value={data.youtube || ""}
+                    onChange={(e) => update("youtube", e.target.value)}
+                    placeholder="https://youtube.com/@channel"
+                    className="input"
+                  />
+                </Field>
+                <Field label="Viber">
+                  <input
+                    value={data.viber || ""}
+                    onChange={(e) => update("viber", e.target.value)}
+                    placeholder="e.g. 98XXXXXXXX"
+                    className="input"
+                  />
+                </Field>
+                <Field label="X (Twitter)">
+                  <input
+                    value={data.x_twitter || ""}
+                    onChange={(e) => update("x_twitter", e.target.value)}
+                    placeholder="username or URL"
+                    className="input"
+                  />
+                </Field>
+                <Field label="Threads">
+                  <input
+                    value={data.threads || ""}
+                    onChange={(e) => update("threads", e.target.value)}
+                    placeholder="username or URL"
+                    className="input"
+                  />
+                </Field>
+                <Field label="LinkedIn">
+                  <input
+                    value={data.linkedin || ""}
+                    onChange={(e) => update("linkedin", e.target.value)}
+                    placeholder="profile URL or username"
+                    className="input"
+                  />
+                </Field>
+                <Field label="Telegram">
+                  <input
+                    value={data.telegram || ""}
+                    onChange={(e) => update("telegram", e.target.value)}
+                    placeholder="username or t.me URL"
+                    className="input"
+                  />
+                </Field>
+              </div>
+            </div>
+
+            {/* Content Sections Editor (Up/Down re-ordering pool) */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-6 shadow-sm text-left">
+              <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5">Profile Content Sections</h3>
+              
+              {data.sections && data.sections.length > 0 && (
+                <div className="space-y-4">
+                  {data.sections.map((section, idx) => {
+                    if (section.type === "hero" || section.type === "room_service") return null;
+                    const locked = isSectionLocked(section.type, data.plan, section.data);
+
+                    return (
+                      <div key={section.type} className="border border-stone-200 rounded-xl overflow-hidden bg-white">
+                        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-stone-50 border-b border-stone-200">
+                          <div className="flex items-center gap-2">
+                            {/* Reordering */}
+                            <div className="flex items-center bg-stone-200/50 rounded px-1.5 py-0.5">
+                              <button
+                                type="button"
+                                disabled={idx === 0}
+                                onClick={() => {
+                                  const list = [...(data.sections || [])];
+                                  const temp = list[idx - 1];
+                                  list[idx - 1] = list[idx];
+                                  list[idx] = temp;
+                                  update("sections", list);
+                                }}
+                                className="px-1 text-stone-500 hover:text-stone-850 disabled:opacity-30 font-bold"
+                              >
+                                ▲
+                              </button>
+                              <button
+                                type="button"
+                                disabled={idx === (data.sections?.length ?? 0) - 1}
+                                onClick={() => {
+                                  const list = [...(data.sections || [])];
+                                  const temp = list[idx + 1];
+                                  list[idx + 1] = list[idx];
+                                  list[idx] = temp;
+                                  update("sections", list);
+                                }}
+                                className="px-1 text-stone-500 hover:text-stone-850 disabled:opacity-30 font-bold"
+                              >
+                                ▼
+                              </button>
+                            </div>
+                            <span className="text-[11px] font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1">
+                              {locked && <span>🔒</span>}
+                              {section.title}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            {data.plan === "business" && (
+                              <select
+                                value={section.theme || ""}
+                                onChange={(e) => {
+                                  const list = [...(data.sections || [])];
+                                  list[idx] = { ...list[idx], theme: (e.target.value || undefined) as any };
+                                  update("sections", list);
+                                }}
+                                className="h-7 rounded border border-stone-250 bg-white px-2 text-[10px] outline-none font-medium text-stone-700 focus:border-brand/40"
+                              >
+                                <option value="">Default Theme</option>
+                                <option value="classic">Classic</option>
+                                <option value="minimal">Minimal</option>
+                                <option value="bold">Bold</option>
+                                <option value="gradient">Gradient</option>
+                                <option value="glassmorphic">Glassmorphic</option>
+                                <option value="neonDark">Neon Dark</option>
+                              </select>
+                            )}
+                            <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={section.enabled !== false}
+                                disabled={locked}
+                                onChange={(e) => {
+                                  const list = [...(data.sections || [])];
+                                  list[idx] = { ...list[idx], enabled: e.target.checked };
+                                  update("sections", list);
+                                }}
+                                className="rounded border-stone-300 text-brand focus:ring-brand disabled:opacity-50"
+                              />
+                              Enabled
+                            </label>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const list = (data.sections || []).filter((_, i) => i !== idx);
+                                update("sections", list);
+                              }}
+                              className="text-stone-400 hover:text-red-500 font-semibold text-xs"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
-                        <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Pro/Business only</span>
+
+                        {section.enabled !== false && (
+                          locked ? (
+                            <div className="flex flex-col items-center justify-center p-6 text-center bg-stone-50 border-t border-stone-200">
+                              <span className="text-xl mb-1">🔒</span>
+                              <h4 className="text-xs font-bold text-stone-850">Feature Locked</h4>
+                              <p className="text-[10px] text-stone-500 mt-0.5">
+                                Upgrade to unlock this advanced visual section.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="p-4 border-t border-stone-100">
+                              {section.type === "menu" && (
+                                <MenuEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                  brandColor={data.brand_color}
+                                />
+                              )}
+                              {section.type === "gallery" && (
+                                <GalleryEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                  brandColor={data.brand_color}
+                                />
+                              )}
+                              {section.type === "services" && (
+                                <ServicesEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                  brandColor={data.brand_color}
+                                />
+                              )}
+                              {section.type === "hours" && (
+                                <HoursEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                />
+                              )}
+                              {section.type === "location" && (
+                                <LocationEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                />
+                              )}
+                              {section.type === "review" && (
+                                <ReviewEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                />
+                              )}
+                              {section.type === "booking" && (
+                                <BookingEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                  plan={data.plan}
+                                />
+                              )}
+                              {section.type === "wifi" && (
+                                <WifiEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                />
+                              )}
+                              {section.type === "lead_capture" && (
+                                <LeadCaptureEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                />
+                              )}
+                              {section.type === "amenities" && (
+                                <AmenitiesEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                />
+                              )}
+                              {section.type === "schedule" && (
+                                <ScheduleEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                />
+                              )}
+                              {section.type === "pricing_table" && (
+                                <PricingTableEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                />
+                              )}
+                              {section.type === "featured_products" && (
+                                <FeaturedProductsEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                />
+                              )}
+                              {section.type === "courses" && (
+                                <CoursesEditor
+                                  data={section.data}
+                                  onChange={(newData) => updateSectionData(idx, newData)}
+                                />
+                              )}
+                              {section.type === "contact" && <ContactEditor />}
+                              {section.type === "socials" && <SocialsEditor />}
+                            </div>
+                          )
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Add Section Pool */}
+              {(() => {
+                const activeTypes = (data.sections || []).map((s) => s.type);
+                const availableTypes: SectionType[] = [
+                  "menu",
+                  "gallery",
+                  "services",
+                  "booking",
+                  "hours",
+                  "location",
+                  "wifi",
+                  "amenities",
+                  "lead_capture",
+                  "review",
+                  "schedule",
+                  "pricing_table",
+                  "featured_products",
+                  "courses",
+                  "contact",
+                  "socials",
+                ];
+                const pool = availableTypes.filter((type) => !activeTypes.includes(type));
+                if (pool.length === 0) return null;
+
+                return (
+                  <div className="pt-4 border-t border-stone-150 flex flex-col gap-2">
+                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Add Profile Section</span>
+                    <div className="flex flex-wrap gap-2">
+                      {pool.map((type) => {
+                        const title = DEFAULT_TITLES[type];
+                        const isLocked = isSectionLocked(type, data.plan);
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => {
+                              const newSection = {
+                                type,
+                                title,
+                                enabled: true,
+                                data: JSON.parse(JSON.stringify(DEFAULT_DATA[type])),
+                              };
+                              const list = [...(data.sections || []), newSection];
+                              update("sections", list);
+                            }}
+                            className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                              isLocked
+                                ? "bg-stone-50 text-stone-400 border-stone-200 hover:bg-stone-100"
+                                : "bg-white hover:bg-brand/5 text-stone-700 border-stone-200 hover:border-brand/40"
+                            }`}
+                          >
+                            {isLocked && <span>🔒</span>}
+                            <span>+ {title}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Navigation for Step 3 in Wizard Mode */}
+            {isWizard && currentStep === 3 && (
+              <div className="pt-4">
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  style={{ backgroundColor: brandColor }}
+                  className="w-full py-3.5 bg-brand text-white rounded-2xl font-bold text-sm shadow-sm hover:opacity-95 transition-opacity cursor-pointer text-center"
+                >
+                  Continue to Styling &rarr;
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Column 2: Design & Styles (Center) - ONLY visible in Edit Mode here */}
+          {!isWizard && (
+            <div className="space-y-8 animate-fade-in">
+              <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-6 shadow-sm text-left">
+                <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex justify-between items-center">
+                  <span>🎨 Design &amp; Styles</span>
+                  {data.plan !== "basic" && (
+                    <span className="text-[9px] font-bold text-brand bg-brand-light/30 border border-brand/20 px-2 py-0.5 rounded uppercase">
+                      {data.plan}
+                    </span>
+                  )}
+                </h3>
+
+                {/* Theme Selector */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Card Theme</label>
+                  <select
+                    value={data.theme}
+                    onChange={(e) => update("theme", e.target.value as ThemeId)}
+                    className="w-full h-9 rounded-lg border border-stone-250 bg-white px-2.5 text-xs outline-none focus:border-stone-500 text-stone-700 font-medium cursor-pointer"
+                  >
+                    {(Object.keys(THEME_LABELS) as ThemeId[]).map((id) => {
+                      const isLocked =
+                        (data.plan === "basic" && id !== "classic") ||
+                        (data.plan === "pro" && (id === "glassmorphic" || id === "neonDark"));
+                      const lockSuffix = isLocked ? ` (🔒 ${id === "glassmorphic" || id === "neonDark" ? "Business" : "Pro"})` : "";
+                      return (
+                        <option key={id} value={id} disabled={isLocked}>
+                          {THEME_LABELS[id]}{lockSuffix}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Colors */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Brand Color</label>
+                    {data.plan === "basic" ? (
+                      <div className="h-9 rounded-lg border border-stone-200 bg-stone-50 flex items-center px-2 gap-1.5 text-[10px] text-stone-400">
+                        <div className="w-3.5 h-3.5 rounded-full border border-stone-300" style={{ backgroundColor: "#085041" }}></div>
+                        <span>Locked</span>
                       </div>
                     ) : (
                       <input
                         type="color"
                         value={data.brand_color || "#085041"}
                         onChange={(e) => update("brand_color", e.target.value)}
-                        className="h-10 w-full rounded-lg border border-stone-200 cursor-pointer"
+                        className="h-9 w-full rounded-lg border border-stone-250 cursor-pointer p-0.5"
                       />
                     )}
-                  </Field>
+                  </div>
 
-                  <Field label="Text color">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Text Color</label>
                     {data.plan === "basic" ? (
-                      <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-500 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full border border-stone-300" style={{ backgroundColor: "#ffffff" }}></div>
-                          <span>Locked to default colors.</span>
-                        </div>
-                        <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Pro/Business only</span>
+                      <div className="h-9 rounded-lg border border-stone-200 bg-stone-55 flex items-center px-2 gap-1.5 text-[10px] text-stone-400">
+                        <div className="w-3.5 h-3.5 rounded-full border border-stone-300" style={{ backgroundColor: "#ffffff" }}></div>
+                        <span>Locked</span>
                       </div>
                     ) : (
-                      <div className="flex gap-2 items-center">
+                      <div className="flex gap-1">
                         <input
                           type="color"
                           value={data.text_color || "#ffffff"}
                           onChange={(e) => update("text_color", e.target.value)}
-                          className="h-10 flex-1 rounded-lg border border-stone-250 cursor-pointer"
+                          className="h-9 flex-1 rounded-lg border border-stone-250 cursor-pointer p-0.5"
                         />
                         {data.text_color && (
                           <button
                             type="button"
                             onClick={() => update("text_color", null)}
-                            className="text-xs text-stone-500 hover:text-stone-700 border border-stone-200 rounded-lg px-2.5 h-10 transition-colors"
+                            className="text-[9px] text-stone-500 border border-stone-250 rounded-lg px-2 h-9 hover:bg-stone-50"
                           >
-                            Reset
-                          </button>
+                            ×
+                        </button>
                         )}
                       </div>
                     )}
-                  </Field>
-
-                  <div className="sm:col-span-2">
-                    <Field label="Logo (optional, under 300KB)">
-                      {data.plan === "basic" ? (
-                        <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 text-xs text-stone-500 flex items-center justify-between">
-                          <span>Logo upload is locked on Basic plan.</span>
-                          <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Pro/Business only</span>
-                        </div>
-                      ) : (
-                        <>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/png, image/jpeg, image/webp"
-                            onChange={handleLogoUpload}
-                            className="text-xs mt-1 block w-full text-stone-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200"
-                          />
-                          {logoError && <p className="text-xs text-red-500 mt-1">{logoError}</p>}
-                          {data.logo_data_url && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                update("logo_data_url", null);
-                                if (fileInputRef.current) fileInputRef.current.value = "";
-                              }}
-                              className="text-xs text-stone-500 underline mt-1 block"
-                            >
-                              Remove logo
-                            </button>
-                          )}
-
-                          <div className="mt-3 flex items-center gap-2">
-                            <input
-                              id="show_logo_on_card"
-                              type="checkbox"
-                              checked={data.show_logo_on_card !== false}
-                              onChange={(e) => update("show_logo_on_card", e.target.checked)}
-                              className="h-4 w-4 rounded border-stone-300 text-stone-900 focus:ring-stone-900 cursor-pointer"
-                            />
-                            <label htmlFor="show_logo_on_card" className="text-xs font-medium text-stone-700 select-none cursor-pointer">
-                              Show logo/initials emblem on physical business card layout
-                            </label>
-                          </div>
-                        </>
-                      )}
-                    </Field>
                   </div>
                 </div>
-              </motion.section>
-            ))}
 
-            {/* Theme selection */}
-            {renderSection(2, (
-              <motion.section
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.3 }}
-                className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm"
-              >
-                <div className="flex justify-between items-center mb-3">
-                  <h2 className="font-semibold text-stone-900 text-sm">Theme</h2>
+                {/* Logo Upload */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Logo Upload</label>
                   {data.plan === "basic" ? (
-                    <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
-                      Pro/Business gets all themes
-                    </span>
-                  ) : data.plan === "pro" ? (
-                    <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
-                      Business unlocks premium themes
-                    </span>
-                  ) : null}
+                    <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-2 rounded-lg text-center bg-stone-50 font-medium">
+                      🔒 Locked on Free Trial
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        onChange={handleLogoUpload}
+                        className="text-[10px] block w-full text-stone-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-stone-150 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer"
+                      />
+                      {logoError && <p className="text-[10px] text-red-500 font-medium">{logoError}</p>}
+                      {data.logo_data_url && (
+                        <button
+                          type="button"
+                          onClick={() => update("logo_data_url", null)}
+                          className="text-[10px] text-red-500 hover:underline font-semibold block"
+                        >
+                          Remove Logo
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {(Object.keys(THEME_LABELS) as ThemeId[]).map((id) => {
-                    const isLocked =
-                      (data.plan === "basic" && id !== "classic") ||
-                      (data.plan === "pro" && (id === "glassmorphic" || id === "neonDark"));
-                    const lockText = (id === "glassmorphic" || id === "neonDark") ? "Business only" : "Pro/Business only";
+
+                {/* Business Card Customization */}
+                <div className="border-t border-stone-100 pt-4 space-y-4">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-stone-900">
+                    <span>🪪 Business Card Customization</span>
+                  </div>
+                  {data.plan === "basic" ? (
+                    <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-2 rounded-lg text-center bg-stone-50 font-medium">
+                      🔒 Locked on Free Trial
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Business Card Layout</label>
+                        <select
+                          disabled={data.plan === "pro"}
+                          value={data.card_layout || "classic"}
+                          onChange={(e) => update("card_layout", e.target.value as any)}
+                          className="h-9 w-full rounded-lg border border-stone-250 bg-white px-2.5 text-xs outline-none focus:border-stone-500 text-stone-700 font-medium cursor-pointer disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
+                        >
+                          <option value="classic">Classic (Brand background)</option>
+                          <option value="modern_dark">Modern Dark (slate + glow)</option>
+                          <option value="minimal_light">Minimal Light (borderless)</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Custom Background</label>
+                        {data.plan === "pro" ? (
+                          <div className="text-[10px] text-stone-400 bg-stone-50 border border-stone-200 p-2 rounded-lg font-medium">
+                            🔒 Upgrade to Business to add custom card background.
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <input
+                              type="file"
+                              accept="image/png, image/jpeg, image/webp"
+                              onChange={handleBackgroundUpload}
+                              className="text-[10px] block w-full text-stone-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-stone-150 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer"
+                            />
+                            {bgImageError && <p className="text-[10px] text-red-500 font-medium">{bgImageError}</p>}
+                            {data.background_data_url && (
+                              <button
+                                type="button"
+                                onClick={() => update("background_data_url", null)}
+                                className="text-[10px] text-stone-500 hover:underline font-semibold block"
+                              >
+                                Remove Background
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section specific themes (Business plan only) */}
+                {data.plan === "business" && data.sections && data.sections.filter(s => s.type !== "hero" && s.type !== "room_service" && s.enabled !== false).length > 0 && (
+                  <div className="space-y-3 pt-4 border-t border-stone-100">
+                    <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">🎨 Section Theme Overrides</label>
+                    <div className="space-y-2">
+                      {data.sections
+                        .filter(s => s.type !== "hero" && s.type !== "room_service" && s.enabled !== false)
+                        .map((sec) => (
+                          <div key={sec.type} className="space-y-1">
+                            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Theme for &quot;{sec.title}&quot;</span>
+                            <select
+                              value={sec.theme || ""}
+                              onChange={(e) => {
+                                const list = [...(data.sections || [])];
+                                const idx = list.findIndex(x => x.type === sec.type);
+                                if (idx !== -1) {
+                                  list[idx] = { ...list[idx], theme: (e.target.value || undefined) as any };
+                                  update("sections", list);
+                                }
+                              }}
+                              className="w-full h-9 rounded-lg border border-stone-250 bg-white px-2.5 text-xs outline-none focus:border-stone-500 text-stone-700 font-medium cursor-pointer"
+                            >
+                              <option value="">Default theme (inherited)</option>
+                              <option value="classic">Classic</option>
+                              <option value="minimal">Minimal</option>
+                              <option value="bold">Bold</option>
+                              <option value="gradient">Gradient</option>
+                              <option value="glassmorphic">Glassmorphic</option>
+                              <option value="neonDark">Neon Dark</option>
+                            </select>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={{ backgroundColor: brandColor }}
+                  className="w-full py-3 bg-brand text-white rounded-2xl font-bold text-sm shadow-sm hover:opacity-95 transition-opacity disabled:opacity-50 cursor-pointer"
+                >
+                  {submitting ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Column 3: Live Preview (Right) */}
+          <div className="hidden lg:sticky lg:top-24 lg:flex flex-col gap-6">
+            <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Live card preview</h3>
+            
+            <div className="bg-stone-100 rounded-3xl p-5 border border-stone-200 shadow-inner flex flex-col items-center gap-4">
+              <CardPreview 
+                data={data} 
+                onSaveContact={downloadVCardPreview} 
+              />
+              {qr && (
+                <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col items-center w-full shadow-xs">
+                  <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-2">Live QR Preview</span>
+                  <img src={qr} alt="Live QR" className="w-24 h-24 object-contain" />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 4: STYLE & LAYOUT (Wizard Mode only) */}
+      {isWizard && currentStep === 4 && (
+        <div className="grid lg:grid-cols-[1.1fr_1.1fr_0.8fr] gap-6 items-start animate-fade-in text-left">
+          
+          {/* Column 1 (Left): Style overrides & navigation */}
+          <div className="space-y-6 bg-white border border-stone-200 rounded-3xl p-6 shadow-sm">
+            <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex items-center gap-1.5">
+              <span>🧭 Layout &amp; Navigation</span>
+            </h3>
+
+            {/* Theme Selector */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Card Theme</label>
+              <select
+                value={data.theme}
+                onChange={(e) => update("theme", e.target.value as ThemeId)}
+                className="w-full h-9 rounded-lg border border-stone-250 bg-white px-2.5 text-xs outline-none focus:border-stone-500 text-stone-700 font-medium cursor-pointer"
+              >
+                {(Object.keys(THEME_LABELS) as ThemeId[]).map((id) => {
+                  const isLocked =
+                    (data.plan === "basic" && id !== "classic") ||
+                    (data.plan === "pro" && (id === "glassmorphic" || id === "neonDark"));
+                  const lockSuffix = isLocked ? ` (🔒 ${id === "glassmorphic" || id === "neonDark" ? "Business" : "Pro"})` : "";
+                  return (
+                    <option key={id} value={id} disabled={isLocked}>
+                      {THEME_LABELS[id]}{lockSuffix}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Default Landing Navigation Tab Selector */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Default Landing Tab</label>
+              {data.plan !== "business" ? (
+                <div className="text-[10px] text-stone-400 bg-stone-50 border border-stone-200 p-2 rounded-lg font-medium">
+                  🔒 Locked on Free/Pro (Loads based on category template)
+                </div>
+              ) : (
+                <select
+                  value={data.design_settings?.default_nav_tab || ""}
+                  onChange={(e) => {
+                    const val = e.target.value || null;
+                    update("design_settings", {
+                      ...(data.design_settings || {}),
+                      default_nav_tab: val
+                    });
+                  }}
+                  className="w-full h-9 rounded-lg border border-stone-250 bg-white px-2.5 text-xs outline-none focus:border-stone-500 text-stone-700 font-medium cursor-pointer"
+                >
+                  <option value="">Auto-detected (Recommended)</option>
+                  <option value="profile">About</option>
+                  {(() => {
+                    const uniqueTabs: { id: string, label: string, key: string }[] = [];
+                    const added = new Set<string>();
+                    
+                    data.sections?.filter((s: any) => s.enabled !== false && s.type !== "hero" && s.type !== "room_service").forEach((s: any) => {
+                      let label = s.title;
+                      let id = "";
+                      if (s.type === "menu") { label = "Menu"; id = "menu"; }
+                      else if (s.type === "services" || s.type === "courses") { label = "Services"; id = "services"; }
+                      else if (s.type === "gallery") { label = "Gallery"; id = "gallery"; }
+                      else if (s.type === "featured_products" || s.type === "pricing_table") { label = "Products"; id = "products"; }
+                      else if (s.type === "wifi") { label = "WiFi"; id = "wifi"; }
+                      else if (s.type === "location" || s.type === "hours") { label = "Location"; id = "location"; }
+                      else if (s.type === "booking" || s.type === "lead_capture") { label = "Booking"; id = "booking"; }
+                      else if (s.type === "review") { label = "Reviews"; id = "review"; }
+                      else return;
+
+                      if (!added.has(id)) {
+                        added.add(id);
+                        uniqueTabs.push({ id, label, key: s.type });
+                      }
+                    });
+
+                    return uniqueTabs.map((t) => (
+                      <option key={t.key} value={t.id}>
+                        {t.label} Section
+                      </option>
+                    ));
+                  })()}
+                </select>
+              )}
+            </div>
+
+            {/* Content Alignment Selector */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Content Alignment</label>
+              {data.plan !== "business" ? (
+                <div className="text-[10px] text-stone-400 bg-stone-50 border border-stone-200 p-2 rounded-lg font-medium">
+                  🔒 Locked on Free/Pro (Default centered)
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {(["left", "center", "right"] as const).map((align) => {
+                    const isSel = (data.design_settings?.alignment || "center") === align;
                     return (
-                      <motion.button
-                        whileHover={isLocked ? {} : { scale: 1.02 }}
-                        whileTap={isLocked ? {} : { scale: 0.98 }}
-                        key={id}
+                      <button
+                        key={align}
                         type="button"
-                        disabled={isLocked}
-                        onClick={() => update("theme", id)}
-                        className={`text-left rounded-xl border px-4 py-3 text-sm transition-all ${
-                          data.theme === id
-                            ? "border-brand ring-2 ring-brand bg-brand-light font-medium text-stone-900"
-                            : "border-stone-200 hover:border-stone-300 hover:bg-stone-50/50 text-stone-700"
-                        } ${isLocked ? "opacity-45 cursor-not-allowed bg-stone-50/70" : ""}`}
+                        onClick={() => {
+                          update("design_settings", {
+                            ...(data.design_settings || {}),
+                            alignment: align
+                          });
+                        }}
+                        className={`py-1.5 px-2 border rounded-xl font-semibold text-xs transition-all cursor-pointer ${
+                          isSel
+                            ? "border-brand bg-brand-light ring-1 ring-brand text-stone-900"
+                            : "border-stone-200 bg-white hover:bg-stone-50 text-stone-600"
+                        }`}
                       >
-                        <span className="flex justify-between items-center w-full">
-                          <span>{THEME_LABELS[id]}</span>
-                          {isLocked && (
-                            <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
-                              {lockText}
-                            </span>
-                          )}
-                        </span>
-                      </motion.button>
+                        {align.charAt(0).toUpperCase() + align.slice(1)}
+                      </button>
                     );
                   })}
                 </div>
-              </motion.section>
-            ))}
+              )}
+            </div>
 
-            {/* Business Customizations (Only for Business Plan) */}
-            {renderSection(3, (
-              <motion.section
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.3 }}
-                className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm"
+            {/* Section Reordering List */}
+            <div className="space-y-2 pt-2 border-t border-stone-100">
+              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Section Order &amp; Status</label>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {data.sections?.filter((s: any) => s.type !== "hero" && s.type !== "room_service").map((section: any, idx: number) => {
+                  const locked = isSectionLocked(section.type, data.plan, section.data);
+                  return (
+                    <div key={section.type} className="flex items-center justify-between p-2 border border-stone-150 rounded-xl bg-stone-50/50 text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex flex-col">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => {
+                              const list = [...(data.sections || [])];
+                              const temp = list[idx - 1];
+                              list[idx - 1] = list[idx];
+                              list[idx] = temp;
+                              update("sections", list);
+                            }}
+                            className="text-[9px] text-stone-400 hover:text-stone-700 disabled:opacity-30 leading-none py-0.5"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === (data.sections?.length ?? 0) - 1}
+                            onClick={() => {
+                              const list = [...(data.sections || [])];
+                              const temp = list[idx + 1];
+                              list[idx + 1] = list[idx];
+                              list[idx] = temp;
+                              update("sections", list);
+                            }}
+                            className="text-[9px] text-stone-400 hover:text-stone-700 disabled:opacity-30 leading-none py-0.5"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                        <span className="font-semibold text-stone-700 truncate max-w-[100px]">
+                          {locked && "🔒 "}{section.title}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="checkbox"
+                          checked={section.enabled !== false}
+                          disabled={locked}
+                          onChange={(e) => {
+                            const list = [...(data.sections || [])];
+                            const idxInSection = list.findIndex(s => s.type === section.type);
+                            if (idxInSection !== -1) {
+                              list[idxInSection] = { ...list[idxInSection], enabled: e.target.checked };
+                              update("sections", list);
+                            }
+                          }}
+                          className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                        />
+                        <span className="text-[10px] text-stone-500 font-medium">On</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Section theme overrides (Business plan only) */}
+            {data.plan === "business" && data.sections && data.sections.filter((s: any) => s.type !== "hero" && s.type !== "room_service" && s.enabled !== false).length > 0 && (
+              <div className="space-y-3 pt-3 border-t border-stone-100">
+                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">🎨 Section Theme Overrides</label>
+                <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                  {data.sections
+                    .filter((s: any) => s.type !== "hero" && s.type !== "room_service" && s.enabled !== false)
+                    .map((sec: any) => (
+                      <div key={sec.type} className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-semibold text-stone-600 truncate">{sec.title}</span>
+                        <select
+                          value={sec.theme || ""}
+                          onChange={(e) => {
+                            const list = [...(data.sections || [])];
+                            const idx = list.findIndex(x => x.type === sec.type);
+                            if (idx !== -1) {
+                              list[idx] = { ...list[idx], theme: (e.target.value || undefined) as any };
+                              update("sections", list);
+                            }
+                          }}
+                          className="h-7 rounded border border-stone-250 bg-white px-1.5 text-[10px] outline-none text-stone-700 font-medium cursor-pointer w-28"
+                        >
+                          <option value="">Inherit</option>
+                          <option value="classic">Classic</option>
+                          <option value="minimal">Minimal</option>
+                          <option value="bold">Bold</option>
+                          <option value="gradient">Gradient</option>
+                          <option value="glassmorphic">Glassmorphic</option>
+                          <option value="neonDark">Neon Dark</option>
+                        </select>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Button to go to Step 5 */}
+            <div className="pt-4 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={nextStep}
+                style={{ backgroundColor: brandColor }}
+                className="w-full py-3.5 bg-brand text-white rounded-2xl font-bold text-sm shadow-sm hover:opacity-95 transition-opacity cursor-pointer text-center"
               >
-                <div className="flex justify-between items-center mb-3">
-                  <h2 className="font-semibold text-stone-900 text-sm">Business Tier Features</h2>
-                  {data.plan !== "business" && (
-                    <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
-                      Business plan only
-                    </span>
+                Continue to Review &rarr;
+              </button>
+            </div>
+          </div>
+
+          {/* Column 2 (Center): Branding & QR Art panel */}
+          <div className="space-y-6">
+            {/* Vibes & Colors Block */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
+              <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex justify-between items-center">
+                <span>🎨 Vibes &amp; Colors</span>
+                {data.plan !== "basic" && (
+                  <span className="text-[9px] font-bold text-brand bg-brand-light/30 border border-brand/20 px-2 py-0.5 rounded uppercase">
+                    {data.plan}
+                  </span>
+                )}
+              </h3>
+
+              {/* Vibe Presets selection */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Color vibe preset</label>
+                {data.plan !== "business" ? (
+                  <div className="text-[10px] text-stone-400 bg-stone-50 border border-stone-200 p-2 rounded-lg font-medium">
+                    🔒 Locked on Free/Pro (Choose custom color below or upgrade to Business for presets)
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: "corporate", label: "Corporate", desc: "Navy / Professional", color: "#1e40af" },
+                      { id: "luxury", label: "Luxury", desc: "Gold / Matte Black", color: "#d4af37" },
+                      { id: "creative", label: "Creative", desc: "Pink / Flowing", color: "#ec4899" },
+                      { id: "eco", label: "Eco-Friendly", desc: "Green / Earthy", color: "#15803d" },
+                    ].map((v) => {
+                      const isSel = data.design_settings?.vibe === v.id;
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => {
+                            let vibeColor = "#085041";
+                            if (v.id === "corporate") vibeColor = "#1e40af";
+                            else if (v.id === "luxury") vibeColor = "#d4af37";
+                            else if (v.id === "creative") vibeColor = "#ec4899";
+                            else if (v.id === "eco") vibeColor = "#15803d";
+
+                            setData((d) => ({
+                              ...d,
+                              brand_color: vibeColor,
+                              text_color: null,
+                              design_settings: {
+                                ...(d.design_settings || {}),
+                                vibe: v.id as any
+                              }
+                            }));
+                          }}
+                          className={`p-2 border rounded-xl flex flex-col items-start transition-all cursor-pointer text-left h-full ${
+                            isSel
+                              ? "border-brand bg-brand-light ring-1 ring-brand"
+                              : "border-stone-200 hover:border-stone-300 hover:bg-stone-50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: v.color }}></span>
+                            <span className="font-bold text-[11px] text-stone-900">{v.label}</span>
+                          </div>
+                          <span className="text-[9px] text-stone-400 font-semibold mt-0.5">{v.desc}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {data.plan === "business" && data.design_settings?.vibe && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      update("design_settings", {
+                        ...(data.design_settings || {}),
+                        vibe: null
+                      });
+                    }}
+                    className="text-[9px] text-stone-450 hover:text-stone-700 font-bold block"
+                  >
+                    Clear Preset / Custom Color
+                  </button>
+                )}
+              </div>
+
+              {/* Colors Pickers */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Brand Color</label>
+                  {data.plan === "basic" ? (
+                    <div className="h-9 rounded-lg border border-stone-200 bg-stone-50 flex items-center px-2 gap-1.5 text-[10px] text-stone-450">
+                      <div className="w-3.5 h-3.5 rounded-full border border-stone-300" style={{ backgroundColor: "#085041" }}></div>
+                      <span>Locked</span>
+                    </div>
+                  ) : (
+                    <input
+                      type="color"
+                      value={data.brand_color || "#085041"}
+                      onChange={(e) => update("brand_color", e.target.value)}
+                      className="h-9 w-full rounded-lg border border-stone-250 cursor-pointer p-0.5"
+                    />
                   )}
                 </div>
-                <div className={`space-y-4 ${data.plan !== "business" ? "opacity-50 pointer-events-none" : ""}`}>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <Field label="Custom Card Background Image (optional)">
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Text Color</label>
+                  {data.plan === "basic" ? (
+                    <div className="h-9 rounded-lg border border-stone-200 bg-stone-55 flex items-center px-2 gap-1.5 text-[10px] text-stone-400">
+                      <div className="w-3.5 h-3.5 rounded-full border border-stone-300" style={{ backgroundColor: "#ffffff" }}></div>
+                      <span>Locked</span>
+                    </div>
+                  ) : (
+                    <div className="flex gap-1">
+                      <input
+                        type="color"
+                        value={data.text_color || "#ffffff"}
+                        onChange={(e) => update("text_color", e.target.value)}
+                        className="h-9 flex-1 rounded-lg border border-stone-250 cursor-pointer p-0.5"
+                      />
+                      {data.text_color && (
+                        <button
+                          type="button"
+                          onClick={() => update("text_color", null)}
+                          className="text-[9px] text-stone-500 border border-stone-250 rounded-lg px-2 h-9 hover:bg-stone-50"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Logo & Background Image Uploads */}
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Logo Upload</label>
+                  {data.plan === "basic" ? (
+                    <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-2 rounded-lg text-center bg-stone-50 font-medium">
+                      🔒 Locked on Free Trial
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        onChange={handleLogoUpload}
+                        className="text-[10px] block w-full text-stone-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-stone-150 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer"
+                      />
+                      {logoError && <p className="text-[10px] text-red-500 font-medium">{logoError}</p>}
+                      {data.logo_data_url && (
+                        <button
+                          type="button"
+                          onClick={() => update("logo_data_url", null)}
+                          className="text-[10px] text-red-500 hover:underline font-semibold block"
+                        >
+                          Remove Logo
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Custom Background Image</label>
+                  {data.plan !== "business" ? (
+                    <div className="text-[10px] text-stone-400 bg-stone-50 border border-stone-200 p-2 rounded-lg font-medium">
+                      🔒 Locked on Free/Pro (Upgrade to Business to upload custom BG image)
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
                       <input
                         type="file"
                         accept="image/png, image/jpeg, image/webp"
                         onChange={handleBackgroundUpload}
-                        disabled={data.plan !== "business"}
-                        className="text-xs mt-1 block w-full text-stone-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 disabled:opacity-50"
+                        className="text-[10px] block w-full text-stone-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-stone-150 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer"
                       />
-                      {bgImageError && <p className="text-xs text-red-500 mt-1">{bgImageError}</p>}
+                      {bgImageError && <p className="text-[10px] text-red-500 font-medium">{bgImageError}</p>}
                       {data.background_data_url && (
                         <button
                           type="button"
                           onClick={() => update("background_data_url", null)}
-                          className="text-xs text-stone-500 underline mt-1 block"
+                          className="text-[10px] text-stone-500 hover:underline font-semibold block"
                         >
-                          Remove background image
+                          Remove Background
                         </button>
                       )}
-                    </Field>
-
-                    <Field label="Physical Business Card Layout">
-                      <select
-                        value={data.card_layout || "classic"}
-                        onChange={(e) => update("card_layout", e.target.value as any)}
-                        disabled={data.plan !== "business"}
-                        className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 py-1 text-sm outline-none focus:border-stone-500 transition-colors disabled:opacity-50"
-                      >
-                        <option value="classic">Classic (Brand Color background)</option>
-                        <option value="modern_dark">Modern Dark (Slate & glowing border)</option>
-                        <option value="minimal_light">Minimal Light (Clean white & borderless)</option>
-                      </select>
-                    </Field>
-                  </div>
-                </div>
-              </motion.section>
-            ))}
-
-            {/* QR Code Customization (Pro/Business Plan Only) */}
-            {renderSection(3, (
-              <motion.section
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.3 }}
-                className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm"
-              >
-                <div className="flex justify-between items-center mb-3">
-                  <div>
-                    <h2 className="font-semibold text-stone-900 text-sm">QR Code Customization</h2>
-                    <p className="text-stone-500 text-[11px] mt-0.5">Stand out with custom module dot patterns and corner eye designs.</p>
-                  </div>
-                  {data.plan === "basic" && (
-                    <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
-                      Pro/Business only
-                    </span>
+                    </div>
                   )}
                 </div>
+              </div>
 
-                {data.plan === "basic" ? (
-                  <div className="bg-stone-50 rounded-xl p-4 border border-stone-200 text-xs text-stone-500 leading-relaxed">
-                    Custom QR styling is locked on the Free Trial plan. Upgrade to the <strong className="text-stone-900">Pro</strong> or <strong className="text-stone-900">Business</strong> plan to customize your QR code dots and corner frames.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 block mb-2">Dot Pattern Style</span>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { id: "square", label: "Square" },
-                          { id: "rounded", label: "Rounded" },
-                          { id: "dots", label: "Dots" }
-                        ].map((style) => (
-                          <button
-                            key={style.id}
-                            type="button"
-                            onClick={() => {
-                              const currentCustom = data.qr_customization || {};
-                              update("qr_customization", {
-                                ...currentCustom,
-                                dotStyle: style.id as any
-                              });
-                            }}
-                            className={`py-2 px-3 text-xs font-semibold rounded-xl border text-center transition-all ${
-                              (data.qr_customization?.dotStyle || "square") === style.id
-                                ? "border-brand bg-brand-light text-brand ring-2 ring-brand font-bold"
-                                : "border-stone-200 hover:border-stone-300 text-stone-700 bg-white font-medium"
-                            }`}
-                          >
-                            {style.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 block mb-2">Corner Eyes Shape</span>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { id: "square", label: "Square Corners" },
-                          { id: "rounded", label: "Rounded Corners" }
-                        ].map((style) => (
-                          <button
-                            key={style.id}
-                            type="button"
-                            onClick={() => {
-                              const currentCustom = data.qr_customization || {};
-                              update("qr_customization", {
-                                ...currentCustom,
-                                cornerStyle: style.id as any
-                              });
-                            }}
-                            className={`py-2 px-3 text-xs font-semibold rounded-xl border text-center transition-all ${
-                              (data.qr_customization?.cornerStyle || "square") === style.id
-                                ? "border-brand bg-brand-light text-brand ring-2 ring-brand font-bold"
-                                : "border-stone-200 hover:border-stone-300 text-stone-700 bg-white font-medium"
-                            }`}
-                          >
-                            {style.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-200/50">
-                      <div>
-                        <span className="text-xs font-semibold text-stone-700 block">Embed Brand Logo</span>
-                        <span className="text-[10px] text-stone-400">Show logo or initials inside center circle of the QR code</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={data.qr_customization?.logoEnabled !== false}
-                        onChange={(e) => {
-                          const currentCustom = data.qr_customization || {};
-                          update("qr_customization", {
-                            ...currentCustom,
-                            logoEnabled: e.target.checked
-                          });
-                        }}
-                        className="rounded text-brand focus:ring-brand border-stone-300 w-4 h-4 cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                )}
-              </motion.section>
-            ))}
-
-            {/* Custom Links (Business Plan Only) */}
-            {renderSection(3, (
-              <motion.section
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.3 }}
-                className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm"
-              >
-                <div className="flex justify-between items-center mb-3">
-                  <div>
-                    <h2 className="font-semibold text-stone-900 text-sm">Custom Links</h2>
-                    <p className="text-stone-500 text-[11px] mt-0.5">Add unlimited custom buttons (e.g. Booking, Portfolio, Menu, PDF Catalog, etc.)</p>
-                  </div>
-                  {data.plan !== "business" && (
-                    <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
-                      Business plan only
-                    </span>
-                  )}
-                </div>
-
+              {/* Background Textures */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Background Texture</label>
                 {data.plan !== "business" ? (
-                  <div className="bg-stone-50 rounded-xl p-4 border border-stone-200 text-xs text-stone-500 leading-relaxed">
-                    Custom Links feature is locked on your current plan. Upgrade to the <strong className="text-stone-900">Business Tier</strong> to add unlimited personalized buttons to your card.
+                  <div className="text-[10px] text-stone-400 bg-stone-50 border border-stone-200 p-2 rounded-lg font-medium">
+                    🔒 Locked on Free/Pro (Upgrade to Business to choose custom textures)
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {(data.custom_links || []).map((link, idx) => (
-                      <div key={idx} className="flex flex-col sm:flex-row gap-3 items-end sm:items-center bg-stone-50 p-3.5 rounded-xl border border-stone-200/60 relative group">
-                        <div className="flex-1 grid sm:grid-cols-2 gap-3 w-full">
-                          <div>
-                            <span className="text-[10px] font-semibold text-stone-500 mb-1 block">Button Label</span>
-                            <input
-                              type="text"
-                              value={link.label || ""}
-                              onChange={(e) => {
-                                const list = [...(data.custom_links || [])];
-                                list[idx].label = e.target.value;
-                                update("custom_links", list);
-                              }}
-                              placeholder="e.g. View Our Menu"
-                              className="input bg-white h-9 text-xs"
-                            />
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-semibold text-stone-500 mb-1 block">Button Link (URL)</span>
-                            <input
-                              type="text"
-                              value={link.url || ""}
-                              onChange={(e) => {
-                                const list = [...(data.custom_links || [])];
-                                list[idx].url = e.target.value;
-                                update("custom_links", list);
-                              }}
-                              placeholder="e.g. www.myrestaurant.com/menu"
-                              className="input bg-white h-9 text-xs"
-                            />
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const list = (data.custom_links || []).filter((_, i) => i !== idx);
-                            update("custom_links", list);
-                          }}
-                          className="text-xs text-red-600 hover:text-red-700 font-semibold h-9 px-2 transition-colors cursor-pointer self-end sm:self-center mt-2 sm:mt-5"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const list = [...(data.custom_links || []), { label: "", url: "" }];
-                        update("custom_links", list);
-                      }}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-900 border border-stone-300 hover:bg-stone-50 bg-white px-3 py-2 rounded-xl transition-all cursor-pointer shadow-sm"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                      </svg>
-                      Add Custom Link
-                    </button>
-                  </div>
-                )}
-              </motion.section>
-            ))}
-
-            {/* Contact + socials */}
-            {renderSection(4, (
-              <motion.section
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.3 }}
-                className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm"
-              >
-                <h2 className="font-semibold text-stone-900 mb-3 text-sm">Contact &amp; social links</h2>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <Field label="Phone number">
-                    <input
-                      value={data.phone || ""}
-                      onChange={(e) => update("phone", e.target.value)}
-                      placeholder="9860702780"
-                      className="input"
-                    />
-                  </Field>
-                  <Field label="WhatsApp (with country code)">
-                    <input
-                      value={data.whatsapp || ""}
-                      onChange={(e) => update("whatsapp", e.target.value)}
-                      placeholder="9779851401903"
-                      className="input"
-                    />
-                  </Field>
-                  <Field label="Public Email">
-                    <input
-                      value={data.email || ""}
-                      onChange={(e) => update("email", e.target.value)}
-                      placeholder="hello@business.com"
-                      className="input"
-                    />
-                  </Field>
-                  <Field label="Website">
-                    <input
-                      value={data.website || ""}
-                      onChange={(e) => update("website", e.target.value)}
-                      placeholder="https://www.example.com"
-                      className="input"
-                    />
-                  </Field>
-                  <Field label="Facebook">
-                    <input
-                      value={data.facebook || ""}
-                      onChange={(e) => update("facebook", e.target.value)}
-                      placeholder="https://facebook.com/yourpage"
-                      className="input"
-                    />
-                  </Field>
-                  <Field label="Instagram">
-                    <input
-                      value={data.instagram || ""}
-                      onChange={(e) => update("instagram", e.target.value)}
-                      placeholder="https://instagram.com/yourpage"
-                      className="input"
-                    />
-                  </Field>
-                  <Field label="TikTok">
-                    <input
-                      value={data.tiktok || ""}
-                      onChange={(e) => update("tiktok", e.target.value)}
-                      placeholder="https://tiktok.com/@yourpage"
-                      className="input"
-                    />
-                  </Field>
-                  <Field label="YouTube">
-                    <input
-                      value={data.youtube || ""}
-                      onChange={(e) => update("youtube", e.target.value)}
-                      placeholder="https://youtube.com/@yourchannel"
-                      className="input"
-                    />
-                  </Field>
-                  <Field label="Google Review Link">
-                    <input
-                      value={data.google_review || ""}
-                      onChange={(e) => update("google_review", e.target.value)}
-                      placeholder="https://g.page/r/..."
-                      className="input"
-                    />
-                  </Field>
-                  <Field label="Address (Optional)">
-                    <input
-                      value={data.address || ""}
-                      onChange={(e) => update("address", e.target.value)}
-                      placeholder="e.g. Putalisadak, Kathmandu"
-                      className="input"
-                    />
-                  </Field>
-                  <Field label="Location URL (Direct Google Maps link)">
-                    <input
-                      value={data.location_url || ""}
-                      onChange={(e) => update("location_url", e.target.value)}
-                      placeholder="https://maps.app.goo.gl/..."
-                      className="input"
-                    />
-                  </Field>
-                </div>
-              </motion.section>
-            ))}
-
-            {/* Weekly Opening Hours (Standard and Business plans) */}
-            {renderSection(4, (
-              <motion.section
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.3 }}
-                className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm"
-              >
-                <div className="flex justify-between items-center mb-3">
-                  <div>
-                    <h2 className="font-semibold text-stone-900 text-sm">Opening Hours</h2>
-                    <p className="text-stone-500 text-[11px] mt-0.5">Configure your weekly operating hours to display a live Open/Closed badge on your card.</p>
-                  </div>
-                  {data.plan === "basic" && (
-                    <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
-                      Pro/Business only
-                    </span>
-                  )}
-                </div>
-
-                {data.plan === "basic" ? (
-                  <div className="bg-stone-50 rounded-xl p-4 border border-stone-200 text-xs text-stone-500 leading-relaxed">
-                    Opening Hours configuration is locked on the Free Trial plan. Upgrade to the <strong className="text-stone-900">Standard</strong> or <strong className="text-stone-900">Lifetime</strong> plan to show a live status badge.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((day) => {
-                      const dayHours = (data.opening_hours as any)?.[day] || { open: "09:00", close: "17:00", isClosed: false };
-                      
-                      const updateDay = (field: string, val: any) => {
-                        const currentHours = (data.opening_hours as any) || {};
-                        const updatedHours = {
-                          ...currentHours,
-                          [day]: {
-                            ...dayHours,
-                            [field]: val
-                          }
-                        };
-                        update("opening_hours", updatedHours);
-                      };
-
-                      return (
-                        <div key={day} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-200/50 gap-3 text-xs">
-                          <span className="font-bold text-stone-700 capitalize w-24">{day}</span>
-                          
-                          <div className="flex items-center gap-4 flex-1 justify-end font-medium">
-                            <label className="flex items-center gap-1.5 text-stone-600 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={dayHours.isClosed}
-                                onChange={(e) => updateDay("isClosed", e.target.checked)}
-                                className="rounded text-brand focus:ring-brand border-stone-300 cursor-pointer"
-                              />
-                              Closed
-                            </label>
-
-                            {!dayHours.isClosed && (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="time"
-                                  value={dayHours.open}
-                                  onChange={(e) => updateDay("open", e.target.value)}
-                                  className="bg-white border border-stone-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-brand"
-                                />
-                                <span className="text-stone-400">to</span>
-                                <input
-                                  type="time"
-                                  value={dayHours.close}
-                                  onChange={(e) => updateDay("close", e.target.value)}
-                                  className="bg-white border border-stone-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-brand"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </motion.section>
-            ))}
-
-            {/* Dynamic Sections Editors */}
-            {renderSection(5, data.sections && Array.isArray(data.sections) && (
-              <motion.section
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.3 }}
-                className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm space-y-6"
-              >
-                <div>
-                  <h2 className="font-semibold text-stone-900 text-sm">Profile Content Sections</h2>
-                  <p className="text-stone-500 text-[11px] mt-0.5">Customize the details, categories, and media shown in your scannable profile sections.</p>
-                </div>
-
-                {data.sections.length > 0 && (
-                  <div className="space-y-4">
-                    {data.sections.map((section, idx) => {
-                      if (section.type === "hero" || section.type === "room_service") return null;
-                      const locked = isSectionLocked(section.type, data.plan, section.data);
-
-                      return (
-                        <div key={section.type} className="border border-stone-200 rounded-xl overflow-hidden bg-white">
-                          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-stone-50 border-b border-stone-200">
-                            <div className="flex items-center gap-2">
-                              {/* Reordering buttons */}
-                              <div className="flex items-center bg-stone-200/60 rounded px-1.5 py-0.5">
-                                <button
-                                  type="button"
-                                  disabled={idx === 0}
-                                  onClick={() => {
-                                    const list = [...(data.sections || [])];
-                                    const temp = list[idx - 1];
-                                    list[idx - 1] = list[idx];
-                                    list[idx] = temp;
-                                    update("sections", list);
-                                  }}
-                                  className="px-1 text-stone-500 hover:text-stone-800 disabled:opacity-30 font-bold"
-                                >
-                                  ▲
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={idx === (data.sections?.length ?? 0) - 1}
-                                  onClick={() => {
-                                    const list = [...(data.sections || [])];
-                                    const temp = list[idx + 1];
-                                    list[idx + 1] = list[idx];
-                                    list[idx] = temp;
-                                    update("sections", list);
-                                  }}
-                                  className="px-1 text-stone-500 hover:text-stone-800 disabled:opacity-30 font-bold"
-                                >
-                                  ▼
-                                </button>
-                              </div>
-                              <span className="text-xs font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1">
-                                {locked && <span className="text-xs">🔒</span>}
-                                {section.title}
-                              </span>
-                              <span className="text-[10px] text-stone-400 font-mono capitalize">({section.type})</span>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                              <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={section.enabled !== false}
-                                  disabled={locked}
-                                  onChange={(e) => {
-                                    const list = [...(data.sections || [])];
-                                    list[idx] = { ...list[idx], enabled: e.target.checked };
-                                    update("sections", list);
-                                  }}
-                                  className="rounded border-stone-300 text-brand focus:ring-brand disabled:opacity-50"
-                                />
-                                Enabled
-                              </label>
-                              
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const list = (data.sections || []).filter((_, i) => i !== idx);
-                                  update("sections", list);
-                                }}
-                                className="text-stone-400 hover:text-red-500 font-bold text-xs p-1"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-
-                          {section.enabled !== false && (
-                            locked ? (
-                              <div className="flex flex-col items-center justify-center p-6 text-center bg-stone-50 border-t border-stone-200">
-                                <span className="text-2xl mb-2">🔒</span>
-                                <h4 className="text-xs font-bold text-stone-800">Feature Locked</h4>
-                                <p className="text-[10px] text-stone-500 mt-1 max-w-xs">
-                                  The {section.title} section is only available on premium plans. Upgrade to unlock this and other advanced features.
-                                </p>
-                                <a
-                                  href="#upgrade-section"
-                                  className="mt-3 text-[10px] bg-brand text-white font-bold px-3.5 py-2 rounded-lg shadow-sm hover:opacity-90 transition-opacity"
-                                >
-                                  Upgrade Now
-                                </a>
-                              </div>
-                            ) : (
-                              <div className="p-4 border-t border-stone-100">
-                                {section.type === "menu" && (
-                                  <MenuEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                    brandColor={data.brand_color || "#7c3aed"}
-                                  />
-                                )}
-                                {section.type === "gallery" && (
-                                  <GalleryEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                    brandColor={data.brand_color || "#7c3aed"}
-                                  />
-                                )}
-                                {section.type === "services" && (
-                                  <ServicesEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                    brandColor={data.brand_color || "#7c3aed"}
-                                  />
-                                )}
-                                {section.type === "hours" && (
-                                  <HoursEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                  />
-                                )}
-                                {section.type === "location" && (
-                                  <LocationEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                  />
-                                )}
-                                {section.type === "review" && (
-                                  <ReviewEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                  />
-                                )}
-                                {section.type === "booking" && (
-                                  <BookingEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                    plan={data.plan}
-                                  />
-                                )}
-                                {section.type === "wifi" && (
-                                  <WifiEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                  />
-                                )}
-                                {section.type === "lead_capture" && (
-                                  <LeadCaptureEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                  />
-                                )}
-                                {section.type === "amenities" && (
-                                  <AmenitiesEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                  />
-                                )}
-                                {section.type === "schedule" && (
-                                  <ScheduleEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                  />
-                                )}
-                                {section.type === "pricing_table" && (
-                                  <PricingTableEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                  />
-                                )}
-                                {section.type === "featured_products" && (
-                                  <FeaturedProductsEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                  />
-                                )}
-                                {section.type === "courses" && (
-                                  <CoursesEditor
-                                    data={section.data}
-                                    onChange={(newData) => updateSectionData(idx, newData)}
-                                  />
-                                )}
-                                {section.type === "contact" && (
-                                  <ContactEditor />
-                                )}
-                                {section.type === "socials" && (
-                                  <SocialsEditor />
-                                )}
-                              </div>
-                            )
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Add Section Pool */}
-                {(() => {
-                  const activeTypes = (data.sections || []).map((s) => s.type);
-                  const availableTypes: SectionType[] = [
-                    "menu",
-                    "gallery",
-                    "services",
-                    "booking",
-                    "hours",
-                    "location",
-                    "wifi",
-                    "amenities",
-                    "lead_capture",
-                    "review",
-                    "schedule",
-                    "pricing_table",
-                    "featured_products",
-                    "courses",
-                    "contact",
-                    "socials",
-                  ];
-                  const pool = availableTypes.filter((type) => !activeTypes.includes(type));
-                  if (pool.length === 0) return null;
-
-                  return (
-                    <div className="pt-4 border-t border-stone-150 flex flex-col gap-2">
-                      <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Add Profile Section</span>
-                      <div className="flex flex-wrap gap-2">
-                        {pool.map((type) => {
-                          const title = DEFAULT_TITLES[type];
-                          const isLocked = isSectionLocked(type, data.plan);
-                          return (
-                            <button
-                              key={type}
-                              type="button"
-                              onClick={() => {
-                                const newSection = {
-                                  type,
-                                  title,
-                                  enabled: true,
-                                  data: JSON.parse(JSON.stringify(DEFAULT_DATA[type])),
-                                };
-                                const list = [...(data.sections || []), newSection];
-                                update("sections", list);
-                              }}
-                              className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                                isLocked
-                                  ? "bg-stone-50 text-stone-400 border-stone-200 hover:bg-stone-100"
-                                  : "bg-white hover:bg-brand/5 text-stone-700 border-stone-200 hover:border-brand/40"
-                              }`}
-                            >
-                              {isLocked && <span>🔒</span>}
-                              <span>+ {title}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </motion.section>
-            ))}
-
-            {(submitError || externalSubmitError) && (
-              <p className="text-sm text-red-500 font-medium">{submitError || externalSubmitError}</p>
-            )}
-
-            {isWizard ? (
-              <div className="flex items-center justify-between pt-6 border-t border-stone-200">
-                {currentStep > 1 ? (
-                  <button
-                    type="button"
-                    onClick={prevStep}
-                    className="px-5 py-2.5 rounded-xl border border-stone-300 text-stone-700 font-semibold hover:bg-stone-50 transition-colors cursor-pointer text-sm"
+                  <select
+                    value={data.design_settings?.bg_texture || "none"}
+                    onChange={(e) => {
+                      update("design_settings", {
+                        ...(data.design_settings || {}),
+                        bg_texture: e.target.value as any
+                      });
+                    }}
+                    className="w-full h-9 rounded-lg border border-stone-250 bg-white px-2.5 text-xs outline-none focus:border-stone-500 text-stone-700 font-medium cursor-pointer"
                   >
-                    ← Back
-                  </button>
-                ) : (
-                  <div />
-                )}
-                
-                {currentStep < 5 ? (
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    className="bg-brand hover:bg-brand-hover text-white px-6 py-2.5 rounded-xl font-semibold transition-colors cursor-pointer text-sm"
-                    style={{ backgroundColor: brandColor }}
-                  >
-                    Next Step →
-                  </button>
-                ) : (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="submit"
-                    disabled={submitting}
-                    className="bg-brand hover:bg-brand-hover text-white px-6 py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50 cursor-pointer text-sm"
-                    style={{ backgroundColor: brandColor }}
-                  >
-                    {submitting ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Processing...
-                      </span>
-                    ) : workspaceId ? (
-                      "Create team card"
-                    ) : data.plan === "basic" ? (
-                      "Activate free card"
-                    ) : paymentProvider === "esewa" ? (
-                      `Pay Rs ${PLAN_DETAILS[data.plan].priceNPR.toLocaleString()} via eSewa`
-                    ) : paymentProvider === "khalti" ? (
-                      `Pay Rs ${PLAN_DETAILS[data.plan].priceNPR.toLocaleString()} via Khalti`
-                    ) : (
-                      `Pay $${PLAN_DETAILS[data.plan].priceUSD} via Stripe`
-                    )}
-                  </motion.button>
+                    <option value="none">None (Solid color)</option>
+                    <option value="metal">Brushed Metal</option>
+                    <option value="wood">Wood Grain / Organic</option>
+                    <option value="geometric">Geometric Radial Grid</option>
+                    <option value="motion">Flowing Motion Gradient</option>
+                  </select>
                 )}
               </div>
+
+              {/* Neomorphic toggle & animations selection */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">3D Neomorphism</label>
+                  {data.plan !== "business" ? (
+                    <div className="text-[10px] text-stone-400 bg-stone-50 border border-stone-200 p-2 rounded-lg font-medium">
+                      🔒 Locked on Free/Pro
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 text-xs font-semibold text-stone-750 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!data.design_settings?.embossed_effect}
+                        onChange={(e) => {
+                          update("design_settings", {
+                            ...(data.design_settings || {}),
+                            embossed_effect: e.target.checked
+                          });
+                        }}
+                        className="rounded border-stone-300 text-brand focus:ring-brand"
+                      />
+                      <span>Embossed Effect</span>
+                    </label>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Intro Animation</label>
+                  {data.plan !== "business" ? (
+                    <div className="text-[10px] text-stone-400 bg-stone-50 border border-stone-200 p-2 rounded-lg font-medium">
+                      🔒 Locked on Free/Pro
+                    </div>
+                  ) : (
+                    <select
+                      value={data.design_settings?.animation || "none"}
+                      onChange={(e) => {
+                        update("design_settings", {
+                          ...(data.design_settings || {}),
+                          animation: e.target.value as any
+                        });
+                      }}
+                      className="w-full h-9 rounded-lg border border-stone-250 bg-white px-2.5 text-xs outline-none focus:border-stone-500 text-stone-700 font-medium cursor-pointer"
+                    >
+                      <option value="none">None</option>
+                      <option value="float">Floating / Levitate</option>
+                      <option value="pulse">Soft Pulse</option>
+                      <option value="fade">Fade In</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              {/* Business Card Layout Override */}
+              <div className="space-y-1.5 pt-2">
+                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">🪪 Downloadable Card Layout</label>
+                {data.plan === "basic" ? (
+                  <div className="text-[10px] text-stone-450 bg-stone-50 border border-stone-250 p-2 rounded-lg font-medium">
+                    🔒 Locked on Free Trial
+                  </div>
+                ) : (
+                  <select
+                    disabled={data.plan === "pro"}
+                    value={data.card_layout || "classic"}
+                    onChange={(e) => update("card_layout", e.target.value as any)}
+                    className="h-9 w-full rounded-lg border border-stone-250 bg-white px-2.5 text-xs outline-none focus:border-stone-500 text-stone-700 font-medium cursor-pointer disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed"
+                  >
+                    <option value="classic">Classic (Brand background)</option>
+                    <option value="modern_dark">Modern Dark (slate + glow)</option>
+                    <option value="minimal_light">Minimal Light (borderless)</option>
+                  </select>
+                )}
+              </div>
+
+            </div>
+
+            {/* Premium QR Art Customizer Block */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
+              <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex items-center justify-between">
+                <span>🔲 Custom QR Code Art</span>
+                {data.plan !== "basic" && (
+                  <span className="text-[9px] font-bold text-brand bg-brand-light/30 border border-brand/20 px-2 py-0.5 rounded uppercase">
+                    Premium
+                  </span>
+                )}
+              </h3>
+
+              {data.plan === "basic" ? (
+                <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-4 rounded-xl text-center bg-stone-50 font-medium leading-relaxed">
+                  🔒 Custom QR Code Art features are locked on Free trial. Upgrade to Pro or Business to make your QR code scan as art!
+                </div>
+              ) : (
+                <div className="space-y-3.5 text-xs">
+                  {/* Dot styles & corner style */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Dot Shape</label>
+                      <select
+                        value={data.qr_customization?.dotStyle || "square"}
+                        onChange={(e) => {
+                          update("qr_customization", {
+                            ...(data.qr_customization || {}),
+                            dotStyle: e.target.value as any
+                          });
+                        }}
+                        className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                      >
+                        <option value="square">Rigid Square</option>
+                        <option value="rounded">Smooth Rounded</option>
+                        <option value="dots">Circular Dots</option>
+                        <option value="waves">Flowing Waves (Business)</option>
+                        <option value="teardrops">Teardrops (Business)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Corner Frame</label>
+                      <select
+                        value={data.qr_customization?.cornerStyle || "square"}
+                        onChange={(e) => {
+                          update("qr_customization", {
+                            ...(data.qr_customization || {}),
+                            cornerStyle: e.target.value as any
+                          });
+                        }}
+                        className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                      >
+                        <option value="square">Rigid Squares</option>
+                        <option value="rounded">Soft Rounded</option>
+                        <option value="custom_frame">Camera Lens Circle (Business)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Logo Center customization */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Logo Center</label>
+                      <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={data.qr_customization?.logoEnabled !== false}
+                          onChange={(e) => {
+                            update("qr_customization", {
+                              ...(data.qr_customization || {}),
+                              logoEnabled: e.target.checked
+                            });
+                          }}
+                          className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                        />
+                        Center branding
+                      </label>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Logo Frame Style</label>
+                      <select
+                        disabled={data.qr_customization?.logoEnabled === false}
+                        value={data.qr_customization?.centerLogoType || "standard"}
+                        onChange={(e) => {
+                          update("qr_customization", {
+                            ...(data.qr_customization || {}),
+                            centerLogoType: e.target.value as any
+                          });
+                        }}
+                        className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
+                      >
+                        <option value="standard">Standard Circular clip</option>
+                        <option value="pixelated">Retro Pixelated block</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* QR Color Style */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">QR Color Style</label>
+                    <select
+                      value={data.qr_customization?.colorStyle || "solid"}
+                      onChange={(e) => {
+                        update("qr_customization", {
+                          ...(data.qr_customization || {}),
+                          colorStyle: e.target.value as any
+                        });
+                      }}
+                      className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                    >
+                      <option value="solid">Solid brand color</option>
+                      <option value="gradient">High-Contrast Gradient (Business)</option>
+                      <option value="spotlight">Corner Spotlighting (Business)</option>
+                    </select>
+                  </div>
+
+                  {/* Dynamic Color Style pickers */}
+                  {data.qr_customization?.colorStyle === "gradient" && (
+                    <div className="grid grid-cols-2 gap-2 p-2.5 bg-stone-50 rounded-xl border border-stone-150 animate-fade-in">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-stone-500 uppercase block">Gradient start</label>
+                        <input
+                          type="color"
+                          value={data.qr_customization?.gradientColor1 || brandColor}
+                          onChange={(e) => {
+                            update("qr_customization", {
+                              ...(data.qr_customization || {}),
+                              gradientColor1: e.target.value
+                            });
+                          }}
+                          className="h-8 w-full rounded border border-stone-250 cursor-pointer p-0.5 bg-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-stone-500 uppercase block">Gradient end</label>
+                        <input
+                          type="color"
+                          value={data.qr_customization?.gradientColor2 || "#10b981"}
+                          onChange={(e) => {
+                            update("qr_customization", {
+                              ...(data.qr_customization || {}),
+                              gradientColor2: e.target.value
+                            });
+                          }}
+                          className="h-8 w-full rounded border border-stone-250 cursor-pointer p-0.5 bg-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {data.qr_customization?.colorStyle === "spotlight" && (
+                    <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-150 animate-fade-in space-y-1">
+                      <label className="text-[9px] font-bold text-stone-500 uppercase block">Spotlight Corner Color</label>
+                      <input
+                        type="color"
+                        value={data.qr_customization?.spotlightColor || brandColor}
+                        onChange={(e) => {
+                          update("qr_customization", {
+                            ...(data.qr_customization || {}),
+                            spotlightColor: e.target.value
+                          });
+                        }}
+                        className="h-8 w-full rounded border border-stone-200 cursor-pointer p-0.5 bg-white"
+                      />
+                      <p className="text-[9px] text-stone-400 mt-1 leading-normal">
+                        Highlights the three corner squares in a bold accent color.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Physical Engraved / Custom CTA banner */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Physical CTA Frame Banner (Business)</label>
+                    <input
+                      disabled={data.plan !== "business"}
+                      value={data.qr_customization?.custom_cta_frame || ""}
+                      onChange={(e) => {
+                        update("qr_customization", {
+                          ...(data.qr_customization || {}),
+                          custom_cta_frame: e.target.value
+                        });
+                      }}
+                      placeholder="e.g. Scan me to explore our menu"
+                      className="input py-1 text-xs disabled:bg-stone-50 disabled:text-stone-400"
+                    />
+                    <p className="text-[9px] text-stone-450 leading-normal mt-1.5">
+                      Adds an integrated colored frame banner below the QR code.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Column 3 (Right): Sticky preview column */}
+          <div className="hidden lg:sticky lg:top-24 lg:flex flex-col gap-6">
+            <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Live design &amp; QR preview</h3>
+            
+            <div className="bg-stone-100 rounded-3xl p-5 border border-stone-200 shadow-inner flex flex-col items-center gap-4">
+              <CardPreview 
+                data={data} 
+                onSaveContact={downloadVCardPreview} 
+              />
+              {qr && (
+                <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col items-center w-full shadow-xs">
+                  <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-2">Live QR Code</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={qr} alt="Live Custom QR" className="w-40 h-40 object-contain rounded-lg" />
+                </div>
+              )}
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* STEP 5: REVIEW & PAY */}
+      {isWizard && currentStep === 5 && (
+        <div className="grid lg:grid-cols-[1fr_1.1fr] gap-10 max-w-5xl mx-auto items-start animate-fade-in text-left">
+          
+          {/* LEFT: Read-only Card Preview */}
+          <div className="flex flex-col gap-4">
+            <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Final card layout</h3>
+            <div className="p-4 bg-stone-150 border border-stone-200 rounded-3xl shadow-inner flex justify-center">
+              <CardPreview data={data} />
+            </div>
+          </div>
+
+          {/* RIGHT: Plan summary & Payment */}
+          <div className="bg-white border border-stone-200 rounded-3xl p-8 space-y-6 shadow-sm">
+            <h2 className="text-xl font-bold text-stone-900 border-b border-stone-100 pb-3 font-sans">Review &amp; Pay</h2>
+            
+            {/* Plan Summary */}
+            <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 space-y-2">
+              <div className="flex justify-between items-center font-bold text-stone-900 text-sm">
+                <span>{PLAN_DETAILS[data.plan].name} Plan</span>
+                <span className="text-brand">
+                  {data.plan === "basic" ? "Rs 0" : data.plan === "pro" ? "Rs 500" : "Rs 1,000"}
+                </span>
+              </div>
+              <p className="text-[10px] text-stone-450 font-medium">
+                {data.plan === "basic" ? "Expires after 15 days — upgrade anytime" : "One-time payment · Lifetime hosting"}
+              </p>
+              
+              <div className="h-px bg-stone-200 my-2" />
+              
+              <ul className="text-[11px] text-stone-600 space-y-1.5 font-medium">
+                {data.plan === "basic" && (
+                  <>
+                    <li>• 15-day free trial period</li>
+                    <li>• Classic theme only</li>
+                    <li>• Watermark watermark banner at bottom</li>
+                  </>
+                )}
+                {data.plan === "pro" && (
+                  <>
+                    <li>• Lifetime hosting, no subscriptions</li>
+                    <li>• Logo-embedded branded QR</li>
+                    <li>• 2 card slots (1 primary + 1 team)</li>
+                    <li>• All standard themes included</li>
+                  </>
+                )}
+                {data.plan === "business" && (
+                  <>
+                    <li>• Lifetime hosting, no subscriptions</li>
+                    <li>• Premium Glassmorphic &amp; Neon Dark themes</li>
+                    <li>• Upload custom background image</li>
+                    <li>• 5 card slots (1 primary + 4 team)</li>
+                  </>
+                )}
+              </ul>
+            </div>
+
+            {/* Payment Method Selector */}
+            {data.plan !== "basic" ? (
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-stone-700 block uppercase tracking-wider">Choose payment method</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {/* eSewa */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentProvider("esewa")}
+                    className={`flex flex-col items-center justify-center p-3.5 border rounded-2xl transition-all cursor-pointer ${
+                      paymentProvider === "esewa"
+                        ? "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-600 text-emerald-950 font-bold"
+                        : "border-stone-200 bg-white hover:border-stone-300 text-stone-700"
+                    }`}
+                  >
+                    <span className="text-xs">eSewa</span>
+                    <span className="text-[9px] opacity-75 font-semibold mt-0.5">NPR</span>
+                  </button>
+
+                  {/* Khalti */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentProvider("khalti")}
+                    className={`flex flex-col items-center justify-center p-3.5 border rounded-2xl transition-all cursor-pointer ${
+                      paymentProvider === "khalti"
+                        ? "border-purple-600 bg-purple-50 ring-2 ring-purple-600 text-purple-950 font-bold"
+                        : "border-stone-200 bg-white hover:border-stone-300 text-stone-700"
+                    }`}
+                  >
+                    <span className="text-xs">Khalti</span>
+                    <span className="text-[9px] opacity-75 font-semibold mt-0.5">NPR</span>
+                  </button>
+
+                  {/* Stripe */}
+                  <button
+                    type="button"
+                    onClick={() => setPaymentProvider("stripe")}
+                    className={`flex flex-col items-center justify-center p-3.5 border rounded-2xl transition-all cursor-pointer ${
+                      paymentProvider === "stripe"
+                        ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-600 text-indigo-950 font-bold"
+                        : "border-stone-200 bg-white hover:border-stone-300 text-stone-700"
+                    }`}
+                  >
+                    <span className="text-xs">Stripe</span>
+                    <span className="text-[9px] opacity-75 font-semibold mt-0.5">USD</span>
+                  </button>
+                </div>
+              </div>
             ) : (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <div className="bg-stone-50 border border-stone-200 p-4 rounded-2xl text-xs text-stone-550 font-semibold">
+                Free Trial — No payment details required.
+              </div>
+            )}
+
+            {/* Email Confirmation */}
+            <div className="text-xs text-stone-600 leading-normal">
+              Your card will be managed via passwordless magic link at <strong className="text-stone-900">{data.owner_email}</strong>.
+            </div>
+
+            {/* Above-the-fold Submit Action */}
+            <div>
+              <button
                 type="submit"
                 disabled={submitting}
-                className="bg-brand hover:bg-brand-hover text-white px-6 py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 w-full sm:w-auto cursor-pointer"
                 style={{ backgroundColor: brandColor }}
+                className="w-full py-3.5 bg-brand text-white rounded-2xl font-bold text-sm shadow-md hover:opacity-95 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
               >
                 {submitting ? (
-                  <span className="flex items-center justify-center gap-2">
+                  <span className="flex items-center gap-2">
                     <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Saving...
+                    Processing...
                   </span>
+                ) : data.plan === "basic" ? (
+                  "Activate free card &rarr;"
+                ) : paymentProvider === "esewa" ? (
+                  `Pay Rs ${PLAN_DETAILS[data.plan].priceNPR.toLocaleString()} & go live →`
+                ) : paymentProvider === "khalti" ? (
+                  `Pay Rs ${PLAN_DETAILS[data.plan].priceNPR.toLocaleString()} & go live →`
                 ) : (
-                  "Save Changes"
+                  `Pay $${PLAN_DETAILS[data.plan].priceUSD} & go live →`
                 )}
-              </motion.button>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Live Preview Side Panel */}
-      <div className="lg:sticky lg:top-10 self-start space-y-6">
-        <div>
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="font-semibold text-xs uppercase tracking-wider text-stone-500">Live preview</h2>
-            
-            {/* Tab Selector */}
-            <div className="flex bg-stone-200/60 p-0.5 rounded-lg text-xs">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => setPreviewTab("digital")}
-                className={`px-3 py-1 rounded-md font-medium transition-all ${
-                  previewTab === "digital"
-                    ? "bg-white text-brand shadow-sm"
-                    : "text-stone-500 hover:text-brand"
-                }`}
-              >
-                Digital Card
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => setPreviewTab("business")}
-                className={`px-3 py-1 rounded-md font-medium transition-all ${
-                  previewTab === "business"
-                    ? "bg-white text-brand shadow-sm"
-                    : "text-stone-500 hover:text-brand"
-                }`}
-              >
-                Business Card
-              </motion.button>
+              </button>
             </div>
           </div>
-
-          <div className="bg-stone-100 rounded-2xl p-6 flex flex-col items-center justify-center border border-stone-200/50 shadow-inner min-h-[380px] w-full relative">
-            {previewTab === "digital" ? (
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={`${data.theme}-${data.brand_color}-${data.text_color}-${data.background_data_url}`}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-full flex justify-center"
-                >
-                  <CardPreview
-                    data={data}
-                    onSaveContact={downloadVCardPreview}
-                    onDownloadCard={data.plan !== "basic" ? handleDownloadCard : undefined}
-                  />
-                </motion.div>
-              </AnimatePresence>
-            ) : (
-              <div className="w-full flex flex-col items-center gap-4">
-                {generatingPreview ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <svg className="animate-spin h-8 w-8 text-stone-500 mb-2" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    <span className="text-xs text-stone-500">Generating preview...</span>
-                  </div>
-                ) : businessCardPreview ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={businessCardPreview}
-                      alt="Physical Business Card Preview"
-                      className="w-full rounded-lg shadow-md border border-stone-200 object-contain aspect-[1.75]"
-                    />
-                    {data.plan === "basic" ? (
-                      <div className="text-center p-3 bg-amber-50 border border-amber-100 rounded-xl">
-                        <p className="text-[11px] text-amber-700 font-semibold">Business Card Download locked on Basic plan</p>
-                        <p className="text-[10px] text-amber-600 mt-0.5">Upgrade to Pro or Business to download.</p>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleDownloadCard}
-                        style={{ backgroundColor: data.brand_color || "#085041" }}
-                        className="w-full py-2.5 rounded-xl text-xs font-semibold text-white hover:opacity-95 transition-opacity flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="w-3.5 h-3.5"
-                        >
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Download Business Card (PNG)
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-xs text-stone-400 py-12">Failed to load preview</div>
-                )}
-              </div>
-            )}
-          </div>
         </div>
+      )}
 
-        <div className="bg-white border border-stone-200 rounded-2xl p-5 text-center shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wider mb-3 text-stone-500">QR code preview</div>
-          <div className="relative mx-auto w-[180px] h-[180px] flex items-center justify-center mb-3">
-            {qrLoading && (
-              <div className="absolute inset-0 bg-stone-100/80 animate-pulse rounded-lg flex items-center justify-center border border-stone-200 z-10">
-                <div className="w-8 h-8 rounded-full border-4 border-t-brand border-stone-200 animate-spin" />
-              </div>
-            )}
-            {qr ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={qr}
-                alt="QR code preview"
-                className={`mx-auto rounded-lg shadow-sm border border-stone-100 transition-opacity duration-200 ${
-                  qrLoading ? "opacity-20" : "opacity-100"
-                }`}
-              />
-            ) : !qrLoading ? (
-              <div className="text-xs text-stone-400">Failed to generate QR</div>
-            ) : null}
-          </div>
-          {qr && (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+
+      {/* Floating collapsible preview toggle button (Mobile Only, Steps 2-3) */}
+      {isWizard && (currentStep === 2 || currentStep === 3) && (
+        <div className="lg:hidden fixed bottom-6 right-6 z-50">
+          <button
+            type="button"
+            onClick={() => setMobilePreviewOpen(true)}
+            className="bg-brand text-white font-semibold text-xs px-4.5 py-3 rounded-full shadow-lg flex items-center gap-1.5 cursor-pointer"
+          >
+            👁️ Preview Live
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Preview Modal Overlay */}
+      {mobilePreviewOpen && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:hidden">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto relative flex flex-col items-center shadow-2xl space-y-6">
+            <button
               type="button"
-              onClick={handleDownloadQR}
-              style={{ borderColor: data.brand_color || "#085041", color: data.brand_color || "#085041" }}
-              className="mt-3 w-full py-2 border rounded-xl text-xs font-semibold hover:bg-stone-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+              onClick={() => setMobilePreviewOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 hover:text-stone-850 font-bold"
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-3.5 h-3.5"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Download QR Code
-            </motion.button>
-          )}
-          <div className="text-[10px] text-stone-400 mt-3 break-all font-mono select-all">{previewUrl}</div>
-          {data.plan === "basic" && (
-            <p className="text-[11px] text-stone-400 mt-2 italic">
-              Upgrade to Pro for a custom subdomain instead of a /card/ path.
-            </p>
-          )}
+              ✕
+            </button>
+            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider text-center">Live Preview</h3>
+            <div className="w-full">
+              <CardPreview 
+                data={data} 
+                onSaveContact={downloadVCardPreview} 
+                isEditing={currentStep === 3} 
+                onChange={(updatedFields) => setData(d => ({ ...d, ...updatedFields }))}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
     </form>
   );
 }
@@ -1715,7 +2114,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-medium text-stone-600 mb-1 block">
+      <span className="text-xs font-medium text-stone-600 mb-1.5 block">
         {label} {required && <span className="text-red-400">*</span>}
       </span>
       {children}

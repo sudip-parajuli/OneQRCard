@@ -39,6 +39,12 @@ export async function PUT(
       tiktok: body.tiktok ?? "",
       youtube: body.youtube ?? "",
       email: body.email ?? "",
+      bio: body.bio ?? "",
+      viber: body.viber ?? "",
+      x_twitter: body.x_twitter ?? "",
+      threads: body.threads ?? "",
+      linkedin: body.linkedin ?? "",
+      telegram: body.telegram ?? "",
       google_review: body.google_review ?? "",
       background_data_url: body.background_data_url ?? null,
       card_layout: body.card_layout ?? "classic",
@@ -54,6 +60,7 @@ export async function PUT(
       sections: body.sections,
       section_order: body.section_order,
       qr_customization: body.qr_customization ?? null,
+      design_settings: body.design_settings ?? null,
     };
 
     if (isAdmin) {

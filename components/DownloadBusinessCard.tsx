@@ -38,8 +38,18 @@ export default function DownloadBusinessCard({ data }: { data: CardData }) {
     document.body.removeChild(a);
   }
 
-  // Only show if the plan is Pro or Business (basic has it locked)
-  if (data.plan === "basic") return null;
+  // Show locked UI for basic plan
+  if (data.plan === "basic") {
+    return (
+      <div className="bg-white border border-stone-200 rounded-2xl p-6 text-center max-w-xs w-full min-h-[220px] flex flex-col items-center justify-center gap-2.5 animate-fade-in shadow-sm">
+        <span className="text-2xl">🔒</span>
+        <h4 className="text-xs font-bold text-stone-850">Business Card Locked</h4>
+        <p className="text-[10px] text-stone-500 mt-1 max-w-[200px] mx-auto leading-relaxed">
+          Printable business card preview and download are premium features. Choose Pro or Business plan to unlock.
+        </p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

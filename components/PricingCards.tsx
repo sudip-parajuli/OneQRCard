@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { PLAN_DETAILS, PlanId } from "@/lib/types";
-import { motion, AnimatePresence } from "framer-motion";
+import { PLAN_DETAILS } from "@/lib/types";
 
 interface FeatureRow {
   name: string;
@@ -20,10 +19,10 @@ const COMPARISON_FEATURES: FeatureRow[] = [
   { name: "Subdomain", free: "/card/[slug] path", standard: "/card/[slug] (subdomain coming)", lifetime: "Custom subdomain coming soon" },
   { name: "Custom Background", free: "✕", standard: "✕", lifetime: "✓" },
   { name: "Custom Links", free: "✕", standard: "✕", lifetime: "✓ (Unlimited)" },
-  { name: "Analytics Dashboard", free: "✕", standard: "✓ (Basic)", lifetime: "✓ (Advanced)" },
+  { name: "Analytics Dashboard", free: "✕", standard: "Coming soon", lifetime: "Coming soon" },
   { name: "Lead Capture Form", free: "✕", standard: "✕", lifetime: "✓" },
   { name: "Google Review Gate", free: "✕", standard: "✓", lifetime: "✓" },
-  { name: "Wallet Pass (Apple/Google)", free: "✕", standard: "✕", lifetime: "✓" },
+  { name: "Wallet Pass (Apple/Google)", free: "✕", standard: "✕", lifetime: "Coming soon" },
   { name: "Customer Support", free: "Email only", standard: "Standard support", lifetime: "Priority support (WhatsApp)" },
 ];
 
@@ -34,18 +33,16 @@ export default function PricingCards() {
     <div className="w-full">
       {/* Cards Grid */}
       <div className="grid sm:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
-        {/* Free Plan */}
-        <motion.div
-          whileHover={{ y: -6 }}
-          transition={{ duration: 0.2 }}
-          className="rounded-3xl p-8 border border-stone-200 bg-white flex flex-col justify-between shadow-sm"
-        >
+        
+        {/* FREE TRIAL */}
+        <div className="rounded-3xl p-8 border border-stone-200 bg-white flex flex-col justify-between shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
           <div>
-            <div className="text-stone-400 font-bold text-xs uppercase tracking-wider mb-2">Start Here</div>
             <div className="text-stone-900 font-extrabold text-2xl mb-1">Free Trial</div>
-            <div className="text-3xl font-extrabold text-stone-900 mt-2 mb-1">Rs 0</div>
-            <div className="text-xs text-stone-400 mb-6">15 days, then read-only</div>
+            <div className="text-3xl font-extrabold text-stone-900 mt-2 mb-1">Rs 0 <span className="text-sm font-normal text-stone-400">/ 15 days</span></div>
+            <div className="text-xs text-stone-500 font-medium mb-6">Expires after 15 days — upgrade anytime</div>
+            
             <div className="h-px bg-stone-100 my-6" />
+            
             <ul className="text-sm space-y-3.5 mb-6 text-stone-600">
               <li className="flex gap-2.5 items-start">
                 <span className="text-brand font-bold">✓</span>
@@ -56,6 +53,10 @@ export default function PricingCards() {
                 <span>1 card allowance</span>
               </li>
               <li className="flex gap-2.5 items-start">
+                <span className="text-brand font-bold">✓</span>
+                <span>Standard contact options</span>
+              </li>
+              <li className="flex gap-2.5 items-start">
                 <span className="text-stone-300">✕</span>
                 <span className="text-stone-400 line-through">Custom subdomains</span>
               </li>
@@ -64,30 +65,33 @@ export default function PricingCards() {
               Free cards display a small &quot;Powered by One-QR-Card&quot; watermark
             </div>
           </div>
-          <Link
-            href="/create?plan=basic"
-            className="block text-center py-3 rounded-xl font-semibold text-sm bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors w-full"
-          >
-            Start Free Trial
-          </Link>
-        </motion.div>
+          <div>
+            <Link
+              href="/create?plan=basic"
+              className="block text-center py-3 rounded-xl font-semibold text-sm bg-stone-100 text-stone-700 hover:bg-stone-250 transition-colors w-full"
+            >
+              Start for free
+            </Link>
+            <div className="text-center text-[10px] text-stone-400 mt-2">
+              No credit card required
+            </div>
+          </div>
+        </div>
 
-        {/* Pro Plan */}
-        <motion.div
-          whileHover={{ y: -6 }}
-          transition={{ duration: 0.2 }}
-          className="rounded-3xl p-8 border-2 border-brand bg-[#085041]/5 flex flex-col justify-between shadow-md relative"
-        >
-          {/* Most popular badge */}
-          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand text-white text-[10px] font-bold tracking-wider uppercase py-1 px-3.5 rounded-full shadow-sm">
+        {/* PRO */}
+        <div className="rounded-3xl p-8 border-2 border-brand bg-white flex flex-col justify-between shadow-md relative transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+          {/* Most popular badge ABOVE the card */}
+          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand text-white text-[10px] font-bold tracking-wider uppercase py-1 px-4 rounded-full shadow-sm">
             Most Popular
           </div>
 
           <div>
             <div className="text-brand font-bold text-xs uppercase tracking-wider mb-2 mt-1">Pro</div>
-            <div className="text-4xl font-extrabold text-stone-900 mb-1">Rs 500 <span className="text-lg font-normal text-stone-400">/ $5</span></div>
-            <div className="text-xs text-stone-500 font-medium mb-6">1 primary + 1 team card • Lifetime</div>
-            <div className="h-px bg-stone-200/60 my-6" />
+            <div className="text-4xl font-extrabold text-stone-900 mb-1">Rs 500 <span className="text-lg font-normal text-stone-450">/ $5</span></div>
+            <div className="text-xs text-stone-500 font-medium mb-6">One-time · Lifetime hosting</div>
+            
+            <div className="h-px bg-stone-250/60 my-6" />
+            
             <ul className="text-sm space-y-3.5 mb-8 text-stone-700">
               <li className="flex gap-2.5 items-start font-semibold text-brand">
                 <span className="font-bold">✓</span>
@@ -105,6 +109,10 @@ export default function PricingCards() {
                 <span className="text-brand font-bold">✓</span>
                 <span>Google Review gate</span>
               </li>
+              <li className="flex gap-2.5 items-start">
+                <span className="text-brand font-bold">✓</span>
+                <span>2 card slots (1 primary + 1 team)</span>
+              </li>
             </ul>
           </div>
           <Link
@@ -113,26 +121,22 @@ export default function PricingCards() {
           >
             Choose Pro
           </Link>
-        </motion.div>
+        </div>
 
-        {/* Business Plan */}
-        <motion.div
-          whileHover={{ y: -6 }}
-          transition={{ duration: 0.2 }}
-          className="rounded-3xl p-8 bg-stone-950 text-white flex flex-col justify-between shadow-lg relative overflow-hidden"
-        >
-          {/* For teams badge */}
-          <div className="absolute top-4 right-4 bg-yellow-400 text-stone-950 text-[10px] font-black tracking-widest uppercase py-1 px-2.5 rounded-full shadow-sm">
-            For Teams
-          </div>
-          
+        {/* BUSINESS */}
+        <div className="rounded-3xl p-8 bg-stone-950 text-white flex flex-col justify-between shadow-lg relative overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-2xl">
+          {/* Subtle top accent line */}
+          <div className="absolute top-0 inset-x-0 h-1 bg-brand rounded-t-3xl"></div>
+
           <div>
-            <div className="text-yellow-400 font-semibold text-xs uppercase tracking-wider mb-2">Business</div>
-            <div className="text-4xl font-extrabold mb-1">Rs 1,000 <span className="text-lg font-normal opacity-70">/ $10</span></div>
-            <div className="text-xs text-stone-400 mb-6">1 primary + 4 team cards • Lifetime</div>
+            <div className="text-brand font-semibold text-xs uppercase tracking-wider mb-2 mt-1">Business</div>
+            <div className="text-4xl font-extrabold mb-1">Rs 1,000 <span className="text-lg font-normal text-stone-400">/ $10</span></div>
+            <div className="text-xs text-stone-400 mb-6">One-time · Lifetime · 5 card slots</div>
+            
             <div className="h-px bg-white/10 my-6" />
+            
             <ul className="text-sm space-y-3.5 mb-8 opacity-95">
-              <li className="flex gap-2.5 items-start font-semibold text-yellow-400">
+              <li className="flex gap-2.5 items-start font-semibold text-brand">
                 <span>✓</span>
                 <span>Premium themes + full section library</span>
               </li>
@@ -148,9 +152,9 @@ export default function PricingCards() {
                 <span>✓</span>
                 <span>Apple & Google Wallet pass</span>
               </li>
-              <li className="flex gap-2.5 items-start text-xs opacity-75 italic">
-                <span>↳</span>
-                <span>QR link never changes, domain updates are seamless</span>
+              <li className="flex gap-2.5 items-start">
+                <span>✓</span>
+                <span>5 card slots (1 primary + 4 team)</span>
               </li>
             </ul>
           </div>
@@ -160,7 +164,8 @@ export default function PricingCards() {
           >
             Choose Business
           </Link>
-        </motion.div>
+        </div>
+
       </div>
 
       {/* Expandable Comparison Table */}
@@ -182,64 +187,56 @@ export default function PricingCards() {
           </svg>
         </button>
 
-        <AnimatePresence>
-          {expanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden mt-8 text-left bg-white rounded-3xl border border-stone-200 shadow-sm"
-            >
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-stone-200 bg-stone-50/70 text-stone-500 font-semibold text-xs">
-                      <th className="py-4 px-6 text-left">Feature</th>
-                      <th className="py-4 px-6 text-center">Free Trial</th>
-                      <th className="py-4 px-6 text-center">Pro</th>
-                      <th className="py-4 px-6 text-center">Business</th>
+        {expanded && (
+          <div className="overflow-hidden mt-8 text-left bg-white rounded-3xl border border-stone-200 shadow-sm animate-fade-in">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-stone-200 bg-stone-50/70 text-stone-500 font-semibold text-xs">
+                    <th className="py-4 px-6 text-left">Feature</th>
+                    <th className="py-4 px-6 text-center">Free Trial</th>
+                    <th className="py-4 px-6 text-center">Pro</th>
+                    <th className="py-4 px-6 text-center">Business</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 text-stone-700">
+                  {COMPARISON_FEATURES.map((feat, idx) => (
+                    <tr key={idx} className="hover:bg-stone-50/40 transition-colors">
+                      <td className="py-3.5 px-6 font-medium text-stone-900">{feat.name}</td>
+                      <td className="py-3.5 px-6 text-center text-xs">
+                        {feat.free === "✓" ? (
+                          <span className="text-brand font-bold text-sm">✓</span>
+                        ) : feat.free === "✕" ? (
+                          <span className="text-stone-300 text-sm">✕</span>
+                        ) : (
+                          <span>{feat.free}</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-6 text-center text-xs">
+                        {feat.standard === "✓" ? (
+                          <span className="text-brand font-bold text-sm">✓</span>
+                        ) : feat.standard === "✕" ? (
+                          <span className="text-stone-300 text-sm">✕</span>
+                        ) : (
+                          <span>{feat.standard}</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-6 text-center text-xs font-semibold text-brand">
+                        {feat.lifetime === "✓" ? (
+                          <span className="text-brand font-bold text-sm">✓</span>
+                        ) : feat.lifetime === "✕" ? (
+                          <span className="text-stone-300 text-sm">✕</span>
+                        ) : (
+                          <span>{feat.lifetime}</span>
+                        )}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-100 text-stone-700">
-                    {COMPARISON_FEATURES.map((feat, idx) => (
-                      <tr key={idx} className="hover:bg-stone-50/40 transition-colors">
-                        <td className="py-3.5 px-6 font-medium text-stone-900">{feat.name}</td>
-                        <td className="py-3.5 px-6 text-center text-xs">
-                          {feat.free === "✓" ? (
-                            <span className="text-brand font-bold text-sm">✓</span>
-                          ) : feat.free === "✕" ? (
-                            <span className="text-stone-300 text-sm">✕</span>
-                          ) : (
-                            <span>{feat.free}</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-6 text-center text-xs">
-                          {feat.standard === "✓" ? (
-                            <span className="text-brand font-bold text-sm">✓</span>
-                          ) : feat.standard === "✕" ? (
-                            <span className="text-stone-300 text-sm">✕</span>
-                          ) : (
-                            <span>{feat.standard}</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-6 text-center text-xs font-semibold text-brand">
-                          {feat.lifetime === "✓" ? (
-                            <span className="text-brand font-bold text-sm">✓</span>
-                          ) : feat.lifetime === "✕" ? (
-                            <span className="text-stone-300 text-sm">✕</span>
-                          ) : (
-                            <span>{feat.lifetime}</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

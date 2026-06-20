@@ -18,6 +18,12 @@ export interface CardData {
   tiktok: string;
   youtube: string;
   email: string;
+  bio?: string;
+  viber?: string;
+  x_twitter?: string;
+  threads?: string;
+  linkedin?: string;
+  telegram?: string;
   plan: PlanId;
   subdomain: string | null;
   payment_status: "pending" | "paid" | "pending_verification";
@@ -46,9 +52,23 @@ export interface CardData {
   sections?: any[] | null;
   section_order?: string[] | null;
   qr_customization?: {
-    dotStyle?: "square" | "rounded" | "dots";
-    cornerStyle?: "square" | "rounded";
+    dotStyle?: "square" | "rounded" | "dots" | "waves" | "teardrops";
+    cornerStyle?: "square" | "rounded" | "custom_frame";
     logoEnabled?: boolean;
+    centerLogoType?: "standard" | "pixelated";
+    colorStyle?: "solid" | "gradient" | "spotlight";
+    gradientColor1?: string;
+    gradientColor2?: string;
+    spotlightColor?: string;
+    custom_cta_frame?: string;
+  } | null;
+  design_settings?: {
+    vibe?: "corporate" | "luxury" | "creative" | "eco" | null;
+    bg_texture?: "none" | "metal" | "wood" | "geometric" | "motion" | null;
+    embossed_effect?: boolean;
+    alignment?: "left" | "center" | "right";
+    default_nav_tab?: string | null;
+    animation?: "none" | "float" | "fade" | "pulse" | null;
   } | null;
   created_at?: string;
 }

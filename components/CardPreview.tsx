@@ -205,6 +205,66 @@ function buildLinks(data: CardData): LinkItem[] {
   return items;
 }
 
+function SocialsGrid({ socialLinks, isThemeDark }: { socialLinks: LinkItem[]; isThemeDark: boolean }) {
+  if (socialLinks.length === 0) return null;
+
+  const getStyle = (key: string) => {
+    switch (key) {
+      case "facebook":
+        return { bg: "bg-[#1877f2]/10 border border-[#1877f2]/20", text: "text-[#1877f2]" };
+      case "instagram":
+        return { bg: "bg-[#e4405f]/10 border border-[#e4405f]/20", text: "text-[#e4405f]" };
+      case "tiktok":
+        return {
+          bg: isThemeDark ? "bg-white/10 border border-white/10" : "bg-black/5 border border-black/10",
+          text: isThemeDark ? "text-white" : "text-stone-900"
+        };
+      case "youtube":
+        return { bg: "bg-[#ff0000]/10 border border-[#ff0000]/20", text: "text-[#ff0000]" };
+      case "viber":
+        return { bg: "bg-[#7360f2]/10 border border-[#7360f2]/20", text: "text-[#7360f2]" };
+      case "x_twitter":
+        return {
+          bg: isThemeDark ? "bg-white/10 border border-white/10" : "bg-black/5 border border-black/10",
+          text: isThemeDark ? "text-white" : "text-stone-900"
+        };
+      case "threads":
+        return {
+          bg: isThemeDark ? "bg-white/10 border border-white/10" : "bg-black/5 border border-black/10",
+          text: isThemeDark ? "text-white" : "text-stone-900"
+        };
+      case "linkedin":
+        return { bg: "bg-[#0077b5]/10 border border-[#0077b5]/20", text: "text-[#0077b5]" };
+      case "telegram":
+        return { bg: "bg-[#229ed9]/10 border border-[#229ed9]/20", text: "text-[#229ed9]" };
+      default:
+        return { bg: "bg-white/10 border border-white/10", text: "text-white" };
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-5 gap-3.5 mt-4 w-full justify-items-center">
+      {socialLinks.map((s) => {
+        const style = getStyle(s.key);
+        return (
+          <motion.a
+            whileHover={{ scale: 1.1, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            key={s.key}
+            href={s.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={s.label}
+            className={`w-11 h-11 rounded-full flex items-center justify-center shadow-xs transition-all cursor-pointer ${style.bg} ${style.text}`}
+          >
+            {s.icon}
+          </motion.a>
+        );
+      })}
+    </div>
+  );
+}
+
 interface Props {
   data: CardData;
   onSaveContact?: () => void;
@@ -218,7 +278,10 @@ interface Props {
  * and the actual hosted /card/[slug] page so they always stay visually in sync.
  */
 function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
-  const links = buildLinks(data);
+  const allLinks = buildLinks(data);
+  const socialKeys = ["facebook", "instagram", "tiktok", "youtube", "viber", "x_twitter", "threads", "linkedin", "telegram"];
+  const links = allLinks.filter(l => !socialKeys.includes(l.key));
+  const socialLinks = allLinks.filter(l => socialKeys.includes(l.key));
   const initials = getInitials(data.member_name || data.business_name || "Your Business");
 
   // Premium design features (Business tier only)
@@ -441,6 +504,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
               </motion.a>
             ))}
 
+            <SocialsGrid socialLinks={socialLinks} isThemeDark={true} />
+
             {data.plan === "business" && (
               <WalletButton cardId={data.id} brandColor={brandColor} />
             )}
@@ -553,6 +618,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             );
           })}
 
+          <SocialsGrid socialLinks={socialLinks} isThemeDark={true} />
+
           {data.plan === "business" && (
             <WalletButton cardId={data.id} brandColor={brandColor} />
           )}
@@ -657,6 +724,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             );
           })}
 
+          <SocialsGrid socialLinks={socialLinks} isThemeDark={false} />
+
           {data.plan === "business" && (
             <WalletButton cardId={data.id} brandColor={brandColor} />
           )}
@@ -760,6 +829,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
               </motion.a>
             );
           })}
+
+          <SocialsGrid socialLinks={socialLinks} isThemeDark={true} />
 
           {data.plan === "business" && (
             <WalletButton cardId={data.id} brandColor={brandColor} />
@@ -872,6 +943,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
               </motion.a>
             ))}
 
+            <SocialsGrid socialLinks={socialLinks} isThemeDark={false} />
+
             {data.plan === "business" && (
               <WalletButton cardId={data.id} brandColor={brandColor} />
             )}
@@ -981,6 +1054,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
                 {l.label}
               </motion.a>
             ))}
+
+            <SocialsGrid socialLinks={socialLinks} isThemeDark={false} />
 
             {data.plan === "business" && (
               <WalletButton cardId={data.id} brandColor={brandColor} />
@@ -1094,6 +1169,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
                 {l.label}
               </motion.a>
             ))}
+
+            <SocialsGrid socialLinks={socialLinks} isThemeDark={false} />
 
             {data.plan === "business" && (
               <WalletButton cardId={data.id} brandColor={brandColor} />
@@ -1222,6 +1299,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
                 </motion.a>
               ))}
 
+              <SocialsGrid socialLinks={socialLinks} isThemeDark={true} />
+
               {data.plan === "business" && (
                 <WalletButton cardId={data.id} brandColor={brandColor} />
               )}
@@ -1335,6 +1414,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             );
           })}
 
+          <SocialsGrid socialLinks={socialLinks} isThemeDark={true} />
+
           {data.plan === "business" && (
             <WalletButton cardId={data.id} brandColor={brandColor} />
           )}
@@ -1443,6 +1524,8 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             </motion.a>
           );
         })}
+
+        <SocialsGrid socialLinks={socialLinks} isThemeDark={false} />
 
         {data.plan === "business" && (
           <WalletButton cardId={data.id} brandColor={brandColor} />

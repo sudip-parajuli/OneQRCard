@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MenuItem, MenuCategory, MenuSectionData, GallerySectionData, ServiceItem, ServicesSectionData } from "@/lib/sections";
 import { nanoid } from "nanoid";
 
@@ -42,6 +42,35 @@ function compressImage(file: File): Promise<string> {
   });
 }
 
+// Keyboard-driven list navigation helper
+function handleInputKeyDown(
+  e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+  itemId: string,
+  elementPrefix: string,
+  onLastAction: () => void
+) {
+  if (e.key === "Enter") {
+    if (e.currentTarget.tagName.toLowerCase() === "textarea") {
+      return;
+    }
+    e.preventDefault();
+    const parent = document.getElementById(`${elementPrefix}-${itemId}`);
+    if (!parent) return;
+
+    // Find all text/tel/email/url inputs inside this item (exclude checkbox and file inputs)
+    const inputs = Array.from(
+      parent.querySelectorAll('input:not([type="checkbox"]):not([type="file"])')
+    ) as HTMLInputElement[];
+
+    const currentIndex = inputs.indexOf(e.currentTarget as HTMLInputElement);
+    if (currentIndex !== -1 && currentIndex < inputs.length - 1) {
+      inputs[currentIndex + 1].focus();
+    } else {
+      onLastAction();
+    }
+  }
+}
+
 // 1. Menu Editor Component
 interface MenuEditorProps {
   data: MenuSectionData;
@@ -54,10 +83,23 @@ export function MenuEditor({ data, onChange, brandColor }: MenuEditorProps) {
   const [selectedCatId, setSelectedCatId] = useState<string>(
     data.categories?.[0]?.id || ""
   );
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   const categories = data.categories || [];
   const showPrices = data.show_prices !== false;
   const orderCta = data.order_cta || "none";
+
+  useEffect(() => {
+    if (justAddedId) {
+      const el = document.getElementById(`menu-item-${justAddedId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        const input = el.querySelector("input");
+        if (input) input.focus();
+        setJustAddedId(null);
+      }
+    }
+  }, [justAddedId]);
 
   function updateCategories(updated: MenuCategory[]) {
     onChange({
@@ -90,10 +132,11 @@ export function MenuEditor({ data, onChange, brandColor }: MenuEditorProps) {
   }
 
   function addItem(catId: string) {
+    const newId = nanoid(6);
     const nextCats = categories.map((cat) => {
       if (cat.id !== catId) return cat;
       const newItem: MenuItem = {
-        id: nanoid(6),
+        id: newId,
         name: "New Menu Item",
         price: "Rs. 0",
         description: "",
@@ -106,6 +149,7 @@ export function MenuEditor({ data, onChange, brandColor }: MenuEditorProps) {
       };
     });
     updateCategories(nextCats);
+    setJustAddedId(newId);
   }
 
   function updateItem(catId: string, itemId: string, field: keyof MenuItem, value: any) {
@@ -170,63 +214,68 @@ export function MenuEditor({ data, onChange, brandColor }: MenuEditorProps) {
         </div>
       </div>
 
-      {/* Categories Tabs Editor */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-500">Categories</h3>
-        <div className="flex flex-wrap gap-2 items-center">
-          {categories.map((cat) => (
-            <div
-              key={cat.id}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium cursor-pointer transition-all ${
-                (activeCategory?.id === cat.id)
-                  ? "bg-brand text-white border-brand shadow-sm"
-                  : "bg-white hover:bg-stone-50 text-stone-600 border-stone-200"
-              }`}
-              onClick={() => setSelectedCatId(cat.id)}
-            >
-              <span>{cat.name}</span>
+      {/* Sticky Categories & Active Category Add-Item Header */}
+      <div className="sticky top-0 bg-white z-20 py-3.5 border-b border-stone-200 -mx-4 px-4 space-y-4 shadow-sm">
+        {/* Categories Tabs Editor */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-500">Categories</h3>
+          <div className="flex flex-wrap gap-2 items-center">
+            {categories.map((cat) => (
+              <div
+                key={cat.id}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium cursor-pointer transition-all ${
+                  (activeCategory?.id === cat.id)
+                    ? "bg-brand text-white border-brand shadow-sm"
+                    : "bg-white hover:bg-stone-50 text-stone-600 border-stone-200"
+                }`}
+                onClick={() => setSelectedCatId(cat.id)}
+              >
+                <span>{cat.name}</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteCategory(cat.id);
+                  }}
+                  className={`text-[9px] font-bold hover:scale-110 p-0.5 rounded-full ${
+                    activeCategory?.id === cat.id
+                      ? "text-white/80 hover:text-white"
+                      : "text-stone-400 hover:text-stone-600"
+                  }`}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+
+            {/* Inline Add Category input */}
+            <div className="flex items-center gap-1 border border-stone-200 bg-white rounded-full px-2.5 py-1 text-xs">
+              <input
+                type="text"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                placeholder="New Category..."
+                className="outline-none text-xs w-24 bg-transparent"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCategory();
+                  }
+                }}
+              />
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteCategory(cat.id);
-                }}
-                className={`text-[9px] font-bold hover:scale-110 p-0.5 rounded-full ${
-                  activeCategory?.id === cat.id
-                    ? "text-white/80 hover:text-white"
-                    : "text-stone-400 hover:text-stone-600"
-                }`}
+                onClick={addCategory}
+                className="text-brand font-bold text-base leading-none"
               >
-                ✕
+                +
               </button>
             </div>
-          ))}
-
-          {/* Inline Add Category input */}
-          <div className="flex items-center gap-1 border border-stone-200 bg-white rounded-full px-2.5 py-1 text-xs">
-            <input
-              type="text"
-              value={newCatName}
-              onChange={(e) => setNewCatName(e.target.value)}
-              placeholder="New Category..."
-              className="outline-none text-xs w-24 bg-transparent"
-              onKeyDown={(e) => e.key === "Enter" && addCategory()}
-            />
-            <button
-              type="button"
-              onClick={addCategory}
-              className="text-brand font-bold text-base leading-none"
-            >
-              +
-            </button>
           </div>
         </div>
-      </div>
 
-      {/* Items List inside Active Category */}
-      {activeCategory ? (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center pb-2 border-b border-stone-100">
+        {activeCategory && (
+          <div className="flex justify-between items-center">
             <h4 className="text-sm font-bold text-stone-900">
               Items in <span className="text-brand">{activeCategory.name}</span>
             </h4>
@@ -238,122 +287,156 @@ export function MenuEditor({ data, onChange, brandColor }: MenuEditorProps) {
               + Add Item
             </button>
           </div>
+        )}
+      </div>
 
+      {/* Items List inside Active Category */}
+      {activeCategory ? (
+        <div className="space-y-4">
           <div className="space-y-3">
             {activeCategory.items.length === 0 ? (
               <p className="text-stone-400 text-xs text-center py-6">
                 No items added. Click "+ Add Item" above.
               </p>
             ) : (
-              activeCategory.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-stone-50/50 hover:bg-stone-50 border border-stone-200/80 p-4 rounded-xl grid gap-4 relative group"
-                >
-                  <button
-                    type="button"
-                    onClick={() => deleteItem(activeCategory.id, item.id)}
-                    className="absolute top-3 right-3 text-stone-400 hover:text-red-500 font-semibold text-xs transition-colors cursor-pointer"
+              activeCategory.items.map((item, idx) => {
+                const isLastItem = idx === activeCategory.items.length - 1;
+                const onLastAction = isLastItem
+                  ? () => addItem(activeCategory.id)
+                  : () => {
+                      const nextId = activeCategory.items[idx + 1].id;
+                      setTimeout(() => {
+                        const nextEl = document.getElementById(`menu-item-${nextId}`);
+                        const input = nextEl?.querySelector('input:not([type="checkbox"]):not([type="file"])') as HTMLInputElement;
+                        input?.focus();
+                      }, 0);
+                    };
+
+                return (
+                  <div
+                    key={item.id}
+                    id={`menu-item-${item.id}`}
+                    className="bg-stone-50/50 hover:bg-stone-50 border border-stone-200/80 p-4 rounded-xl grid gap-4 relative group scroll-mt-20"
                   >
-                    Remove Item
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteItem(activeCategory.id, item.id)}
+                      className="absolute top-3 right-3 text-stone-400 hover:text-red-500 font-semibold text-xs transition-colors cursor-pointer"
+                    >
+                      Remove Item
+                    </button>
 
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {/* Item Name */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {/* Item Name */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Item Name</label>
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e) => updateItem(activeCategory.id, item.id, "name", e.target.value)}
+                          className="input text-xs h-9 bg-white"
+                          placeholder="e.g. Margarita Pizza"
+                          onKeyDown={(e) => handleInputKeyDown(e, item.id, "menu-item", onLastAction)}
+                        />
+                      </div>
+                      {/* Item Price */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Price</label>
+                        <input
+                          type="text"
+                          value={item.price}
+                          onChange={(e) => updateItem(activeCategory.id, item.id, "price", e.target.value)}
+                          className="input text-xs h-9 bg-white"
+                          placeholder="e.g. Rs. 450"
+                          onKeyDown={(e) => handleInputKeyDown(e, item.id, "menu-item", onLastAction)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Description */}
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Item Name</label>
-                      <input
-                        type="text"
-                        value={item.name}
-                        onChange={(e) => updateItem(activeCategory.id, item.id, "name", e.target.value)}
-                        className="input text-xs h-9 bg-white"
-                        placeholder="e.g. Margarita Pizza"
+                      <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Description (Optional)</label>
+                      <textarea
+                        rows={1.5}
+                        value={item.description || ""}
+                        onChange={(e) => updateItem(activeCategory.id, item.id, "description", e.target.value)}
+                        className="input text-xs py-2 bg-white resize-none"
+                        placeholder="e.g. Fresh tomatoes, mozzarella, basil and olive oil"
                       />
                     </div>
-                    {/* Item Price */}
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Price</label>
-                      <input
-                        type="text"
-                        value={item.price}
-                        onChange={(e) => updateItem(activeCategory.id, item.id, "price", e.target.value)}
-                        className="input text-xs h-9 bg-white"
-                        placeholder="e.g. Rs. 450"
-                      />
+
+                    <div className="grid sm:grid-cols-[1fr_auto] gap-4 items-center">
+                      {/* Flags */}
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!!item.is_popular}
+                            onChange={(e) => updateItem(activeCategory.id, item.id, "is_popular", e.target.checked)}
+                            className="rounded border-stone-300 text-brand focus:ring-brand"
+                          />
+                          ⭐ Popular Item
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!!item.is_sold_out}
+                            onChange={(e) => updateItem(activeCategory.id, item.id, "is_sold_out", e.target.checked)}
+                            className="rounded border-stone-300 text-brand focus:ring-brand"
+                          />
+                          🚫 Sold Out
+                        </label>
+                      </div>
+
+                      {/* Image Upload */}
+                      <div className="flex items-center gap-2">
+                        {item.photo_data_url && (
+                          <img
+                            src={item.photo_data_url}
+                            alt={item.name}
+                            className="w-8 h-8 rounded object-cover border border-stone-200"
+                          />
+                        )}
+                        <label className="bg-white hover:bg-stone-100 border border-stone-200 text-stone-600 text-[10px] font-bold px-2 py-1.5 rounded-lg cursor-pointer transition-all">
+                          {item.photo_data_url ? "Change Photo" : "Upload Photo"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleItemPhotoUpload(activeCategory.id, item.id, file);
+                            }}
+                          />
+                        </label>
+                        {item.photo_data_url && (
+                          <button
+                            type="button"
+                            onClick={() => updateItem(activeCategory.id, item.id, "photo_data_url", undefined)}
+                            className="text-stone-400 hover:text-stone-600 text-xs p-1"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-
-                  {/* Description */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Description (Optional)</label>
-                    <textarea
-                      rows={1.5}
-                      value={item.description || ""}
-                      onChange={(e) => updateItem(activeCategory.id, item.id, "description", e.target.value)}
-                      className="input text-xs py-2 bg-white resize-none"
-                      placeholder="e.g. Fresh tomatoes, mozzarella, basil and olive oil"
-                    />
-                  </div>
-
-                  <div className="grid sm:grid-cols-[1fr_auto] gap-4 items-center">
-                    {/* Flags */}
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={!!item.is_popular}
-                          onChange={(e) => updateItem(activeCategory.id, item.id, "is_popular", e.target.checked)}
-                          className="rounded border-stone-300 text-brand focus:ring-brand"
-                        />
-                        ⭐ Popular Item
-                      </label>
-                      <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={!!item.is_sold_out}
-                          onChange={(e) => updateItem(activeCategory.id, item.id, "is_sold_out", e.target.checked)}
-                          className="rounded border-stone-300 text-brand focus:ring-brand"
-                        />
-                        🚫 Sold Out
-                      </label>
-                    </div>
-
-                    {/* Image Upload */}
-                    <div className="flex items-center gap-2">
-                      {item.photo_data_url && (
-                        <img
-                          src={item.photo_data_url}
-                          alt={item.name}
-                          className="w-8 h-8 rounded object-cover border border-stone-200"
-                        />
-                      )}
-                      <label className="bg-white hover:bg-stone-100 border border-stone-200 text-stone-600 text-[10px] font-bold px-2 py-1.5 rounded-lg cursor-pointer transition-all">
-                        {item.photo_data_url ? "Change Photo" : "Upload Photo"}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleItemPhotoUpload(activeCategory.id, item.id, file);
-                          }}
-                        />
-                      </label>
-                      {item.photo_data_url && (
-                        <button
-                          type="button"
-                          onClick={() => updateItem(activeCategory.id, item.id, "photo_data_url", undefined)}
-                          className="text-stone-400 hover:text-stone-600 text-xs p-1"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
+
+          {activeCategory.items.length > 0 && (
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => addItem(activeCategory.id)}
+                className="text-xs font-bold bg-brand/10 hover:bg-brand/20 text-brand px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                + Add Item
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <p className="text-stone-400 text-xs text-center py-6">
@@ -526,14 +609,28 @@ interface ServicesEditorProps {
 
 export function ServicesEditor({ data, onChange, brandColor }: ServicesEditorProps) {
   const services = data.services || [];
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (justAddedId) {
+      const el = document.getElementById(`service-item-${justAddedId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        const input = el.querySelector("input");
+        if (input) input.focus();
+        setJustAddedId(null);
+      }
+    }
+  }, [justAddedId]);
 
   function updateServices(updated: ServiceItem[]) {
     onChange({ ...data, services: updated });
   }
 
   function addService() {
+    const newId = nanoid(6);
     const newService: ServiceItem = {
-      id: nanoid(6),
+      id: newId,
       name: "New Service Offered",
       price: "",
       duration: "",
@@ -542,6 +639,7 @@ export function ServicesEditor({ data, onChange, brandColor }: ServicesEditorPro
       booking_url: "",
     };
     updateServices([...services, newService]);
+    setJustAddedId(newId);
   }
 
   function updateService(serviceId: string, field: keyof ServiceItem, value: any) {
@@ -558,7 +656,8 @@ export function ServicesEditor({ data, onChange, brandColor }: ServicesEditorPro
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center border-b border-stone-100 pb-2">
+      {/* Sticky Services Header */}
+      <div className="sticky top-0 bg-white z-20 py-3.5 border-b border-stone-200 -mx-4 px-4 flex justify-between items-center shadow-sm">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-500">
           Services list
         </h4>
@@ -577,96 +676,127 @@ export function ServicesEditor({ data, onChange, brandColor }: ServicesEditorPro
             No services configured. Click "+ Add Service" above.
           </p>
         ) : (
-          services.map((srv) => (
-            <div
-              key={srv.id}
-              className="bg-stone-50/50 hover:bg-stone-50 border border-stone-200/80 p-4 rounded-xl grid gap-3.5 relative group animate-fade-in"
-            >
-              <button
-                type="button"
-                onClick={() => deleteService(srv.id)}
-                className="absolute top-3 right-3 text-stone-400 hover:text-red-500 font-semibold text-xs transition-colors cursor-pointer"
+          services.map((srv, idx) => {
+            const isLastItem = idx === services.length - 1;
+            const onLastAction = isLastItem
+              ? () => addService()
+              : () => {
+                  const nextId = services[idx + 1].id;
+                  setTimeout(() => {
+                    const nextEl = document.getElementById(`service-item-${nextId}`);
+                    const input = nextEl?.querySelector('input:not([type="checkbox"]):not([type="file"])') as HTMLInputElement;
+                    input?.focus();
+                  }, 0);
+                };
+
+            return (
+              <div
+                key={srv.id}
+                id={`service-item-${srv.id}`}
+                className="bg-stone-50/50 hover:bg-stone-50 border border-stone-200/80 p-4 rounded-xl grid gap-3.5 relative group animate-fade-in scroll-mt-20"
               >
-                Remove
-              </button>
+                <button
+                  type="button"
+                  onClick={() => deleteService(srv.id)}
+                  className="absolute top-3 right-3 text-stone-400 hover:text-red-500 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Remove
+                </button>
 
-              {/* Service Name */}
-              <div className="flex flex-col gap-1 pr-14">
-                <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Service Name</label>
-                <input
-                  type="text"
-                  value={srv.name}
-                  onChange={(e) => updateService(srv.id, "name", e.target.value)}
-                  className="input text-xs h-9 bg-white"
-                  placeholder="e.g. Haircut & Style"
-                />
-              </div>
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                {/* Duration */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Duration (Optional)</label>
+                {/* Service Name */}
+                <div className="flex flex-col gap-1 pr-14">
+                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Service Name</label>
                   <input
                     type="text"
-                    value={srv.duration || ""}
-                    onChange={(e) => updateService(srv.id, "duration", e.target.value)}
+                    value={srv.name}
+                    onChange={(e) => updateService(srv.id, "name", e.target.value)}
                     className="input text-xs h-9 bg-white"
-                    placeholder="e.g. 45 mins"
-                  />
-                </div>
-                {/* Price */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Price (Optional)</label>
-                  <input
-                    type="text"
-                    value={srv.price || ""}
-                    onChange={(e) => updateService(srv.id, "price", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. Rs. 800"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Description (Optional)</label>
-                <textarea
-                  rows={2}
-                  value={srv.description || ""}
-                  onChange={(e) => updateService(srv.id, "description", e.target.value)}
-                  className="input text-xs py-2 bg-white resize-none"
-                  placeholder="e.g. Complete washing, trimming, styling and premium hair serum treatment."
-                />
-              </div>
-
-              <div className="grid sm:grid-cols-[1fr_200px] gap-4 items-center">
-                {/* Booking link */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Custom Booking URL (Optional)</label>
-                  <input
-                    type="text"
-                    value={srv.booking_url || ""}
-                    onChange={(e) => updateService(srv.id, "booking_url", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. https://calendly.com/..."
+                    placeholder="e.g. Haircut & Style"
+                    onKeyDown={(e) => handleInputKeyDown(e, srv.id, "service-item", onLastAction)}
                   />
                 </div>
 
-                {/* Popularity toggle */}
-                <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer self-end py-2">
-                  <input
-                    type="checkbox"
-                    checked={!!srv.is_popular}
-                    onChange={(e) => updateService(srv.id, "is_popular", e.target.checked)}
-                    className="rounded border-stone-300 text-brand focus:ring-brand"
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {/* Duration */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Duration (Optional)</label>
+                    <input
+                      type="text"
+                      value={srv.duration || ""}
+                      onChange={(e) => updateService(srv.id, "duration", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. 45 mins"
+                      onKeyDown={(e) => handleInputKeyDown(e, srv.id, "service-item", onLastAction)}
+                    />
+                  </div>
+                  {/* Price */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Price (Optional)</label>
+                    <input
+                      type="text"
+                      value={srv.price || ""}
+                      onChange={(e) => updateService(srv.id, "price", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. Rs. 800"
+                      onKeyDown={(e) => handleInputKeyDown(e, srv.id, "service-item", onLastAction)}
+                    />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Description (Optional)</label>
+                  <textarea
+                    rows={2}
+                    value={srv.description || ""}
+                    onChange={(e) => updateService(srv.id, "description", e.target.value)}
+                    className="input text-xs py-2 bg-white resize-none"
+                    placeholder="e.g. Complete washing, trimming, styling and premium hair serum treatment."
                   />
-                  ⭐ Feature as Popular
-                </label>
+                </div>
+
+                <div className="grid sm:grid-cols-[1fr_200px] gap-4 items-center">
+                  {/* Booking link */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Custom Booking URL (Optional)</label>
+                    <input
+                      type="text"
+                      value={srv.booking_url || ""}
+                      onChange={(e) => updateService(srv.id, "booking_url", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. https://calendly.com/..."
+                      onKeyDown={(e) => handleInputKeyDown(e, srv.id, "service-item", onLastAction)}
+                    />
+                  </div>
+
+                  {/* Popularity toggle */}
+                  <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer self-end py-2">
+                    <input
+                      type="checkbox"
+                      checked={!!srv.is_popular}
+                      onChange={(e) => updateService(srv.id, "is_popular", e.target.checked)}
+                      className="rounded border-stone-300 text-brand focus:ring-brand"
+                    />
+                    ⭐ Feature as Popular
+                  </label>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {services.length > 0 && (
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={addService}
+            className="text-xs font-bold bg-brand/10 hover:bg-brand/20 text-brand px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          >
+            + Add Service
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -986,7 +1116,12 @@ export function AmenitiesEditor({ data, onChange }: { data: any; onChange: (d: a
           onChange={(e) => setCustomText(e.target.value)}
           placeholder="Custom amenity (e.g. Kid-friendly)..."
           className="input text-xs h-9 bg-white flex-1"
-          onKeyDown={(e) => e.key === "Enter" && addCustom()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addCustom();
+            }
+          }}
         />
         <button
           type="button"
@@ -1021,14 +1156,28 @@ export function AmenitiesEditor({ data, onChange }: { data: any; onChange: (d: a
 // 11. Schedule Editor Component
 export function ScheduleEditor({ data, onChange }: { data: any; onChange: (d: any) => void }) {
   const classes = data.classes || [];
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (justAddedId) {
+      const el = document.getElementById(`class-item-${justAddedId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        const input = el.querySelector("input");
+        if (input) input.focus();
+        setJustAddedId(null);
+      }
+    }
+  }, [justAddedId]);
 
   function updateClasses(updated: any[]) {
     onChange({ ...data, classes: updated });
   }
 
   function addClass() {
+    const newId = nanoid(6);
     const newItem = {
-      id: nanoid(6),
+      id: newId,
       name: "New Class / Session",
       day: "monday",
       time: "10:00 AM",
@@ -1037,6 +1186,7 @@ export function ScheduleEditor({ data, onChange }: { data: any; onChange: (d: an
       is_full: false,
     };
     updateClasses([...classes, newItem]);
+    setJustAddedId(newId);
   }
 
   function updateClass(id: string, field: string, val: any) {
@@ -1050,7 +1200,8 @@ export function ScheduleEditor({ data, onChange }: { data: any; onChange: (d: an
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center border-b border-stone-100 pb-2">
+      {/* Sticky Classes Header */}
+      <div className="sticky top-0 bg-white z-20 py-3.5 border-b border-stone-200 -mx-4 px-4 flex justify-between items-center shadow-sm">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-500">Weekly Classes</h4>
         <button
           type="button"
@@ -1065,88 +1216,122 @@ export function ScheduleEditor({ data, onChange }: { data: any; onChange: (d: an
         {classes.length === 0 ? (
           <p className="text-stone-400 text-xs text-center py-6">No sessions configured.</p>
         ) : (
-          classes.map((c: any) => (
-            <div key={c.id} className="bg-stone-50 border border-stone-250 p-4 rounded-xl relative grid gap-3.5">
-              <button
-                type="button"
-                onClick={() => deleteClass(c.id)}
-                className="absolute top-3 right-3 text-stone-400 hover:text-red-500 font-semibold text-xs"
+          classes.map((c: any, idx: number) => {
+            const isLastItem = idx === classes.length - 1;
+            const onLastAction = isLastItem
+              ? () => addClass()
+              : () => {
+                  const nextId = classes[idx + 1].id;
+                  setTimeout(() => {
+                    const nextEl = document.getElementById(`class-item-${nextId}`);
+                    const input = nextEl?.querySelector('input:not([type="checkbox"]):not([type="file"])') as HTMLInputElement;
+                    input?.focus();
+                  }, 0);
+                };
+
+            return (
+              <div
+                key={c.id}
+                id={`class-item-${c.id}`}
+                className="bg-stone-50 border border-stone-250 p-4 rounded-xl relative grid gap-3.5 scroll-mt-20"
               >
-                Remove
-              </button>
+                <button
+                  type="button"
+                  onClick={() => deleteClass(c.id)}
+                  className="absolute top-3 right-3 text-stone-400 hover:text-red-500 font-semibold text-xs"
+                >
+                  Remove
+                </button>
 
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Session Name</label>
-                  <input
-                    type="text"
-                    value={c.name}
-                    onChange={(e) => updateClass(c.id, "name", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. Power Yoga"
-                  />
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Session Name</label>
+                    <input
+                      type="text"
+                      value={c.name}
+                      onChange={(e) => updateClass(c.id, "name", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. Power Yoga"
+                      onKeyDown={(e) => handleInputKeyDown(e, c.id, "class-item", onLastAction)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Day</label>
+                    <select
+                      value={c.day}
+                      onChange={(e) => updateClass(c.id, "day", e.target.value)}
+                      className="h-9 w-full rounded-lg border border-stone-200 bg-white px-2 text-xs outline-none"
+                    >
+                      {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((day) => (
+                        <option key={day} value={day} className="capitalize">
+                          {day}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Time</label>
+                    <input
+                      type="text"
+                      value={c.time}
+                      onChange={(e) => updateClass(c.id, "time", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. 08:00 AM - 09:30 AM"
+                      onKeyDown={(e) => handleInputKeyDown(e, c.id, "class-item", onLastAction)}
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Day</label>
-                  <select
-                    value={c.day}
-                    onChange={(e) => updateClass(c.id, "day", e.target.value)}
-                    className="h-9 w-full rounded-lg border border-stone-200 bg-white px-2 text-xs outline-none"
-                  >
-                    {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((day) => (
-                      <option key={day} value={day} className="capitalize">
-                        {day}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Time</label>
-                  <input
-                    type="text"
-                    value={c.time}
-                    onChange={(e) => updateClass(c.id, "time", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. 08:00 AM - 09:30 AM"
-                  />
+
+                <div className="grid sm:grid-cols-3 gap-4 items-center">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Instructor</label>
+                    <input
+                      type="text"
+                      value={c.instructor || ""}
+                      onChange={(e) => updateClass(c.id, "instructor", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. John Doe"
+                      onKeyDown={(e) => handleInputKeyDown(e, c.id, "class-item", onLastAction)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Capacity</label>
+                    <input
+                      type="text"
+                      value={c.capacity || ""}
+                      onChange={(e) => updateClass(c.id, "capacity", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. 15 spots"
+                      onKeyDown={(e) => handleInputKeyDown(e, c.id, "class-item", onLastAction)}
+                    />
+                  </div>
+                  <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer self-end py-2">
+                    <input
+                      type="checkbox"
+                      checked={!!c.is_full}
+                      onChange={(e) => updateClass(c.id, "is_full", e.target.checked)}
+                      className="rounded border-stone-300 text-brand focus:ring-brand"
+                    />
+                    Mark as Full / Booked
+                  </label>
                 </div>
               </div>
-
-              <div className="grid sm:grid-cols-3 gap-4 items-center">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Instructor</label>
-                  <input
-                    type="text"
-                    value={c.instructor || ""}
-                    onChange={(e) => updateClass(c.id, "instructor", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. John Doe"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Capacity</label>
-                  <input
-                    type="text"
-                    value={c.capacity || ""}
-                    onChange={(e) => updateClass(c.id, "capacity", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. 15 spots"
-                  />
-                </div>
-                <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer self-end py-2">
-                  <input
-                    type="checkbox"
-                    checked={!!c.is_full}
-                    onChange={(e) => updateClass(c.id, "is_full", e.target.checked)}
-                    className="rounded border-stone-300 text-brand focus:ring-brand"
-                  />
-                  Mark as Full / Booked
-                </label>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {classes.length > 0 && (
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={addClass}
+            className="text-xs font-bold bg-brand/10 hover:bg-brand/20 text-brand px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          >
+            + Add Session
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1154,14 +1339,28 @@ export function ScheduleEditor({ data, onChange }: { data: any; onChange: (d: an
 // 12. Pricing Table Editor Component
 export function PricingTableEditor({ data, onChange }: { data: any; onChange: (d: any) => void }) {
   const plans = data.plans || [];
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (justAddedId) {
+      const el = document.getElementById(`plan-item-${justAddedId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        const input = el.querySelector("input");
+        if (input) input.focus();
+        setJustAddedId(null);
+      }
+    }
+  }, [justAddedId]);
 
   function updatePlans(updated: any[]) {
     onChange({ ...data, plans: updated });
   }
 
   function addPlan() {
+    const newId = nanoid(6);
     const newItem = {
-      id: nanoid(6),
+      id: newId,
       name: "Standard Plan",
       price: "$19/mo",
       features: "Feature 1\nFeature 2",
@@ -1170,6 +1369,7 @@ export function PricingTableEditor({ data, onChange }: { data: any; onChange: (d
       cta_label: "Choose Plan",
     };
     updatePlans([...plans, newItem]);
+    setJustAddedId(newId);
   }
 
   function updatePlan(id: string, field: string, val: any) {
@@ -1183,7 +1383,8 @@ export function PricingTableEditor({ data, onChange }: { data: any; onChange: (d
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center border-b border-stone-100 pb-2">
+      {/* Sticky Packages Header */}
+      <div className="sticky top-0 bg-white z-20 py-3.5 border-b border-stone-200 -mx-4 px-4 flex justify-between items-center shadow-sm">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-500">Pricing Packages</h4>
         <button
           type="button"
@@ -1198,85 +1399,119 @@ export function PricingTableEditor({ data, onChange }: { data: any; onChange: (d
         {plans.length === 0 ? (
           <p className="text-stone-400 text-xs text-center py-6">No packages configured.</p>
         ) : (
-          plans.map((p: any) => (
-            <div key={p.id} className="bg-stone-50 border border-stone-250 p-4 rounded-xl relative grid gap-3.5 animate-fade-in">
-              <button
-                type="button"
-                onClick={() => deletePlan(p.id)}
-                className="absolute top-3 right-3 text-stone-400 hover:text-red-500 font-semibold text-xs"
+          plans.map((p: any, idx: number) => {
+            const isLastItem = idx === plans.length - 1;
+            const onLastAction = isLastItem
+              ? () => addPlan()
+              : () => {
+                  const nextId = plans[idx + 1].id;
+                  setTimeout(() => {
+                    const nextEl = document.getElementById(`plan-item-${nextId}`);
+                    const input = nextEl?.querySelector('input:not([type="checkbox"]):not([type="file"])') as HTMLInputElement;
+                    input?.focus();
+                  }, 0);
+                };
+
+            return (
+              <div
+                key={p.id}
+                id={`plan-item-${p.id}`}
+                className="bg-stone-50 border border-stone-250 p-4 rounded-xl relative grid gap-3.5 animate-fade-in scroll-mt-20"
               >
-                Remove
-              </button>
+                <button
+                  type="button"
+                  onClick={() => deletePlan(p.id)}
+                  className="absolute top-3 right-3 text-stone-400 hover:text-red-500 font-semibold text-xs"
+                >
+                  Remove
+                </button>
 
-              <div className="grid sm:grid-cols-2 gap-4pr pr-14">
+                <div className="grid sm:grid-cols-2 gap-4 pr-14">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Package Title</label>
+                    <input
+                      type="text"
+                      value={p.name}
+                      onChange={(e) => updatePlan(p.id, "name", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. Monthly Pass"
+                      onKeyDown={(e) => handleInputKeyDown(e, p.id, "plan-item", onLastAction)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Price Details</label>
+                    <input
+                      type="text"
+                      value={p.price}
+                      onChange={(e) => updatePlan(p.id, "price", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. $19 / mon"
+                      onKeyDown={(e) => handleInputKeyDown(e, p.id, "plan-item", onLastAction)}
+                    />
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Package Title</label>
-                  <input
-                    type="text"
-                    value={p.name}
-                    onChange={(e) => updatePlan(p.id, "name", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. Monthly Pass"
+                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Features list (one per line)</label>
+                  <textarea
+                    rows={2}
+                    value={p.features}
+                    onChange={(e) => updatePlan(p.id, "features", e.target.value)}
+                    className="input text-xs py-2 bg-white resize-none"
+                    placeholder="Feature A&#10;Feature B"
                   />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Price Details</label>
-                  <input
-                    type="text"
-                    value={p.price}
-                    onChange={(e) => updatePlan(p.id, "price", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. $19 / mon"
-                  />
+
+                <div className="grid sm:grid-cols-3 gap-4 items-center">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Button Link (URL)</label>
+                    <input
+                      type="text"
+                      value={p.cta_link || ""}
+                      onChange={(e) => updatePlan(p.id, "cta_link", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. https://payment-link.com"
+                      onKeyDown={(e) => handleInputKeyDown(e, p.id, "plan-item", onLastAction)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Button Label</label>
+                    <input
+                      type="text"
+                      value={p.cta_label || ""}
+                      onChange={(e) => updatePlan(p.id, "cta_label", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. Buy Now"
+                      onKeyDown={(e) => handleInputKeyDown(e, p.id, "plan-item", onLastAction)}
+                    />
+                  </div>
+                  <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer self-end py-2">
+                    <input
+                      type="checkbox"
+                      checked={!!p.is_popular}
+                      onChange={(e) => updatePlan(p.id, "is_popular", e.target.checked)}
+                      className="rounded border-stone-300 text-brand focus:ring-brand"
+                    />
+                    ⭐ Highlight Plan (Most Popular)
+                  </label>
                 </div>
               </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Features list (one per line)</label>
-                <textarea
-                  rows={2}
-                  value={p.features}
-                  onChange={(e) => updatePlan(p.id, "features", e.target.value)}
-                  className="input text-xs py-2 bg-white resize-none"
-                  placeholder="Feature A&#10;Feature B"
-                />
-              </div>
-
-              <div className="grid sm:grid-cols-3 gap-4 items-center">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Button Link (URL)</label>
-                  <input
-                    type="text"
-                    value={p.cta_link || ""}
-                    onChange={(e) => updatePlan(p.id, "cta_link", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. https://payment-link.com"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Button Label</label>
-                  <input
-                    type="text"
-                    value={p.cta_label || ""}
-                    onChange={(e) => updatePlan(p.id, "cta_label", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. Buy Now"
-                  />
-                </div>
-                <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium cursor-pointer self-end py-2">
-                  <input
-                    type="checkbox"
-                    checked={!!p.is_popular}
-                    onChange={(e) => updatePlan(p.id, "is_popular", e.target.checked)}
-                    className="rounded border-stone-300 text-brand focus:ring-brand"
-                  />
-                  ⭐ Highlight Plan (Most Popular)
-                </label>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {plans.length > 0 && (
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={addPlan}
+            className="text-xs font-bold bg-brand/10 hover:bg-brand/20 text-brand px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          >
+            + Add Package
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1285,14 +1520,28 @@ export function PricingTableEditor({ data, onChange }: { data: any; onChange: (d
 export function FeaturedProductsEditor({ data, onChange }: { data: any; onChange: (d: any) => void }) {
   const products = data.products || [];
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (justAddedId) {
+      const el = document.getElementById(`product-item-${justAddedId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        const input = el.querySelector("input");
+        if (input) input.focus();
+        setJustAddedId(null);
+      }
+    }
+  }, [justAddedId]);
 
   function updateProducts(updated: any[]) {
     onChange({ ...data, products: updated });
   }
 
   function addProduct() {
+    const newId = nanoid(6);
     const newItem = {
-      id: nanoid(6),
+      id: newId,
       name: "New Product Title",
       price: "$0",
       description: "",
@@ -1300,6 +1549,7 @@ export function FeaturedProductsEditor({ data, onChange }: { data: any; onChange
       shop_link: "",
     };
     updateProducts([...products, newItem]);
+    setJustAddedId(newId);
   }
 
   function updateProduct(id: string, field: string, val: any) {
@@ -1324,7 +1574,8 @@ export function FeaturedProductsEditor({ data, onChange }: { data: any; onChange
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center border-b border-stone-100 pb-2">
+      {/* Sticky Products Header */}
+      <div className="sticky top-0 bg-white z-20 py-3.5 border-b border-stone-200 -mx-4 px-4 flex justify-between items-center shadow-sm">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-500">Products list</h4>
         <button
           type="button"
@@ -1339,89 +1590,122 @@ export function FeaturedProductsEditor({ data, onChange }: { data: any; onChange
         {products.length === 0 ? (
           <p className="text-stone-400 text-xs text-center py-6">No products configured.</p>
         ) : (
-          products.map((p: any) => (
-            <div key={p.id} className="bg-stone-50 border border-stone-250 p-4 rounded-xl relative grid gap-3.5 animate-fade-in">
-              <button
-                type="button"
-                onClick={() => deleteProduct(p.id)}
-                className="absolute top-3 right-3 text-stone-400 hover:text-red-500 font-semibold text-xs"
+          products.map((p: any, idx: number) => {
+            const isLastItem = idx === products.length - 1;
+            const onLastAction = isLastItem
+              ? () => addProduct()
+              : () => {
+                  const nextId = products[idx + 1].id;
+                  setTimeout(() => {
+                    const nextEl = document.getElementById(`product-item-${nextId}`);
+                    const input = nextEl?.querySelector('input:not([type="checkbox"]):not([type="file"])') as HTMLInputElement;
+                    input?.focus();
+                  }, 0);
+                };
+
+            return (
+              <div
+                key={p.id}
+                id={`product-item-${p.id}`}
+                className="bg-stone-50 border border-stone-250 p-4 rounded-xl relative grid gap-3.5 animate-fade-in scroll-mt-20"
               >
-                Remove
-              </button>
+                <button
+                  type="button"
+                  onClick={() => deleteProduct(p.id)}
+                  className="absolute top-3 right-3 text-stone-400 hover:text-red-500 font-semibold text-xs"
+                >
+                  Remove
+                </button>
 
-              <div className="grid sm:grid-cols-[1fr_120px] gap-4 items-center pr-14">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Product Name</label>
-                  <input
-                    type="text"
-                    value={p.name}
-                    onChange={(e) => updateProduct(p.id, "name", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. Leather Wallet"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Price</label>
-                  <input
-                    type="text"
-                    value={p.price}
-                    onChange={(e) => updateProduct(p.id, "price", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. $49"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Short Description</label>
-                <textarea
-                  rows={2}
-                  value={p.description || ""}
-                  onChange={(e) => updateProduct(p.id, "description", e.target.value)}
-                  className="input text-xs py-2 bg-white resize-none"
-                  placeholder="e.g. Genuine leather, minimalist cardholder wallet..."
-                />
-              </div>
-
-              <div className="grid sm:grid-cols-[1fr_auto] gap-4 items-center">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">External Store URL (Optional)</label>
-                  <input
-                    type="text"
-                    value={p.shop_link || ""}
-                    onChange={(e) => updateProduct(p.id, "shop_link", e.target.value)}
-                    className="input text-xs h-9 bg-white"
-                    placeholder="e.g. https://daraz.com.np/..."
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {p.photo_url && (
-                    <img
-                      src={p.photo_url}
-                      alt={p.name}
-                      className="w-8 h-8 rounded object-cover border border-stone-200"
-                    />
-                  )}
-                  <label className="bg-white hover:bg-stone-100 border border-stone-200 text-stone-600 text-[10px] font-bold px-2.5 py-2 rounded-lg cursor-pointer transition-all">
-                    {uploadingId === p.id ? "Loading..." : p.photo_url ? "Change Image" : "Upload Product Image"}
+                <div className="grid sm:grid-cols-[1fr_120px] gap-4 items-center pr-14">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Product Name</label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={uploadingId !== null}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleProductPhoto(p.id, file);
-                      }}
+                      type="text"
+                      value={p.name}
+                      onChange={(e) => updateProduct(p.id, "name", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. Leather Wallet"
+                      onKeyDown={(e) => handleInputKeyDown(e, p.id, "product-item", onLastAction)}
                     />
-                  </label>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Price</label>
+                    <input
+                      type="text"
+                      value={p.price}
+                      onChange={(e) => updateProduct(p.id, "price", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. $49"
+                      onKeyDown={(e) => handleInputKeyDown(e, p.id, "product-item", onLastAction)}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Short Description</label>
+                  <textarea
+                    rows={2}
+                    value={p.description || ""}
+                    onChange={(e) => updateProduct(p.id, "description", e.target.value)}
+                    className="input text-xs py-2 bg-white resize-none"
+                    placeholder="e.g. Genuine leather, minimalist cardholder wallet..."
+                  />
+                </div>
+
+                <div className="grid sm:grid-cols-[1fr_auto] gap-4 items-center">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">External Store URL (Optional)</label>
+                    <input
+                      type="text"
+                      value={p.shop_link || ""}
+                      onChange={(e) => updateProduct(p.id, "shop_link", e.target.value)}
+                      className="input text-xs h-9 bg-white"
+                      placeholder="e.g. https://daraz.com.np/..."
+                      onKeyDown={(e) => handleInputKeyDown(e, p.id, "product-item", onLastAction)}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {p.photo_url && (
+                      <img
+                        src={p.photo_url}
+                        alt={p.name}
+                        className="w-8 h-8 rounded object-cover border border-stone-200"
+                      />
+                    )}
+                    <label className="bg-white hover:bg-stone-100 border border-stone-200 text-stone-600 text-[10px] font-bold px-2.5 py-2 rounded-lg cursor-pointer transition-all">
+                      {uploadingId === p.id ? "Loading..." : p.photo_url ? "Change Image" : "Upload Product Image"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingId !== null}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleProductPhoto(p.id, file);
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {products.length > 0 && (
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={addProduct}
+            className="text-xs font-bold bg-brand/10 hover:bg-brand/20 text-brand px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          >
+            + Add Product
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1445,18 +1729,34 @@ export function SocialsEditor() {
 
 export function CoursesEditor({ data, onChange }: { data: any; onChange: (d: any) => void }) {
   const list = data.courses || [];
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (justAddedId) {
+      const el = document.getElementById(`course-item-${justAddedId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        const input = el.querySelector("input");
+        if (input) input.focus();
+        setJustAddedId(null);
+      }
+    }
+  }, [justAddedId]);
 
   function updateList(updated: any[]) {
     onChange({ ...data, courses: updated });
   }
 
   function addCourse() {
-    updateList([...list, { id: nanoid(6), name: "Course Name", code: "", description: "" }]);
+    const newId = nanoid(6);
+    updateList([...list, { id: newId, name: "Course Name", code: "", description: "" }]);
+    setJustAddedId(newId);
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center border-b border-stone-100 pb-2">
+      {/* Sticky Courses Header */}
+      <div className="sticky top-0 bg-white z-20 py-3.5 border-b border-stone-200 -mx-4 px-4 flex justify-between items-center shadow-sm">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-500">Courses offered</h4>
         <button
           type="button"
@@ -1471,43 +1771,75 @@ export function CoursesEditor({ data, onChange }: { data: any; onChange: (d: any
         {list.length === 0 ? (
           <p className="text-stone-400 text-xs text-center py-4">No courses configured.</p>
         ) : (
-          list.map((c: any) => (
-            <div key={c.id} className="bg-stone-50 border border-stone-200 p-4 rounded-xl relative grid gap-3">
-              <button
-                type="button"
-                onClick={() => updateList(list.filter((x: any) => x.id !== c.id))}
-                className="absolute top-2 right-2 text-stone-400 hover:text-red-500 font-semibold text-xs"
-              >
-                Remove
-              </button>
+          list.map((c: any, idx: number) => {
+            const isLastItem = idx === list.length - 1;
+            const onLastAction = isLastItem
+              ? () => addCourse()
+              : () => {
+                  const nextId = list[idx + 1].id;
+                  setTimeout(() => {
+                    const nextEl = document.getElementById(`course-item-${nextId}`);
+                    const input = nextEl?.querySelector('input:not([type="checkbox"]):not([type="file"])') as HTMLInputElement;
+                    input?.focus();
+                  }, 0);
+                };
 
-              <div className="grid sm:grid-cols-2 gap-4 pr-14">
-                <input
-                  type="text"
-                  value={c.name}
-                  onChange={(e) => updateList(list.map((x: any) => x.id === c.id ? { ...x, name: e.target.value } : x))}
-                  className="input text-xs bg-white h-9"
-                  placeholder="Course Name"
-                />
-                <input
-                  type="text"
-                  value={c.code || ""}
-                  onChange={(e) => updateList(list.map((x: any) => x.id === c.id ? { ...x, code: e.target.value } : x))}
-                  className="input text-xs bg-white h-9"
-                  placeholder="Course Code / Duration"
+            return (
+              <div
+                key={c.id}
+                id={`course-item-${c.id}`}
+                className="bg-stone-50 border border-stone-200 p-4 rounded-xl relative grid gap-3 scroll-mt-20"
+              >
+                <button
+                  type="button"
+                  onClick={() => updateList(list.filter((x: any) => x.id !== c.id))}
+                  className="absolute top-2 right-2 text-stone-400 hover:text-red-500 font-semibold text-xs"
+                >
+                  Remove
+                </button>
+
+                <div className="grid sm:grid-cols-2 gap-4 pr-14">
+                  <input
+                    type="text"
+                    value={c.name}
+                    onChange={(e) => updateList(list.map((x: any) => x.id === c.id ? { ...x, name: e.target.value } : x))}
+                    className="input text-xs bg-white h-9"
+                    placeholder="Course Name"
+                    onKeyDown={(e) => handleInputKeyDown(e, c.id, "course-item", onLastAction)}
+                  />
+                  <input
+                    type="text"
+                    value={c.code || ""}
+                    onChange={(e) => updateList(list.map((x: any) => x.id === c.id ? { ...x, code: e.target.value } : x))}
+                    className="input text-xs bg-white h-9"
+                    placeholder="Course Code / Duration"
+                    onKeyDown={(e) => handleInputKeyDown(e, c.id, "course-item", onLastAction)}
+                  />
+                </div>
+                <textarea
+                  value={c.description || ""}
+                  onChange={(e) => updateList(list.map((x: any) => x.id === c.id ? { ...x, description: e.target.value } : x))}
+                  className="input text-xs py-2 bg-white resize-none"
+                  placeholder="Description..."
+                  rows={1.5}
                 />
               </div>
-              <textarea
-                value={c.description || ""}
-                onChange={(e) => updateList(list.map((x: any) => x.id === c.id ? { ...x, description: e.target.value } : x))}
-                className="input text-xs py-2 bg-white resize-none"
-                placeholder="Description..."
-                rows={1.5}
-              />
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {list.length > 0 && (
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={addCourse}
+            className="text-xs font-bold bg-brand/10 hover:bg-brand/20 text-brand px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          >
+            + Add Course
+          </button>
+        </div>
+      )}
     </div>
   );
 }

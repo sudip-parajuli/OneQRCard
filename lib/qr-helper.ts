@@ -60,6 +60,9 @@ export async function generateQRCodeWithLogo(
     gradientColor2?: string;
     spotlightColor?: string;
     custom_cta_frame?: string;
+    bg_texture?: "none" | "wood" | "geometric" | "marble" | "linen" | null;
+    threeDStyle?: "none" | "raised" | "embossed" | null;
+    cta_style?: "default" | "arrow" | "hand" | "star" | null;
   } | null
 ): Promise<string> {
   const dotStyle = customization?.dotStyle || "square";
@@ -87,6 +90,54 @@ export async function generateQRCodeWithLogo(
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
+  // Draw background texture
+  const bgTexture = customization?.bg_texture || "none";
+  if (bgTexture && bgTexture !== "none") {
+    ctx.save();
+    ctx.globalAlpha = 0.08; // very light to keep scannability!
+    if (bgTexture === "wood") {
+      ctx.strokeStyle = "#8b5a2b";
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < canvasWidth; i += 18) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.bezierCurveTo(i + 8, canvasHeight * 0.3, i - 12, canvasHeight * 0.6, i + 4, canvasHeight);
+        ctx.stroke();
+      }
+    } else if (bgTexture === "geometric") {
+      ctx.strokeStyle = brandColor;
+      ctx.lineWidth = 0.5;
+      for (let r = 20; r < canvasWidth * 1.2; r += 24) {
+        ctx.beginPath();
+        ctx.arc(canvasWidth / 2, canvasWidth / 2, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (bgTexture === "marble") {
+      ctx.strokeStyle = "#475569";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, 50);
+      ctx.bezierCurveTo(100, 80, 200, 20, 400, 180);
+      ctx.moveTo(150, 0);
+      ctx.bezierCurveTo(220, 200, 310, 250, 400, 390);
+      ctx.stroke();
+    } else if (bgTexture === "linen") {
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < canvasWidth; i += 10) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvasHeight);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(canvasWidth, i);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
   // Calculate cell size
   const cellSize = canvasWidth / size;
 
@@ -106,6 +157,24 @@ export async function generateQRCodeWithLogo(
     mainModulesStyle = grad;
   } else if (isSpotlight) {
     mainModulesStyle = brandColor + "a0"; // softer tint for body cells
+  }
+
+  // Setup 3D raised style shadows
+  const threeDStyle = customization?.threeDStyle || "none";
+  const has3D = threeDStyle !== "none";
+  if (has3D) {
+    ctx.save();
+    if (threeDStyle === "raised") {
+      ctx.shadowColor = "rgba(0, 0, 0, 0.28)";
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetX = 1.5;
+      ctx.shadowOffsetY = 1.5;
+    } else if (threeDStyle === "embossed") {
+      ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+      ctx.shadowBlur = 2;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+    }
   }
 
   // Draw modules
@@ -205,6 +274,10 @@ export async function generateQRCodeWithLogo(
   drawEye(0, size - 7);
   drawEye(size - 7, 0);
 
+  if (has3D) {
+    ctx.restore();
+  }
+
   // 3. Draw central logo or initials overlay
   if (embedLogo) {
     const logoSize = 88;
@@ -249,7 +322,7 @@ export async function generateQRCodeWithLogo(
 
           // CTA Frame if present
           if (hasCta && customization?.custom_cta_frame) {
-            drawCtaFrame(ctx, brandColor, customization.custom_cta_frame, canvasWidth);
+            drawCtaFrame(ctx, brandColor, customization.custom_cta_frame, canvasWidth, customization.cta_style);
           }
 
           resolve(canvas.toDataURL("image/png"));
@@ -257,7 +330,7 @@ export async function generateQRCodeWithLogo(
         logoImg.onerror = () => {
           drawInitials(ctx, x, y, logoSize, brandColor, businessName, isPixelated);
           if (hasCta && customization?.custom_cta_frame) {
-            drawCtaFrame(ctx, brandColor, customization.custom_cta_frame, canvasWidth);
+            drawCtaFrame(ctx, brandColor, customization.custom_cta_frame, canvasWidth, customization.cta_style);
           }
           resolve(canvas.toDataURL("image/png"));
         };
@@ -270,20 +343,35 @@ export async function generateQRCodeWithLogo(
 
   // Draw bottom CTA Frame if present
   if (hasCta && customization?.custom_cta_frame) {
-    drawCtaFrame(ctx, brandColor, customization.custom_cta_frame, canvasWidth);
+    drawCtaFrame(ctx, brandColor, customization.custom_cta_frame, canvasWidth, customization.cta_style);
   }
 
   return canvas.toDataURL("image/png");
 }
 
-function drawCtaFrame(ctx: CanvasRenderingContext2D, brandColor: string, text: string, width: number) {
+function drawCtaFrame(
+  ctx: CanvasRenderingContext2D,
+  brandColor: string,
+  text: string,
+  width: number,
+  ctaStyle?: "default" | "arrow" | "hand" | "star" | null
+) {
   ctx.fillStyle = brandColor;
   ctx.fillRect(0, 400, width, 60);
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 15px sans-serif";
+  ctx.font = "bold 14px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text.toUpperCase(), width / 2, 430);
+
+  let formatted = text;
+  if (ctaStyle === "arrow") {
+    formatted = `⬇️  ${text}  ⬇️`;
+  } else if (ctaStyle === "hand") {
+    formatted = `👉  ${text}`;
+  } else if (ctaStyle === "star") {
+    formatted = `⚡  ${text}  ⚡`;
+  }
+  ctx.fillText(formatted.toUpperCase(), width / 2, 430);
 }
 
 function drawInitials(

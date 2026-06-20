@@ -348,7 +348,15 @@ export default function CardForm({
   }
 
   return (
-    <form onSubmit={handleFormSubmit} className="space-y-8 max-w-7xl mx-auto px-4 py-6">
+    <form
+      onSubmit={handleFormSubmit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") {
+          e.preventDefault();
+        }
+      }}
+      className="space-y-8 max-w-7xl mx-auto px-4 py-6"
+    >
       
       {/* Step Indicator Header (Steps 2-4) */}
       {isWizard && (
@@ -658,8 +666,8 @@ export default function CardForm({
                     const locked = isSectionLocked(section.type, data.plan, section.data);
 
                     return (
-                      <div key={section.type} className="border border-stone-200 rounded-xl overflow-hidden bg-white">
-                        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-stone-50 border-b border-stone-200">
+                      <div key={section.type} className="border border-stone-200 rounded-xl bg-white overflow-visible">
+                        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-stone-50 border-b border-stone-200 rounded-t-xl">
                           <div className="flex items-center gap-2">
                             {/* Reordering */}
                             <div className="flex items-center bg-stone-200/50 rounded px-1.5 py-0.5">
@@ -748,7 +756,7 @@ export default function CardForm({
 
                         {section.enabled !== false && (
                           locked ? (
-                            <div className="flex flex-col items-center justify-center p-6 text-center bg-stone-50 border-t border-stone-200">
+                            <div className="flex flex-col items-center justify-center p-6 text-center bg-stone-50 border-t border-stone-200 rounded-b-xl">
                               <span className="text-xl mb-1">🔒</span>
                               <h4 className="text-xs font-bold text-stone-850">Feature Locked</h4>
                               <p className="text-[10px] text-stone-500 mt-0.5">
@@ -955,10 +963,11 @@ export default function CardForm({
                     className="w-full h-9 rounded-lg border border-stone-250 bg-white px-2.5 text-xs outline-none focus:border-stone-500 text-stone-700 font-medium cursor-pointer"
                   >
                     {(Object.keys(THEME_LABELS) as ThemeId[]).map((id) => {
+                      const isBusinessOnly = id === "glassmorphic" || id === "neonDark" || id === "claymorphic" || id === "neumorphic" || id === "skeuomorphic" || id === "liquidGlass";
                       const isLocked =
                         (data.plan === "basic" && id !== "classic") ||
-                        (data.plan === "pro" && (id === "glassmorphic" || id === "neonDark"));
-                      const lockSuffix = isLocked ? ` (🔒 ${id === "glassmorphic" || id === "neonDark" ? "Business" : "Pro"})` : "";
+                        (data.plan === "pro" && isBusinessOnly);
+                      const lockSuffix = isLocked ? ` (🔒 ${isBusinessOnly ? "Business" : "Pro"})` : "";
                       return (
                         <option key={id} value={id} disabled={isLocked}>
                           {THEME_LABELS[id]}{lockSuffix}
@@ -1181,7 +1190,7 @@ export default function CardForm({
               <span>🧭 Layout &amp; Navigation</span>
             </h3>
 
-            {/* Theme Selector */}
+             {/* Theme Selector */}
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Card Theme</label>
               <select
@@ -1190,10 +1199,11 @@ export default function CardForm({
                 className="w-full h-9 rounded-lg border border-stone-250 bg-white px-2.5 text-xs outline-none focus:border-stone-500 text-stone-700 font-medium cursor-pointer"
               >
                 {(Object.keys(THEME_LABELS) as ThemeId[]).map((id) => {
+                  const isBusinessOnly = id === "glassmorphic" || id === "neonDark" || id === "claymorphic" || id === "neumorphic" || id === "skeuomorphic" || id === "liquidGlass";
                   const isLocked =
                     (data.plan === "basic" && id !== "classic") ||
-                    (data.plan === "pro" && (id === "glassmorphic" || id === "neonDark"));
-                  const lockSuffix = isLocked ? ` (🔒 ${id === "glassmorphic" || id === "neonDark" ? "Business" : "Pro"})` : "";
+                    (data.plan === "pro" && isBusinessOnly);
+                  const lockSuffix = isLocked ? ` (🔒 ${isBusinessOnly ? "Business" : "Pro"})` : "";
                   return (
                     <option key={id} value={id} disabled={isLocked}>
                       {THEME_LABELS[id]}{lockSuffix}
@@ -1868,6 +1878,70 @@ export default function CardForm({
                     </div>
                   )}
 
+                  {/* QR Background Texture & 3D Shadow Style */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">QR Background Pattern</label>
+                      <select
+                        disabled={data.plan !== "business"}
+                        value={data.qr_customization?.bg_texture || "none"}
+                        onChange={(e) => {
+                          update("qr_customization", {
+                            ...(data.qr_customization || {}),
+                            bg_texture: e.target.value as any
+                          });
+                        }}
+                        className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
+                      >
+                        <option value="none">None (Solid white)</option>
+                        <option value="wood">Earthy Wood {data.plan !== "business" && "🔒"}</option>
+                        <option value="geometric">Geometric Dot-Grid {data.plan !== "business" && "🔒"}</option>
+                        <option value="marble">Marble Veins {data.plan !== "business" && "🔒"}</option>
+                        <option value="linen">Linen Crosshatch {data.plan !== "business" && "🔒"}</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">3D Depth Effect</label>
+                      <select
+                        disabled={data.plan !== "business"}
+                        value={data.qr_customization?.threeDStyle || "none"}
+                        onChange={(e) => {
+                          update("qr_customization", {
+                            ...(data.qr_customization || {}),
+                            threeDStyle: e.target.value as any
+                          });
+                        }}
+                        className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
+                      >
+                        <option value="none">Flat (2D)</option>
+                        <option value="raised">3D Shadow Raised {data.plan !== "business" && "🔒"}</option>
+                        <option value="embossed">Embossed depth {data.plan !== "business" && "🔒"}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Call-to-Action Visual Symbol */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">CTA Symbol Accent</label>
+                    <select
+                      disabled={data.plan !== "business"}
+                      value={data.qr_customization?.cta_style || "default"}
+                      onChange={(e) => {
+                        update("qr_customization", {
+                          ...(data.qr_customization || {}),
+                          cta_style: e.target.value as any
+                        });
+                      }}
+                      className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
+                    >
+                      <option value="default">Standard Frame</option>
+                      <option value="arrow">Down Arrow Symbol ⬇️ {data.plan !== "business" && "🔒"}</option>
+                      <option value="hand">Pointing Hand 👉 {data.plan !== "business" && "🔒"}</option>
+                      <option value="star">Promotional Star ⭐ {data.plan !== "business" && "🔒"}</option>
+                    </select>
+                  </div>
+
                   {/* Physical Engraved / Custom CTA banner */}
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Physical CTA Frame Banner (Business)</label>
@@ -1890,6 +1964,188 @@ export default function CardForm({
                 </div>
               )}
             </div>
+
+            {/* Printable Business Card Customizer */}
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
+              <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex items-center justify-between">
+                <span>🪪 Printable Business Card Design</span>
+                <span className="text-[9px] font-bold text-brand bg-brand-light/30 border border-brand/20 px-2 py-0.5 rounded uppercase">
+                  {data.plan === "business" ? "Business" : "🔒 Business Feature"}
+                </span>
+              </h3>
+
+              {data.plan !== "business" ? (
+                <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-4 rounded-xl text-center bg-stone-50 font-medium leading-relaxed">
+                  🔒 Custom printable card styling is locked. Upgrade to the Business plan to unlock card themes, background textures, rounded borders, watermark opacities, and neon border glows!
+                </div>
+              ) : (
+                <div className="space-y-3.5 text-xs">
+                  {/* Theme & Background Texture */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Card Theme</label>
+                      <select
+                        value={data.design_settings?.business_card?.theme || "classic"}
+                        onChange={(e) => {
+                          update("design_settings", {
+                            ...(data.design_settings || {}),
+                            business_card: {
+                              ...(data.design_settings?.business_card || {}),
+                              theme: e.target.value as any
+                            }
+                          });
+                        }}
+                        className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                      >
+                        <option value="classic">Classic (Brand background)</option>
+                        <option value="modern_dark">Modern Dark (slate + glow)</option>
+                        <option value="minimal_light">Minimal Light (borderless)</option>
+                        <option value="luxury_gold">Luxury Gold (matte charcoal & gold)</option>
+                        <option value="neon_glow">Neon Glow (electric cyan/green)</option>
+                        <option value="organic_wood">Organic Wood (earthy brown)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Background Texture</label>
+                      <select
+                        value={data.design_settings?.business_card?.bg_texture || "none"}
+                        onChange={(e) => {
+                          update("design_settings", {
+                            ...(data.design_settings || {}),
+                            business_card: {
+                              ...(data.design_settings?.business_card || {}),
+                              bg_texture: e.target.value as any
+                            }
+                          });
+                        }}
+                        className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                      >
+                        <option value="none">None (Solid background)</option>
+                        <option value="metal">Brushed Metal</option>
+                        <option value="wood">Organic Wood Grain</option>
+                        <option value="geometric">Geometric Grid</option>
+                        <option value="marble">Thin Marble Veins</option>
+                        <option value="linen">Linen Crosshatch</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Logo Display & Watermark Toggle */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
+                      <input
+                        type="checkbox"
+                        checked={data.design_settings?.business_card?.show_logo !== false}
+                        onChange={(e) => {
+                          update("design_settings", {
+                            ...(data.design_settings || {}),
+                            business_card: {
+                              ...(data.design_settings?.business_card || {}),
+                              show_logo: e.target.checked
+                            }
+                          });
+                        }}
+                        className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                      />
+                      Show Front Logo
+                    </label>
+
+                    <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
+                      <input
+                        type="checkbox"
+                        checked={!!data.design_settings?.business_card?.watermark_logo}
+                        onChange={(e) => {
+                          update("design_settings", {
+                            ...(data.design_settings || {}),
+                            business_card: {
+                              ...(data.design_settings?.business_card || {}),
+                              watermark_logo: e.target.checked
+                            }
+                          });
+                        }}
+                        className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                      />
+                      Watermark BG Logo
+                    </label>
+                  </div>
+
+                  {/* Watermark Opacity slider */}
+                  {data.design_settings?.business_card?.watermark_logo && (
+                    <div className="space-y-1 p-2 bg-stone-50 border border-stone-150 rounded-xl animate-fade-in">
+                      <div className="flex justify-between items-center text-[10px] font-bold text-stone-550">
+                        <span>Watermark Opacity</span>
+                        <span>{Math.round((data.design_settings?.business_card?.watermark_opacity || 0.15) * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.05"
+                        max="1.0"
+                        step="0.05"
+                        value={data.design_settings?.business_card?.watermark_opacity ?? 0.15}
+                        onChange={(e) => {
+                          update("design_settings", {
+                            ...(data.design_settings || {}),
+                            business_card: {
+                              ...(data.design_settings?.business_card || {}),
+                              watermark_opacity: parseFloat(e.target.value)
+                            }
+                          });
+                        }}
+                        className="w-full h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-brand"
+                      />
+                    </div>
+                  )}
+
+                  {/* Border Radius & Glow */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Border Radius</label>
+                      <select
+                        value={data.design_settings?.business_card?.border_radius || "medium"}
+                        onChange={(e) => {
+                          update("design_settings", {
+                            ...(data.design_settings || {}),
+                            business_card: {
+                              ...(data.design_settings?.business_card || {}),
+                              border_radius: e.target.value as any
+                            }
+                          });
+                        }}
+                        className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                      >
+                        <option value="none">Square (none)</option>
+                        <option value="small">Small (rounded)</option>
+                        <option value="medium">Medium (standard)</option>
+                        <option value="large">Large (extra round)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Visual Border Glow</label>
+                      <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-2">
+                        <input
+                          type="checkbox"
+                          checked={!!data.design_settings?.business_card?.border_glow}
+                          onChange={(e) => {
+                            update("design_settings", {
+                              ...(data.design_settings || {}),
+                              business_card: {
+                                ...(data.design_settings?.business_card || {}),
+                                border_glow: e.target.checked
+                              }
+                            });
+                          }}
+                          className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                        />
+                        Cyan/Neon border glow
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* Column 3 (Right): Sticky preview column */}

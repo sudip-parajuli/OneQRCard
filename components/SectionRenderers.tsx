@@ -34,7 +34,7 @@ function getOpenStatus(hours: any): { isOpen: boolean; text: string } | null {
 }
 
 // Resolve styles dynamically based on the card's active theme
-function getThemeStyles(theme: string) {
+function getThemeStyles(theme: string, customTextColor?: string | null) {
   const styles = {
     cardBg: "bg-white border border-stone-200 rounded-2xl p-5 shadow-sm",
     titleText: "text-stone-900 font-bold",
@@ -45,6 +45,11 @@ function getThemeStyles(theme: string) {
     tabActive: "bg-brand text-white border-brand shadow-sm",
     tabInactive: "bg-white text-stone-600 border-stone-200 hover:bg-stone-50",
     borderClass: "border-stone-100",
+    titleStyle: {} as React.CSSProperties,
+    bodyStyle: {} as React.CSSProperties,
+    mutedStyle: {} as React.CSSProperties,
+    btnStyle: {} as React.CSSProperties,
+    itemStyle: {} as React.CSSProperties,
   };
 
   if (theme === "glassmorphic") {
@@ -87,6 +92,55 @@ function getThemeStyles(theme: string) {
     styles.tabActive = "bg-stone-900 text-white border-stone-900 font-medium shadow-sm";
     styles.tabInactive = "bg-white text-stone-600 border-stone-200 hover:bg-stone-50";
     styles.borderClass = "border-stone-200";
+  } else if (theme === "claymorphic") {
+    styles.cardBg = "bg-indigo-50/90 border-2 border-white/40 rounded-[28px] p-5 shadow-[inset_-4px_-4px_8px_rgba(0,0,0,0.05),_inset_4px_4px_8px_rgba(255,255,255,0.6),_0_8px_16px_rgba(99,102,241,0.06)] text-indigo-955";
+    styles.titleText = "text-indigo-955 font-extrabold tracking-wide";
+    styles.bodyText = "text-indigo-900";
+    styles.mutedText = "text-indigo-800/80";
+    styles.itemBg = "bg-white/60 border border-white/30 rounded-2xl p-3.5 shadow-[inset_-2px_-2px_4px_rgba(0,0,0,0.02),_inset_2px_2px_4px_rgba(255,255,255,0.45)] hover:bg-white/80 transition-colors";
+    styles.buttonClass = "text-white font-semibold shadow-[inset_-2px_-2px_4px_rgba(0,0,0,0.15),_inset_2px_2px_4px_rgba(255,255,255,0.25)] hover:opacity-95";
+    styles.tabActive = "bg-white text-indigo-955 font-bold border-white/40 shadow-sm";
+    styles.tabInactive = "bg-white/30 text-indigo-900/80 border-white/20 hover:bg-white/50";
+    styles.borderClass = "border-white/20";
+  } else if (theme === "neumorphic") {
+    styles.cardBg = "bg-stone-200 border-none rounded-[24px] p-5 shadow-[-6px_-6px_12px_rgba(255,255,255,0.85),_6px_6px_12px_rgba(0,0,0,0.08)] text-stone-800";
+    styles.titleText = "text-stone-900 font-bold";
+    styles.bodyText = "text-stone-800/90";
+    styles.mutedText = "text-stone-500";
+    styles.itemBg = "bg-stone-200 border-none rounded-xl p-3.5 shadow-[inset_-3px_-3px_6px_rgba(255,255,255,0.7),_inset_3px_3px_6px_rgba(0,0,0,0.05)] hover:shadow-[inset_-2px_-2px_4px_rgba(255,255,255,0.6),_inset_2px_2px_4px_rgba(0,0,0,0.03)] transition-shadow";
+    styles.buttonClass = "text-stone-900 font-semibold shadow-[-2px_-2px_5px_rgba(255,255,255,0.75),_2px_2px_5px_rgba(0,0,0,0.08)] hover:opacity-95";
+    styles.tabActive = "bg-stone-300 text-stone-900 font-bold shadow-[inset_-2px_-2px_5px_rgba(255,255,255,0.75),_inset_2px_2px_5px_rgba(0,0,0,0.08)]";
+    styles.tabInactive = "bg-stone-200 text-stone-600 shadow-[-2px_-2px_5px_rgba(255,255,255,0.75),_2px_2px_5px_rgba(0,0,0,0.05)] hover:bg-stone-100";
+    styles.borderClass = "border-transparent";
+  } else if (theme === "skeuomorphic") {
+    styles.cardBg = "bg-gradient-to-br from-slate-50 to-slate-200 border border-slate-300/80 rounded-2xl p-5 shadow-[0_12px_24px_rgba(15,23,42,0.1),_inset_0_1px_0_rgba(255,255,255,0.9)] text-slate-800";
+    styles.titleText = "text-slate-900 font-extrabold tracking-tight drop-shadow-[0_1px_0_rgba(255,255,255,0.9)]";
+    styles.bodyText = "text-slate-700";
+    styles.mutedText = "text-slate-500";
+    styles.itemBg = "bg-white border border-slate-200 rounded-xl p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05),_inset_0_1px_0_rgba(255,255,255,0.85)] hover:bg-slate-50 transition-colors";
+    styles.buttonClass = "text-white font-semibold border border-slate-950/20 shadow-[0_2px_4px_rgba(0,0,0,0.12),_inset_0_1px_0_rgba(255,255,255,0.25)] hover:opacity-95";
+    styles.tabActive = "bg-gradient-to-b from-slate-200 to-slate-300 text-slate-900 font-bold border-slate-300 shadow-[inset_0_1px_3px_rgba(0,0,0,0.08)]";
+    styles.tabInactive = "bg-gradient-to-b from-white to-slate-50 text-slate-600 border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:from-slate-50 hover:to-slate-100";
+    styles.borderClass = "border-slate-200";
+  } else if (theme === "liquidGlass") {
+    styles.cardBg = "bg-white/10 backdrop-blur-2xl border-2 border-white/30 rounded-[28px] p-5 shadow-[0_20px_40px_rgba(0,0,0,0.35),_inset_0_2px_4px_rgba(255,255,255,0.25)] text-white";
+    styles.titleText = "text-white font-black tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)]";
+    styles.bodyText = "text-white/90";
+    styles.mutedText = "text-white/70";
+    styles.itemBg = "bg-white/5 border border-white/10 rounded-xl p-3.5 hover:bg-white/10 transition-colors shadow-[0_4px_12px_rgba(0,0,0,0.05)]";
+    styles.buttonClass = "bg-white/20 hover:bg-white/30 text-white border border-white/25 backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.1)]";
+    styles.tabActive = "bg-white/30 text-white font-bold border-white/40 shadow-inner";
+    styles.tabInactive = "bg-white/5 text-white/80 border-white/10 hover:bg-white/15";
+    styles.borderClass = "border-white/10";
+  }
+
+  // Apply overrides if customTextColor is provided
+  if (customTextColor) {
+    styles.titleStyle = { color: customTextColor };
+    styles.bodyStyle = { color: customTextColor };
+    styles.mutedStyle = { color: customTextColor + "cc" }; // 80% opacity
+    styles.btnStyle = { color: customTextColor };
+    styles.itemStyle = { color: customTextColor };
   }
 
   return styles;
@@ -98,7 +152,7 @@ export function MenuSectionRenderer({ data, card }: { data: MenuSectionData; car
   const [selectedCatId, setSelectedCatId] = useState(categories[0]?.id || "");
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const activeCategory = categories.find((c) => c.id === selectedCatId) || categories[0];
 
@@ -107,7 +161,7 @@ export function MenuSectionRenderer({ data, card }: { data: MenuSectionData; car
   return (
     <div className={t.cardBg}>
       {/* Header */}
-      <h3 className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
         <span>🍽️</span> <span>{data.categories?.[0]?.name ? "Our Menu" : "Menu"}</span>
       </h3>
 
@@ -149,10 +203,10 @@ export function MenuSectionRenderer({ data, card }: { data: MenuSectionData; car
                 <div className="flex justify-between items-start gap-4">
                   <div className="space-y-0.5 flex-1 pr-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-bold text-xs">{item.name}</span>
+                      <span style={t.titleStyle} className="font-bold text-xs">{item.name}</span>
                       {item.is_popular && (
                         <span
-                          style={card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}}
+                          style={{ ...(card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}), ...t.btnStyle }}
                           className="bg-brand text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider scale-95"
                         >
                           Popular
@@ -165,14 +219,14 @@ export function MenuSectionRenderer({ data, card }: { data: MenuSectionData; car
                       )}
                     </div>
                     {item.description && (
-                      <p className={`text-[10px] line-clamp-1 ${isExpanded ? "hidden" : t.mutedText}`}>
+                      <p style={t.mutedStyle} className={`text-[10px] line-clamp-1 ${isExpanded ? "hidden" : t.mutedText}`}>
                         {item.description}
                       </p>
                     )}
                   </div>
 
                   {data.show_prices !== false && (
-                    <span className="font-bold text-xs shrink-0" style={{ color: card.theme === "bold" ? undefined : brandColor }}>
+                    <span className="font-bold text-xs shrink-0" style={{ color: card.theme === "bold" ? undefined : brandColor, ...t.titleStyle }}>
                       {item.price}
                     </span>
                   )}
@@ -189,7 +243,7 @@ export function MenuSectionRenderer({ data, card }: { data: MenuSectionData; car
                       style={{ borderColor: t.borderClass }}
                     >
                       {item.description && (
-                        <p className={`text-[11px] leading-relaxed ${t.bodyText}`}>
+                        <p style={t.bodyStyle} className={`text-[11px] leading-relaxed ${t.bodyText}`}>
                           {item.description}
                         </p>
                       )}
@@ -210,7 +264,7 @@ export function MenuSectionRenderer({ data, card }: { data: MenuSectionData; car
           })}
         </div>
       ) : (
-        <p className={`text-center text-xs py-4 ${t.mutedText}`}>No items configured.</p>
+        <p style={t.mutedStyle} className={`text-center text-xs py-4 ${t.mutedText}`}>No items configured.</p>
       )}
 
       {/* Order Call to Action button */}
@@ -224,7 +278,7 @@ export function MenuSectionRenderer({ data, card }: { data: MenuSectionData; car
             }
             target="_blank"
             rel="noopener noreferrer"
-            style={card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}}
+            style={{ ...(card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}), ...t.btnStyle }}
             className={`w-full py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-opacity cursor-pointer ${t.buttonClass}`}
           >
             {data.order_cta === "call" ? (
@@ -249,13 +303,13 @@ export function GallerySectionRenderer({ data, card }: { data: GallerySectionDat
   const layout = data.layout || "grid";
   const [activeImgIdx, setActiveImgIdx] = useState<number | null>(null);
 
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
 
   if (images.length === 0) return null;
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
         <span>🎨</span> <span>Portfolio / Gallery</span>
       </h3>
 
@@ -359,27 +413,27 @@ export function GallerySectionRenderer({ data, card }: { data: GallerySectionDat
 // 3. Services Section Component
 export function ServicesSectionRenderer({ data, card }: { data: ServicesSectionData; card: CardData }) {
   const services = data.services || [];
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
 
   if (services.length === 0) return null;
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
         <span>✂️</span> <span>Our Services</span>
       </h3>
 
       <div className="space-y-3">
         {services.map((srv) => (
-          <div key={srv.id} className={`${t.itemBg} relative group flex flex-col gap-1.5`}>
+          <div key={srv.id} style={t.itemStyle} className={`${t.itemBg} relative group flex flex-col gap-1.5`}>
             <div className="flex justify-between items-start gap-4">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold text-xs">{srv.name}</span>
+                  <span style={t.titleStyle} className="font-bold text-xs">{srv.name}</span>
                   {srv.is_popular && (
                     <span
-                      style={card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}}
+                      style={{ ...(card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}), ...t.btnStyle }}
                       className="bg-brand text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
                     >
                       Popular
@@ -387,21 +441,21 @@ export function ServicesSectionRenderer({ data, card }: { data: ServicesSectionD
                   )}
                 </div>
                 {srv.duration && (
-                  <span className={`text-[10px] font-medium block ${t.mutedText}`}>
+                  <span style={t.mutedStyle} className={`text-[10px] font-medium block ${t.mutedText}`}>
                     ⏱️ {srv.duration}
                   </span>
                 )}
               </div>
 
               {srv.price && (
-                <span className="font-bold text-xs shrink-0 font-mono" style={{ color: card.theme === "bold" ? undefined : brandColor }}>
+                <span className="font-bold text-xs shrink-0 font-mono" style={{ color: card.theme === "bold" ? undefined : brandColor, ...t.titleStyle }}>
                   {srv.price}
                 </span>
               )}
             </div>
 
             {srv.description && (
-              <p className={`text-[11px] leading-relaxed mt-0.5 ${t.bodyText}`}>
+              <p style={t.bodyStyle} className={`text-[11px] leading-relaxed mt-0.5 ${t.bodyText}`}>
                 {srv.description}
               </p>
             )}
@@ -413,7 +467,7 @@ export function ServicesSectionRenderer({ data, card }: { data: ServicesSectionD
                   href={srv.booking_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}}
+                  style={{ ...(card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}), ...t.btnStyle }}
                   className={`text-[10px] px-3 py-1.5 rounded-lg text-center cursor-pointer transition-opacity ${t.buttonClass}`}
                 >
                   Book Service
@@ -429,7 +483,7 @@ export function ServicesSectionRenderer({ data, card }: { data: ServicesSectionD
 
 // 4. Hours Section Component
 export function HoursSectionRenderer({ data, card }: { data: any; card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const hours = card.opening_hours || data.hours || {};
   const [isOpenFull, setIsOpenFull] = useState(false);
@@ -439,7 +493,7 @@ export function HoursSectionRenderer({ data, card }: { data: any; card: CardData
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
         <span>📅</span> <span>Opening Hours</span>
       </h3>
       {status ? (
@@ -451,13 +505,13 @@ export function HoursSectionRenderer({ data, card }: { data: any; card: CardData
           <button
             onClick={() => setIsOpenFull(!isOpenFull)}
             className="text-xs font-bold transition-all"
-            style={{ color: brandColor }}
+            style={{ color: brandColor, ...t.titleStyle }}
           >
             {isOpenFull ? "Hide Schedule" : "Show Schedule"}
           </button>
         </div>
       ) : (
-        <p className={`text-xs ${t.mutedText}`}>No hours configured.</p>
+        <p style={t.mutedStyle} className={`text-xs ${t.mutedText}`}>No hours configured.</p>
       )}
 
       {isOpenFull && (
@@ -466,9 +520,9 @@ export function HoursSectionRenderer({ data, card }: { data: any; card: CardData
             const h = hours[day];
             const isToday = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase() === day;
             return (
-              <div key={day} className={`flex justify-between py-1 capitalize ${isToday ? "font-bold text-brand" : ""}`}>
+              <div key={day} style={isToday ? t.titleStyle : t.bodyStyle} className={`flex justify-between py-1 capitalize ${isToday ? "font-bold text-brand" : ""}`}>
                 <span>{day}</span>
-                <span className={isToday ? "" : t.mutedText}>
+                <span style={isToday ? t.titleStyle : t.mutedStyle} className={isToday ? "" : t.mutedText}>
                   {h && !h.isClosed ? `${h.open} - ${h.close}` : "Closed"}
                 </span>
               </div>
@@ -482,7 +536,7 @@ export function HoursSectionRenderer({ data, card }: { data: any; card: CardData
 
 // 5. Location Section Component
 export function LocationSectionRenderer({ data, card }: { data: any; card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const address = card.address || data.address || "";
   const mapsUrl = data.google_maps_url || "";
@@ -490,7 +544,7 @@ export function LocationSectionRenderer({ data, card }: { data: any; card: CardD
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-3.5 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-3.5 flex items-center gap-2 ${t.titleText}`}>
         <span>📍</span> <span>Our Location</span>
       </h3>
       {mapsUrl && (
@@ -505,13 +559,13 @@ export function LocationSectionRenderer({ data, card }: { data: any; card: CardD
           />
         </div>
       )}
-      {address && <p className={`text-xs mb-3.5 leading-relaxed ${t.bodyText}`}>{address}</p>}
+      {address && <p style={t.bodyStyle} className={`text-xs mb-3.5 leading-relaxed ${t.bodyText}`}>{address}</p>}
       {directionsUrl && (
         <a
           href={directionsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          style={card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}}
+          style={{ ...(card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}), ...t.btnStyle }}
           className={`w-full py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-opacity cursor-pointer ${t.buttonClass}`}
         >
           <span>🚗</span> <span>Get Directions</span>
@@ -523,7 +577,7 @@ export function LocationSectionRenderer({ data, card }: { data: any; card: CardD
 
 // 6. Review Section Component (Sentiment Gated)
 export function ReviewSectionRenderer({ data, card }: { data: any; card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const googleReviewUrl = data.google_review_url || card.google_review || "";
   const [rated, setRated] = useState<"happy" | "unhappy" | null>(null);
@@ -563,9 +617,9 @@ export function ReviewSectionRenderer({ data, card }: { data: any; card: CardDat
             setSubmitting(false);
             setSubmitted(true);
           }}
-          className="text-left text-xs space-y-3 animate-fade-in w-full"
+          style={t.bodyStyle} className="text-left text-xs space-y-3 animate-fade-in w-full"
         >
-          <p className={`font-semibold ${t.bodyText}`}>We&apos;re sorry to hear that. How can we make it right?</p>
+          <p style={t.bodyStyle} className={`font-semibold ${t.bodyText}`}>We&apos;re sorry to hear that. How can we make it right?</p>
           <textarea
             required
             rows={3}
@@ -586,7 +640,7 @@ export function ReviewSectionRenderer({ data, card }: { data: any; card: CardDat
             <button
               type="button"
               onClick={() => setRated(null)}
-              className={`font-semibold px-2 py-1.5 ${t.mutedText}`}
+              style={t.mutedStyle} className={`font-semibold px-2 py-1.5 ${t.mutedText}`}
             >
               Cancel
             </button>
@@ -598,10 +652,10 @@ export function ReviewSectionRenderer({ data, card }: { data: any; card: CardDat
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
         <span>⭐</span> <span>Review & Rate Us</span>
       </h3>
-      <p className={`text-xs mb-4 ${t.mutedText}`}>How has your experience been with us?</p>
+      <p style={t.mutedStyle} className={`text-xs mb-4 ${t.mutedText}`}>How has your experience been with us?</p>
       <div className="flex justify-center gap-10 py-2">
         <button
           type="button"
@@ -612,7 +666,7 @@ export function ReviewSectionRenderer({ data, card }: { data: any; card: CardDat
           className="flex flex-col items-center gap-1 group"
         >
           <span className="text-3xl filter transition-transform group-hover:scale-110 duration-200">🙂</span>
-          <span className={`text-[10px] font-medium ${t.bodyText}`}>Happy</span>
+          <span style={t.bodyStyle} className={`text-[10px] font-medium ${t.bodyText}`}>Happy</span>
         </button>
         <button
           type="button"
@@ -620,7 +674,7 @@ export function ReviewSectionRenderer({ data, card }: { data: any; card: CardDat
           className="flex flex-col items-center gap-1 group"
         >
           <span className="text-3xl filter transition-transform group-hover:scale-110 duration-200">🙁</span>
-          <span className={`text-[10px] font-medium ${t.bodyText}`}>Unhappy</span>
+          <span style={t.bodyStyle} className={`text-[10px] font-medium ${t.bodyText}`}>Unhappy</span>
         </button>
       </div>
     </div>
@@ -629,7 +683,7 @@ export function ReviewSectionRenderer({ data, card }: { data: any; card: CardDat
 
 // 7. Booking Section Component (Link out or Request Form Mode B)
 export function BookingSectionRenderer({ data, card }: { data: any; card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const mode = data.mode || "link";
   const url = data.booking_url || "";
@@ -645,15 +699,15 @@ export function BookingSectionRenderer({ data, card }: { data: any; card: CardDa
     if (!url) return null;
     return (
       <div className={t.cardBg}>
-        <h3 className={`text-base mb-3.5 flex items-center gap-2 ${t.titleText}`}>
+        <h3 style={t.titleStyle} className={`text-base mb-3.5 flex items-center gap-2 ${t.titleText}`}>
           <span>📅</span> <span>Book Appointment</span>
         </h3>
-        <p className={`text-xs mb-3.5 ${t.mutedText}`}>Schedule your visit or session online instantly.</p>
+        <p style={t.mutedStyle} className={`text-xs mb-3.5 ${t.mutedText}`}>Schedule your visit or session online instantly.</p>
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          style={card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}}
+          style={{ ...(card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}), ...t.btnStyle }}
           className={`w-full py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-opacity cursor-pointer ${t.buttonClass}`}
         >
           <span>📅</span> <span>Book Online Now</span>
@@ -675,10 +729,10 @@ export function BookingSectionRenderer({ data, card }: { data: any; card: CardDa
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
         <span>📅</span> <span>Request Appointment</span>
       </h3>
-      <p className={`text-xs mb-4 ${t.mutedText}`}>Submit your details below to request a booking.</p>
+      <p style={t.mutedStyle} className={`text-xs mb-4 ${t.mutedText}`}>Submit your details below to request a booking.</p>
       
       <form
         onSubmit={async (e) => {
@@ -713,7 +767,7 @@ export function BookingSectionRenderer({ data, card }: { data: any; card: CardDa
         className="space-y-3 text-left text-xs"
       >
         <div>
-          <label className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Name</label>
+          <label style={t.mutedStyle} className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Name</label>
           <input
             required
             type="text"
@@ -724,7 +778,7 @@ export function BookingSectionRenderer({ data, card }: { data: any; card: CardDa
           />
         </div>
         <div>
-          <label className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Phone</label>
+          <label style={t.mutedStyle} className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Phone</label>
           <input
             required
             type="tel"
@@ -735,7 +789,7 @@ export function BookingSectionRenderer({ data, card }: { data: any; card: CardDa
           />
         </div>
         <div>
-          <label className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Preferred Date & Time</label>
+          <label style={t.mutedStyle} className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Preferred Date & Time</label>
           <input
             required
             type="text"
@@ -746,7 +800,7 @@ export function BookingSectionRenderer({ data, card }: { data: any; card: CardDa
           />
         </div>
         <div>
-          <label className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Service Requested (Optional)</label>
+          <label style={t.mutedStyle} className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Service Requested (Optional)</label>
           <input
             type="text"
             value={service}
@@ -759,7 +813,7 @@ export function BookingSectionRenderer({ data, card }: { data: any; card: CardDa
         <button
           type="submit"
           disabled={submitting}
-          style={card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}}
+          style={{ ...(card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}), ...t.btnStyle }}
           className={`w-full py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-opacity cursor-pointer ${t.buttonClass} disabled:opacity-50`}
         >
           {submitting ? "Sending..." : "Request Booking via WhatsApp"}
@@ -771,7 +825,7 @@ export function BookingSectionRenderer({ data, card }: { data: any; card: CardDa
 
 // 8. WiFi Section Component (Auto-Connect QR Gated for Business)
 export function WifiSectionRenderer({ data, card }: { data: any; card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const ssid = data.ssid || "";
   const password = data.password || "";
@@ -789,19 +843,19 @@ export function WifiSectionRenderer({ data, card }: { data: any; card: CardData 
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
         <span>📶</span> <span>WiFi Credentials</span>
       </h3>
       <div className="space-y-2 text-xs">
         <div className="flex justify-between py-1 border-b" style={{ borderColor: t.borderClass }}>
-          <span className={t.mutedText}>Network Name (SSID)</span>
-          <span className="font-semibold">{ssid}</span>
+          <span style={t.mutedStyle} className={t.mutedText}>Network Name (SSID)</span>
+          <span style={t.titleStyle} className="font-semibold">{ssid}</span>
         </div>
         <div className="flex justify-between py-1 border-b items-center" style={{ borderColor: t.borderClass }}>
-          <span className={t.mutedText}>Password</span>
+          <span style={t.mutedStyle} className={t.mutedText}>Password</span>
           <div className="flex items-center gap-2">
-            <span className="font-mono font-bold">{revealed ? password : "••••••••"}</span>
-            <button onClick={() => setRevealed(!revealed)} className="text-[10px] underline font-medium" style={{ color: brandColor }}>
+            <span style={t.titleStyle} className="font-mono font-bold">{revealed ? password : "••••••••"}</span>
+            <button onClick={() => setRevealed(!revealed)} className="text-[10px] underline font-medium" style={{ color: brandColor, ...t.titleStyle }}>
               {revealed ? "Hide" : "Reveal"}
             </button>
           </div>
@@ -812,7 +866,7 @@ export function WifiSectionRenderer({ data, card }: { data: any; card: CardData 
         <div className="mt-4 flex flex-col items-center">
           <button
             onClick={() => setShowQR(!showQR)}
-            style={card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}}
+            style={{ ...(card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}), ...t.btnStyle }}
             className={`w-full py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-opacity cursor-pointer ${t.buttonClass}`}
           >
             <span>📷</span> <span>{showQR ? "Hide Connect QR Code" : "Scan to Connect (WiFi QR)"}</span>
@@ -838,7 +892,7 @@ export function WifiSectionRenderer({ data, card }: { data: any; card: CardData 
 
 // 9. Lead Capture Section Component
 export function LeadCaptureSectionRenderer({ data, card }: { data: any; card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const title = data.title || "Get in Touch";
   const success = data.success_message || "Thank you! We'll get back to you shortly.";
@@ -863,7 +917,7 @@ export function LeadCaptureSectionRenderer({ data, card }: { data: any; card: Ca
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
         <span>📬</span> <span>{title}</span>
       </h3>
       
@@ -887,7 +941,7 @@ export function LeadCaptureSectionRenderer({ data, card }: { data: any; card: Ca
         className="space-y-3 text-left text-xs"
       >
         <div>
-          <label className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Name</label>
+          <label style={t.mutedStyle} className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Name</label>
           <input
             required
             type="text"
@@ -899,7 +953,7 @@ export function LeadCaptureSectionRenderer({ data, card }: { data: any; card: Ca
         </div>
         {fields.phone && (
           <div>
-            <label className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Phone</label>
+            <label style={t.mutedStyle} className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Phone</label>
             <input
               required
               type="tel"
@@ -912,7 +966,7 @@ export function LeadCaptureSectionRenderer({ data, card }: { data: any; card: Ca
         )}
         {fields.email && (
           <div>
-            <label className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Email</label>
+            <label style={t.mutedStyle} className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Email</label>
             <input
               required
               type="email"
@@ -925,7 +979,7 @@ export function LeadCaptureSectionRenderer({ data, card }: { data: any; card: Ca
         )}
         {fields.message && (
           <div>
-            <label className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Message</label>
+            <label style={t.mutedStyle} className={`block text-[10px] font-semibold uppercase mb-1 ${t.mutedText}`}>Message</label>
             <textarea
               rows={2}
               value={message}
@@ -939,7 +993,7 @@ export function LeadCaptureSectionRenderer({ data, card }: { data: any; card: Ca
         <button
           type="submit"
           disabled={submitting}
-          style={card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}}
+          style={{ ...(card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}), ...t.btnStyle }}
           className={`w-full py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-opacity cursor-pointer ${t.buttonClass} disabled:opacity-50`}
         >
           {submitting ? "Sending..." : "Submit Message"}
@@ -951,21 +1005,21 @@ export function LeadCaptureSectionRenderer({ data, card }: { data: any; card: Ca
 
 // 10. Amenities Section Component
 export function AmenitiesSectionRenderer({ data, card }: { data: any; card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const list = data.amenities || [];
 
   if (list.length === 0) return null;
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
         <span>🛎️</span> <span>Amenities & Facilities</span>
       </h3>
       <div className="grid grid-cols-2 gap-2.5">
         {list.map((a: any) => (
-          <div key={a.id} className={`${t.itemBg} flex items-center gap-2 py-2 px-3`}>
+          <div key={a.id} style={t.itemStyle} className={`${t.itemBg} flex items-center gap-2 py-2 px-3`}>
             <span className="text-lg shrink-0">{a.emoji}</span>
-            <span className="text-xs font-medium leading-tight truncate">{a.label}</span>
+            <span style={t.bodyStyle} className="text-xs font-medium leading-tight truncate">{a.label}</span>
           </div>
         ))}
       </div>
@@ -975,7 +1029,7 @@ export function AmenitiesSectionRenderer({ data, card }: { data: any; card: Card
 
 // 11. Schedule Section Component
 export function ScheduleSectionRenderer({ data, card }: { data: any; card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const classes = data.classes || [];
   
@@ -990,7 +1044,7 @@ export function ScheduleSectionRenderer({ data, card }: { data: any; card: CardD
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
         <span>💪</span> <span>Weekly Schedule</span>
       </h3>
 
@@ -1016,19 +1070,19 @@ export function ScheduleSectionRenderer({ data, card }: { data: any; card: CardD
       {/* Class listings */}
       <div className="space-y-2">
         {filtered.length === 0 ? (
-          <p className={`text-center text-xs py-6 ${t.mutedText}`}>No classes scheduled for today.</p>
+          <p style={t.mutedStyle} className={`text-center text-xs py-6 ${t.mutedText}`}>No classes scheduled for today.</p>
         ) : (
           filtered.map((c: any) => (
-            <div key={c.id} className={`${t.itemBg} flex justify-between items-center gap-3 ${c.is_full ? "opacity-60" : ""}`}>
+            <div key={c.id} style={t.itemStyle} className={`${t.itemBg} flex justify-between items-center gap-3 ${c.is_full ? "opacity-60" : ""}`}>
               <div className="space-y-0.5">
-                <span className="font-bold text-xs block">{c.name}</span>
+                <span style={t.titleStyle} className="font-bold text-xs block">{c.name}</span>
                 <div className="flex flex-wrap gap-2 text-[10px]">
-                  {c.instructor && <span className={t.mutedText}>👤 {c.instructor}</span>}
-                  {c.capacity && <span className={t.mutedText}>👥 {c.capacity}</span>}
+                  {c.instructor && <span style={t.mutedStyle} className={t.mutedText}>👤 {c.instructor}</span>}
+                  {c.capacity && <span style={t.mutedStyle} className={t.mutedText}>👥 {c.capacity}</span>}
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <span className="font-bold text-[10px] font-mono block" style={{ color: card.theme === "bold" ? undefined : brandColor }}>
+                <span className="font-bold text-[10px] font-mono block" style={{ color: card.theme === "bold" ? undefined : brandColor, ...t.titleStyle }}>
                   {c.time}
                 </span>
                 {c.is_full && (
@@ -1045,7 +1099,7 @@ export function ScheduleSectionRenderer({ data, card }: { data: any; card: CardD
 
 // 12. Pricing Table Section Component
 export function PricingTableSectionRenderer({ data, card }: { data: any; card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const plans = data.plans || [];
 
@@ -1053,7 +1107,7 @@ export function PricingTableSectionRenderer({ data, card }: { data: any; card: C
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
         <span>💰</span> <span>Pricing Packages</span>
       </h3>
 
@@ -1063,14 +1117,14 @@ export function PricingTableSectionRenderer({ data, card }: { data: any; card: C
           return (
             <div
               key={p.id}
-              style={p.is_popular && card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { borderColor: brandColor } : {}}
+              style={{ ...(p.is_popular && card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { borderColor: brandColor } : {}), ...t.itemStyle }}
               className={`shrink-0 w-[240px] border p-4.5 rounded-xl flex flex-col justify-between snap-center bg-stone-50/50 hover:bg-stone-55 transition-all ${
                 p.is_popular ? "border-brand shadow-md relative" : "border-stone-200"
               }`}
             >
               {p.is_popular && (
                 <span
-                  style={card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}}
+                  style={{ ...(card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}), ...t.btnStyle }}
                   className="absolute -top-2.5 right-4 bg-brand text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
                 >
                   Popular
@@ -1078,8 +1132,8 @@ export function PricingTableSectionRenderer({ data, card }: { data: any; card: C
               )}
               <div className="space-y-3.5">
                 <div>
-                  <span className="text-xs font-bold text-stone-800 block truncate">{p.name}</span>
-                  <span className="text-lg font-black block mt-1" style={{ color: card.theme === "bold" ? undefined : brandColor }}>
+                  <span style={t.titleStyle} className="text-xs font-bold text-stone-800 block truncate">{p.name}</span>
+                  <span className="text-lg font-black block mt-1" style={{ color: card.theme === "bold" ? undefined : brandColor, ...t.titleStyle }}>
                     {p.price}
                   </span>
                 </div>
@@ -1088,7 +1142,7 @@ export function PricingTableSectionRenderer({ data, card }: { data: any; card: C
                   {features.map((f: string, idx: number) => (
                     <div key={idx} className="flex gap-1.5 items-start">
                       <span className="text-brand shrink-0 font-bold">✓</span>
-                      <span className="leading-snug truncate">{f}</span>
+                      <span style={t.bodyStyle} className="leading-snug truncate">{f}</span>
                     </div>
                   ))}
                 </div>
@@ -1099,7 +1153,7 @@ export function PricingTableSectionRenderer({ data, card }: { data: any; card: C
                   href={p.cta_link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}}
+                  style={{ ...(card.theme !== "glassmorphic" && card.theme !== "neonDark" ? { backgroundColor: brandColor } : {}), ...t.btnStyle }}
                   className={`w-full py-2 mt-4 rounded-lg text-xs text-center font-bold cursor-pointer transition-opacity ${t.buttonClass}`}
                 >
                   {p.cta_label || "Get Started"}
@@ -1115,7 +1169,7 @@ export function PricingTableSectionRenderer({ data, card }: { data: any; card: C
 
 // 13. Featured Products Section Component
 export function FeaturedProductsSectionRenderer({ data, card }: { data: any; card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const products = data.products || [];
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
@@ -1124,7 +1178,7 @@ export function FeaturedProductsSectionRenderer({ data, card }: { data: any; car
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
         <span>🛍️</span> <span>Featured Products</span>
       </h3>
 
@@ -1133,7 +1187,7 @@ export function FeaturedProductsSectionRenderer({ data, card }: { data: any; car
           <div
             key={p.id}
             onClick={() => setSelectedProduct(p)}
-            className="border border-stone-200 rounded-xl overflow-hidden cursor-pointer hover:shadow-sm transition-all flex flex-col bg-white"
+            style={t.itemStyle} className="border border-stone-200 rounded-xl overflow-hidden cursor-pointer hover:shadow-sm transition-all flex flex-col bg-white"
           >
             {p.photo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -1142,8 +1196,8 @@ export function FeaturedProductsSectionRenderer({ data, card }: { data: any; car
               <div className="w-full aspect-[4/3] bg-stone-100 border-b flex items-center justify-center text-stone-400 text-lg">📦</div>
             )}
             <div className="p-2.5 flex-1 flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-stone-800 line-clamp-1">{p.name}</span>
-              <span className="text-[10px] font-black block mt-0.5" style={{ color: brandColor }}>{p.price}</span>
+              <span style={t.titleStyle} className="text-[10px] font-bold text-stone-800 line-clamp-1">{p.name}</span>
+              <span className="text-[10px] font-black block mt-0.5" style={{ color: brandColor, ...t.titleStyle }}>{p.price}</span>
             </div>
           </div>
         ))}
@@ -1184,7 +1238,7 @@ export function FeaturedProductsSectionRenderer({ data, card }: { data: any; car
               <div className="p-5 space-y-4">
                 <div className="flex justify-between items-start gap-4">
                   <h4 className="text-sm font-bold text-stone-900">{selectedProduct.name}</h4>
-                  <span className="text-sm font-black" style={{ color: brandColor }}>{selectedProduct.price}</span>
+                  <span className="text-sm font-black" style={{ color: brandColor, ...t.titleStyle }}>{selectedProduct.price}</span>
                 </div>
                 {selectedProduct.description && (
                   <p className="text-xs text-stone-600 leading-relaxed">{selectedProduct.description}</p>
@@ -1211,21 +1265,21 @@ export function FeaturedProductsSectionRenderer({ data, card }: { data: any; car
 
 // 14. Courses Section Component
 export function CoursesSectionRenderer({ data, card }: { data: any; card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const courses = data.courses || [];
 
   if (courses.length === 0) return null;
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
         <span>📚</span> <span>Courses Offered</span>
       </h3>
       <div className="space-y-3 text-xs">
         {courses.map((c: any) => (
-          <div key={c.id} className={t.itemBg}>
+          <div key={c.id} style={t.itemStyle} className={t.itemBg}>
             <div className="flex justify-between items-start gap-4">
-              <span className="font-bold">{c.name}</span>
+              <span style={t.titleStyle} className="font-bold">{c.name}</span>
               {c.code && (
                 <span className="font-mono text-[10px] px-1.5 py-0.5 bg-stone-200 text-stone-700 rounded select-all font-semibold">
                   {c.code}
@@ -1242,7 +1296,7 @@ export function CoursesSectionRenderer({ data, card }: { data: any; card: CardDa
 
 // 15. Contact Section Component
 export function ContactSectionRenderer({ card }: { card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const links = [];
 
@@ -1255,7 +1309,7 @@ export function ContactSectionRenderer({ card }: { card: CardData }) {
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-3 flex items-center gap-2 ${t.titleText}`}>
         <span>📞</span> <span>Quick Contact</span>
       </h3>
       <div className="space-y-2 text-xs">
@@ -1265,11 +1319,11 @@ export function ContactSectionRenderer({ card }: { card: CardData }) {
             href={link.href}
             target="_blank"
             rel="noopener noreferrer"
+            style={{ borderColor: t.borderClass, ...t.itemStyle }}
             className="flex items-center gap-2.5 p-2.5 bg-stone-50 border rounded-xl hover:bg-stone-100 transition-colors"
-            style={{ borderColor: t.borderClass }}
           >
             <span>{link.emoji}</span>
-            <span className="font-medium text-stone-850 truncate">{link.label}</span>
+            <span style={t.bodyStyle} className="font-medium text-stone-850 truncate">{link.label}</span>
           </a>
         ))}
       </div>
@@ -1279,7 +1333,7 @@ export function ContactSectionRenderer({ card }: { card: CardData }) {
 
 // 16. Socials Section Component
 export function SocialsSectionRenderer({ card }: { card: CardData }) {
-  const t = getThemeStyles(card.theme);
+  const t = getThemeStyles(card.theme, card.text_color);
   const socials = [];
 
   if (card.facebook) socials.push({ emoji: "📘", label: "Facebook", href: card.facebook });
@@ -1291,7 +1345,7 @@ export function SocialsSectionRenderer({ card }: { card: CardData }) {
 
   return (
     <div className={t.cardBg}>
-      <h3 className={`text-base mb-3.5 flex items-center gap-2 ${t.titleText}`}>
+      <h3 style={t.titleStyle} className={`text-base mb-3.5 flex items-center gap-2 ${t.titleText}`}>
         <span>🔗</span> <span>Follow Us</span>
       </h3>
       <div className="grid grid-cols-2 gap-2.5">
@@ -1301,8 +1355,8 @@ export function SocialsSectionRenderer({ card }: { card: CardData }) {
             href={soc.href}
             target="_blank"
             rel="noopener noreferrer"
+            style={{ borderColor: t.borderClass, ...t.itemStyle }}
             className="flex items-center justify-center gap-2 p-2.5 border rounded-xl hover:bg-stone-100 transition-colors text-xs font-semibold text-stone-850 bg-stone-50"
-            style={{ borderColor: t.borderClass }}
           >
             <span>{soc.emoji}</span>
             <span>{soc.label}</span>

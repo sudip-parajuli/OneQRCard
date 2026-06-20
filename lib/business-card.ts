@@ -31,7 +31,15 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
 
   const brandColor = data.brand_color || "#085041";
   const isPaid = data.plan !== "basic";
-  const layout = data.card_layout || "classic";
+  const bcSettings = data.design_settings?.business_card || {};
+  const bcTheme = bcSettings.theme || data.card_layout || "classic";
+  const bcBgTexture = bcSettings.bg_texture || "none";
+  const bcShowLogo = bcSettings.show_logo !== false;
+  const bcWatermark = bcSettings.watermark_logo !== false;
+  const bcWatermarkOpacity = bcSettings.watermark_opacity ?? 0.06;
+  const bcBorderRadius = bcSettings.border_radius || "none";
+  const bcBorderGlow = bcSettings.border_glow ?? false;
+  const layout = bcTheme; // fallback mapping
 
   // 1. Generate QR code (embed logo for Pro & Business plans)
   const qrCodeDataUrl = await generateQRCodeWithLogo(
@@ -80,19 +88,61 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
   let showBorder = true;
   let borderColor = "rgba(255, 255, 255, 0.08)";
 
-  if (layout === "modern_dark") {
+  // Apply rounded card boundary clipping if requested
+  if (bcBorderRadius !== "none") {
+    let radius = 30;
+    if (bcBorderRadius === "small") radius = 15;
+    else if (bcBorderRadius === "large") radius = 50;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(radius, 0);
+    ctx.lineTo(canvas.width - radius, 0);
+    ctx.quadraticCurveTo(canvas.width, 0, canvas.width, radius);
+    ctx.lineTo(canvas.width, canvas.height - radius);
+    ctx.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
+    ctx.lineTo(radius, canvas.height);
+    ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+    ctx.lineTo(0, radius);
+    ctx.quadraticCurveTo(0, 0, radius, 0);
+    ctx.closePath();
+    ctx.clip();
+  }
+
+  if (bcTheme === "modern_dark") {
     bgColor = "#0f172a";
     textColor = "#ffffff";
     mutedTextColor = "rgba(255, 255, 255, 0.7)";
     dividerColor = "rgba(255, 255, 255, 0.1)";
     borderColor = brandColor;
     showBorder = true;
-  } else if (layout === "minimal_light") {
+  } else if (bcTheme === "minimal_light") {
     bgColor = "#ffffff";
     textColor = "#0f172a";
     mutedTextColor = "#475569";
     dividerColor = "rgba(15, 23, 42, 0.08)";
     showBorder = false;
+  } else if (bcTheme === "luxury_gold") {
+    bgColor = "#1e1e1e";
+    textColor = "#d4af37";
+    mutedTextColor = "#b5942b";
+    dividerColor = "rgba(212, 175, 55, 0.25)";
+    borderColor = "#d4af37";
+    showBorder = true;
+  } else if (bcTheme === "neon_glow") {
+    bgColor = "#090d16";
+    textColor = "#00f2fe";
+    mutedTextColor = "#8b5cf6";
+    dividerColor = "rgba(0, 242, 254, 0.2)";
+    borderColor = "#00f2fe";
+    showBorder = true;
+  } else if (bcTheme === "organic_wood") {
+    bgColor = "#3e2723";
+    textColor = "#f5f5f5";
+    mutedTextColor = "#d7ccc8";
+    dividerColor = "rgba(215, 204, 200, 0.2)";
+    borderColor = "#8d6e63";
+    showBorder = true;
   } else {
     // Classic: pick text colors based on brand color contrast
     const r = parseInt(brandColor.slice(1, 3), 16) || 0;
@@ -122,10 +172,10 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
     ctx.drawImage(bgImg, x, y, w, h);
   }
 
-  // 7. Draw Logo Watermark in background with low opacity (0.06)
-  if (loadedImages.logo) {
+  // 7. Draw Logo Watermark in background with opacity
+  if (bcWatermark && loadedImages.logo) {
     ctx.save();
-    ctx.globalAlpha = 0.06; // watermark opacity
+    ctx.globalAlpha = bcWatermarkOpacity; // watermark opacity
     const wmSize = 500;
     const wmX = (canvas.width - wmSize) / 2;
     const wmY = (canvas.height - wmSize) / 2;
@@ -137,8 +187,66 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
     ctx.restore();
   }
 
+  // Draw background texture overlay if configured
+  if (bcBgTexture && bcBgTexture !== "none") {
+    ctx.save();
+    ctx.globalAlpha = 0.12; // light overlay texture
+    if (bcBgTexture === "metal") {
+      ctx.strokeStyle = "rgba(255,255,255,0.4)";
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < canvas.width + canvas.height; i += 8) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i - canvas.height, canvas.height);
+        ctx.stroke();
+      }
+    } else if (bcBgTexture === "wood") {
+      ctx.strokeStyle = "rgba(0,0,0,0.3)";
+      ctx.lineWidth = 2;
+      for (let i = -100; i < canvas.width; i += 30) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.bezierCurveTo(i + 20, canvas.height * 0.3, i - 30, canvas.height * 0.7, i + 10, canvas.height);
+        ctx.stroke();
+      }
+    } else if (bcBgTexture === "geometric") {
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 0.5;
+      for (let r = 50; r < canvas.width; r += 60) {
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, canvas.height / 2, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (bcBgTexture === "marble") {
+      ctx.strokeStyle = "rgba(255,255,255,0.25)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, 100);
+      ctx.bezierCurveTo(200, 150, 400, 50, 1050, 450);
+      ctx.moveTo(300, 0);
+      ctx.bezierCurveTo(500, 300, 700, 400, 1050, 100);
+      ctx.stroke();
+    } else if (bcBgTexture === "linen") {
+      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < canvas.width; i += 12) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+      }
+      for (let j = 0; j < canvas.height; j += 12) {
+        ctx.beginPath();
+        ctx.moveTo(0, j);
+        ctx.lineTo(canvas.width, j);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
   // 8. Draw background styling overlays
-  if (layout === "modern_dark") {
+  if (bcTheme === "modern_dark") {
     ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
@@ -150,7 +258,23 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
     // Glow border effect
     ctx.shadowColor = brandColor;
     ctx.shadowBlur = 35;
-  } else if (layout === "classic" && !loadedImages.bg) {
+  } else if (bcTheme === "neon_glow") {
+    ctx.fillStyle = "rgba(9, 13, 22, 0.5)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.shadowColor = "#00f2fe";
+    ctx.shadowBlur = 40;
+  } else if (bcTheme === "luxury_gold") {
+    ctx.fillStyle = "rgba(30, 30, 30, 0.4)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "rgba(214, 175, 55, 0.15)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < canvas.width; i += 40) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, canvas.height);
+      ctx.stroke();
+    }
+  } else if (bcTheme === "classic" && !loadedImages.bg) {
     ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
     ctx.beginPath();
     ctx.arc(0, 0, 420, 0, Math.PI * 2);
@@ -162,12 +286,15 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
 
   // 9. Draw border
   if (showBorder) {
+    if (bcBorderGlow || bcTheme === "neon_glow") {
+      ctx.shadowColor = borderColor;
+      ctx.shadowBlur = 35;
+    }
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 14;
     ctx.strokeRect(16, 16, canvas.width - 32, canvas.height - 32);
+    ctx.shadowBlur = 0; // reset shadow glow
   }
-
-  ctx.shadowBlur = 0; // reset shadow glow
 
   // 10. Draw Left Column Text
   const startX = 80;
@@ -232,8 +359,8 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
     currentY += 54;
   });
 
-  // 11. Draw Logo circle (or initials) if show_logo_on_card is enabled
-  if (data.show_logo_on_card !== false) {
+  // 11. Draw Logo circle (or initials) if show_logo is enabled
+  if (bcShowLogo) {
     const logoSize = 100;
     const logoX = 500;
     const logoY = 105;
@@ -295,6 +422,10 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("SCAN TO CONNECT", qrX + qrSize / 2, qrY + qrSize + 28);
+
+  if (bcBorderRadius !== "none") {
+    ctx.restore();
+  }
 
   return canvas.toDataURL("image/png");
 }

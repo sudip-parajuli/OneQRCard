@@ -1,4 +1,4 @@
-export type ThemeId = "classic" | "minimal" | "bold" | "gradient" | "glassmorphic" | "neonDark";
+export type ThemeId = "classic" | "minimal" | "bold" | "gradient" | "glassmorphic" | "neonDark" | "claymorphic" | "neumorphic" | "skeuomorphic" | "liquidGlass";
 
 export type PlanId = "basic" | "pro" | "business";
 
@@ -61,6 +61,9 @@ export interface CardData {
     gradientColor2?: string;
     spotlightColor?: string;
     custom_cta_frame?: string;
+    bg_texture?: "none" | "wood" | "geometric" | "marble" | "linen" | null;
+    threeDStyle?: "none" | "raised" | "embossed" | null;
+    cta_style?: "default" | "arrow" | "hand" | "star" | null;
   } | null;
   design_settings?: {
     vibe?: "corporate" | "luxury" | "creative" | "eco" | null;
@@ -69,6 +72,15 @@ export interface CardData {
     alignment?: "left" | "center" | "right";
     default_nav_tab?: string | null;
     animation?: "none" | "float" | "fade" | "pulse" | null;
+    business_card?: {
+      theme?: "classic" | "modern_dark" | "minimal_light" | "luxury_gold" | "neon_glow" | "organic_wood" | null;
+      bg_texture?: "none" | "metal" | "wood" | "geometric" | "marble" | "linen" | null;
+      show_logo?: boolean;
+      watermark_logo?: boolean;
+      watermark_opacity?: number;
+      border_radius?: "none" | "small" | "medium" | "large";
+      border_glow?: boolean;
+    } | null;
   } | null;
   created_at?: string;
 }
@@ -80,6 +92,10 @@ export const THEME_LABELS: Record<ThemeId, string> = {
   gradient: "Gradient — soft glow",
   glassmorphic: "Glassmorphic — frosted card (Business)",
   neonDark: "Neon Dark — premium dark mode (Business)",
+  claymorphic: "Claymorphic — soft 3D clay (Business)",
+  neumorphic: "Neumorphic — soft extruded shadows (Business)",
+  skeuomorphic: "Skeuomorphic — physical texture (Business)",
+  liquidGlass: "Liquid Glass — high-gloss refraction (Business)",
 };
 
 export const PLAN_DETAILS: Record<

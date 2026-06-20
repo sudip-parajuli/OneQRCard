@@ -290,7 +290,7 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
   }
 
   // Neomorphic shadows helper
-  const isDarkTheme = data.theme === "neonDark" || vibe === "luxury" || vibe === "corporate" || vibe === "creative" || vibe === "eco" || data.theme === "glassmorphic";
+  const isDarkTheme = data.theme === "neonDark" || vibe === "luxury" || vibe === "corporate" || vibe === "creative" || vibe === "eco" || data.theme === "glassmorphic" || data.theme === "liquidGlass";
   const getNeomorphicStyle = (isButton = false): React.CSSProperties => {
     if (!embossed) return {};
     if (isDarkTheme) {
@@ -339,7 +339,7 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
 
   if (data.theme === "glassmorphic") {
     const txtColor = textColor;
-    const mutedTxtColor = vibe ? `${textColor}cc` : "rgba(255, 255, 255, 0.75)";
+    const mutedTxtColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : "rgba(255, 255, 255, 0.75)");
     const borderCol = vibe ? `${brandColor}33` : "rgba(255, 255, 255, 0.2)";
     const linkBorderCol = vibe ? `${brandColor}22` : "rgba(255, 255, 255, 0.1)";
 
@@ -410,7 +410,7 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             animate="show"
             className="mt-6 flex flex-col gap-2 w-full"
           >
-            <SaveButton color="rgba(255, 255, 255, 0.22)" textColor="#fff" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
+            <SaveButton color="rgba(255, 255, 255, 0.22)" textColor={customTextColor || "#fff"} onClick={onSaveContact} style={getNeomorphicStyle(true)} />
             {onDownloadCard && <DownloadButton color={txtColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
             
             {data.google_review && (
@@ -765,6 +765,469 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             <WalletButton cardId={data.id} brandColor={brandColor} />
           )}
         </motion.div>
+      </motion.div>
+    );
+  }
+
+  if (data.theme === "claymorphic") {
+    const txtColor = customTextColor || "#1e293b";
+    const mutedTxtColor = customTextColor ? `${customTextColor}cc` : "#475569";
+    const clayBgColor = vibe === "luxury" ? "#fef08a" : (vibe === "eco" ? "#dcfce7" : "#e0e7ff");
+    const shadowColor = vibe === "luxury" ? "rgba(202,138,4,0.15)" : "rgba(99,102,241,0.15)";
+    const borderCol = customTextColor ? `${customTextColor}33` : "rgba(255,255,255,0.4)";
+
+    return (
+      <motion.div
+        {...motionProps}
+        className="rounded-[36px] p-6 max-w-sm w-full mx-auto relative overflow-hidden border-2 transition-all"
+        style={{
+          backgroundColor: clayBgColor,
+          borderColor: borderCol,
+          boxShadow: `inset -6px -6px 12px rgba(0,0,0,0.06), inset 6px 6px 12px rgba(255,255,255,0.55), 0 10px 25px ${shadowColor}`,
+          ...bgStyle,
+        }}
+      >
+        <div className={`flex flex-col ${alignClass}`}>
+          <Logo data={data} initials={initials} color={brandColor} size={80} />
+          <div style={{ color: txtColor }} className="text-xl font-bold mt-4 font-sans tracking-wide">
+            {data.member_name ? data.member_name : (data.business_name || "Your Business")}
+          </div>
+          {(data.member_role || data.tagline) && (
+            <div style={{ color: mutedTxtColor }} className="text-xs mt-1.5 font-semibold">
+              {data.member_name
+                ? `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`
+                : data.tagline}
+            </div>
+          )}
+          <OpenStatusBadge hours={data.opening_hours} inverse={true} />
+          {data.bio && (
+            <p 
+              style={{ color: mutedTxtColor }} 
+              className="text-xs mt-3 px-4 leading-relaxed whitespace-pre-line font-medium"
+            >
+              {data.bio}
+            </p>
+          )}
+
+          <motion.div
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { staggerChildren: 0.05 }
+              }
+            }}
+            initial="hidden"
+            animate="show"
+            className="mt-6 flex flex-col gap-2.5 w-full"
+          >
+            <SaveButton 
+              color={brandColor} 
+              textColor={customTextColor || "#ffffff"} 
+              onClick={onSaveContact} 
+              style={{
+                borderRadius: "20px",
+                boxShadow: "inset -2px -2px 4px rgba(0,0,0,0.15), inset 2px 2px 4px rgba(255,255,255,0.25), 0 4px 6px rgba(0,0,0,0.05)"
+              }} 
+            />
+            {onDownloadCard && (
+              <DownloadButton 
+                color={brandColor} 
+                onClick={onDownloadCard} 
+                style={{
+                  borderRadius: "20px",
+                  backgroundColor: "rgba(255,255,255,0.4)",
+                  boxShadow: "inset -1px -1px 3px rgba(0,0,0,0.05), 0 4px 6px rgba(0,0,0,0.05)"
+                }} 
+              />
+            )}
+            
+            {data.google_review && (
+              <GoogleReviewGate cardId={data.id} googleReviewUrl={data.google_review} brandColor={brandColor} />
+            )}
+
+            {links.map((l) => (
+              <motion.a
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: { opacity: 1, y: 0 }
+                }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                key={l.key}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  color: txtColor, 
+                  borderColor: "rgba(255,255,255,0.3)",
+                  borderRadius: "18px",
+                  backgroundColor: "rgba(255,255,255,0.45)",
+                  boxShadow: "inset -1px -1px 3px rgba(0,0,0,0.04), 0 4px 6px rgba(0,0,0,0.04)"
+                }}
+                className={`flex items-center gap-3 px-4 py-3 border text-sm transition-all cursor-pointer ${alignFlexClass}`}
+              >
+                <span style={{ color: mutedTxtColor }}>{l.icon}</span>
+                {l.label}
+              </motion.a>
+            ))}
+
+            {data.plan === "business" && (
+              <WalletButton cardId={data.id} brandColor={brandColor} />
+            )}
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (data.theme === "neumorphic") {
+    const txtColor = customTextColor || "#1f2937";
+    const mutedTxtColor = customTextColor ? `${customTextColor}b3` : "#4b5563";
+    const neuBgColor = "#e5e7eb";
+
+    return (
+      <motion.div
+        {...motionProps}
+        className="rounded-[32px] p-6 max-w-sm w-full mx-auto border-none transition-all"
+        style={{
+          backgroundColor: neuBgColor,
+          boxShadow: "-9px -9px 16px rgba(255,255,255,0.85), 9px 9px 16px rgba(0,0,0,0.08)",
+          ...bgStyle,
+        }}
+      >
+        <div className={`flex flex-col ${alignClass}`}>
+          <Logo data={data} initials={initials} color={brandColor} size={76} />
+          <div style={{ color: txtColor }} className="text-xl font-bold mt-4">
+            {data.member_name ? data.member_name : (data.business_name || "Your Business")}
+          </div>
+          {(data.member_role || data.tagline) && (
+            <div style={{ color: mutedTxtColor }} className="text-xs mt-1.5 font-medium">
+              {data.member_name
+                ? `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`
+                : data.tagline}
+            </div>
+          )}
+          <OpenStatusBadge hours={data.opening_hours} inverse={true} />
+          {data.bio && (
+            <p 
+              style={{ color: mutedTxtColor }} 
+              className="text-xs mt-3 px-4 leading-relaxed whitespace-pre-line"
+            >
+              {data.bio}
+            </p>
+          )}
+
+          <motion.div
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { staggerChildren: 0.05 }
+              }
+            }}
+            initial="hidden"
+            animate="show"
+            className="mt-6 flex flex-col gap-3 w-full"
+          >
+            <SaveButton 
+              color={brandColor} 
+              textColor={customTextColor || "#ffffff"} 
+              onClick={onSaveContact} 
+              style={{
+                borderRadius: "16px",
+                boxShadow: "-3px -3px 8px rgba(255,255,255,0.8), 3px 3px 8px rgba(0,0,0,0.08)"
+              }} 
+            />
+            {onDownloadCard && (
+              <DownloadButton 
+                color={brandColor} 
+                onClick={onDownloadCard} 
+                style={{
+                  borderRadius: "16px",
+                  backgroundColor: neuBgColor,
+                  borderColor: "transparent",
+                  boxShadow: "-3px -3px 8px rgba(255,255,255,0.8), 3px 3px 8px rgba(0,0,0,0.08)"
+                }} 
+              />
+            )}
+            
+            {data.google_review && (
+              <GoogleReviewGate cardId={data.id} googleReviewUrl={data.google_review} brandColor={brandColor} />
+            )}
+
+            {links.map((l) => (
+              <motion.a
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: { opacity: 1, y: 0 }
+                }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                key={l.key}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  color: txtColor, 
+                  borderRadius: "16px",
+                  backgroundColor: neuBgColor,
+                  borderColor: "transparent",
+                  boxShadow: "-3px -3px 8px rgba(255,255,255,0.85), 3px 3px 8px rgba(0,0,0,0.06)"
+                }}
+                className={`flex items-center gap-3 px-4 py-3 text-sm transition-all cursor-pointer ${alignFlexClass}`}
+              >
+                <span style={{ color: mutedTxtColor }}>{l.icon}</span>
+                {l.label}
+              </motion.a>
+            ))}
+
+            {data.plan === "business" && (
+              <WalletButton cardId={data.id} brandColor={brandColor} />
+            )}
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (data.theme === "skeuomorphic") {
+    const txtColor = customTextColor || "#0f172a";
+    const mutedTxtColor = customTextColor ? `${customTextColor}cc` : "#334155";
+    const skBorderCol = customTextColor ? `${customTextColor}40` : "rgba(15, 23, 42, 0.12)";
+
+    return (
+      <motion.div
+        {...motionProps}
+        className="rounded-2xl p-6 max-w-sm w-full mx-auto relative overflow-hidden border-2 transition-all"
+        style={{
+          background: "linear-gradient(145deg, #f8fafc, #e2e8f0)",
+          borderColor: skBorderCol,
+          boxShadow: "0 15px 35px rgba(15,23,42,0.18), inset 0 2px 4px rgba(255,255,255,0.9)",
+          ...bgStyle,
+        }}
+      >
+        <div className={`flex flex-col ${alignClass}`}>
+          <Logo data={data} initials={initials} color={brandColor} size={76} />
+          <div style={{ color: txtColor }} className="text-xl font-extrabold mt-4 tracking-tight drop-shadow-[0_1px_0_rgba(255,255,255,0.9)]">
+            {data.member_name ? data.member_name : (data.business_name || "Your Business")}
+          </div>
+          {(data.member_role || data.tagline) && (
+            <div style={{ color: mutedTxtColor }} className="text-xs mt-1 font-semibold uppercase tracking-wider">
+              {data.member_name
+                ? `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`
+                : data.tagline}
+            </div>
+          )}
+          <OpenStatusBadge hours={data.opening_hours} inverse={true} />
+          {data.bio && (
+            <p 
+              style={{ color: mutedTxtColor }} 
+              className="text-xs mt-3 px-4 leading-relaxed whitespace-pre-line font-medium"
+            >
+              {data.bio}
+            </p>
+          )}
+
+          <motion.div
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { staggerChildren: 0.05 }
+              }
+            }}
+            initial="hidden"
+            animate="show"
+            className="mt-6 flex flex-col gap-2.5 w-full"
+          >
+            <SaveButton 
+              color={brandColor} 
+              textColor={customTextColor || "#ffffff"} 
+              onClick={onSaveContact} 
+              style={{
+                borderRadius: "12px",
+                border: "1px solid rgba(0,0,0,0.15)",
+                background: `linear-gradient(180deg, ${lighten(brandColor, 0.15)} 0%, ${brandColor} 100%)`,
+                boxShadow: "0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.25)"
+              }} 
+            />
+            {onDownloadCard && (
+              <DownloadButton 
+                color={brandColor} 
+                onClick={onDownloadCard} 
+                style={{
+                  borderRadius: "12px",
+                  border: "1px solid #cbd5e1",
+                  background: "linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8)"
+                }} 
+              />
+            )}
+            
+            {data.google_review && (
+              <GoogleReviewGate cardId={data.id} googleReviewUrl={data.google_review} brandColor={brandColor} />
+            )}
+
+            {links.map((l) => (
+              <motion.a
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  show: { opacity: 1, y: 0 }
+                }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                key={l.key}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  color: txtColor, 
+                  borderColor: "#cbd5e1",
+                  borderRadius: "12px",
+                  background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8)"
+                }}
+                className={`flex items-center gap-3 px-4 py-3 border text-sm transition-all cursor-pointer ${alignFlexClass}`}
+              >
+                <span style={{ color: mutedTxtColor }}>{l.icon}</span>
+                {l.label}
+              </motion.a>
+            ))}
+
+            {data.plan === "business" && (
+              <WalletButton cardId={data.id} brandColor={brandColor} />
+            )}
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (data.theme === "liquidGlass") {
+    const txtColor = customTextColor || "#ffffff";
+    const mutedTxtColor = customTextColor ? `${customTextColor}cc` : "rgba(255, 255, 255, 0.82)";
+    const borderCol = customTextColor ? `${customTextColor}4d` : "rgba(255, 255, 255, 0.4)";
+    const linkBorderCol = customTextColor ? `${customTextColor}26` : "rgba(255, 255, 255, 0.18)";
+
+    return (
+      <motion.div
+        {...motionProps}
+        className="rounded-[36px] p-2 max-w-sm w-full mx-auto relative overflow-hidden shadow-2xl"
+        style={{
+          ...bgStyle,
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 4px 10px rgba(255,255,255,0.3)"
+        }}
+      >
+        {!hasBg && !vibe && (
+          <div className="absolute inset-0 -z-10 bg-slate-950 overflow-hidden">
+            <div className="absolute -top-24 -left-24 w-60 h-60 rounded-full blur-3xl opacity-60 bg-gradient-to-tr from-cyan-400 to-indigo-600"></div>
+            <div className="absolute -bottom-24 -right-24 w-64 h-64 rounded-full blur-3xl opacity-50 bg-gradient-to-tr from-purple-500 to-pink-500"></div>
+          </div>
+        )}
+        <div 
+          style={{ borderColor: borderCol }}
+          className="bg-white/12 backdrop-blur-2xl border-2 rounded-[28px] p-6 shadow-2xl flex flex-col relative overflow-hidden"
+        >
+          <div className="absolute -top-[100%] -left-[100%] w-[300%] h-[300%] rotate-[35deg] bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none -z-10"></div>
+          
+          <div className={`flex flex-col ${alignClass}`}>
+            <Logo data={data} initials={initials} color={brandColor} size={80} inverse />
+            <div 
+              style={{ color: txtColor, textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}
+              className="text-xl font-black tracking-wide mt-4"
+            >
+              {data.member_name ? data.member_name : (data.business_name || "Your Business")}
+            </div>
+            {(data.member_role || data.tagline) && (
+              <div style={{ color: mutedTxtColor }} className="text-xs mt-1 font-semibold uppercase tracking-wider">
+                {data.member_name
+                  ? `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`
+                  : data.tagline}
+              </div>
+            )}
+            <OpenStatusBadge hours={data.opening_hours} inverse={false} />
+            {data.bio && (
+              <p 
+                style={{ color: mutedTxtColor }} 
+                className="text-xs mt-3 px-4 leading-relaxed whitespace-pre-line font-medium"
+              >
+                {data.bio}
+              </p>
+            )}
+
+            <motion.div
+              variants={{
+                hidden: { opacity: 0 },
+                show: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.05 }
+                }
+              }}
+              initial="hidden"
+              animate="show"
+              className="mt-6 flex flex-col gap-2.5 w-full"
+            >
+              <SaveButton 
+                color="rgba(255, 255, 255, 0.28)" 
+                textColor={customTextColor || "#ffffff"} 
+                onClick={onSaveContact} 
+                style={{
+                  borderRadius: "14px",
+                  border: "1px solid rgba(255, 255, 255, 0.35)",
+                  backdropFilter: "blur(8px)",
+                  boxShadow: "0 4px 15px rgba(255,255,255,0.05), inset 0 2px 4px rgba(255,255,255,0.15)"
+                }} 
+              />
+              {onDownloadCard && (
+                <DownloadButton 
+                  color={txtColor} 
+                  onClick={onDownloadCard} 
+                  style={{
+                    borderRadius: "14px",
+                    border: "1px solid rgba(255, 255, 255, 0.22)",
+                    backgroundColor: "rgba(255, 255, 255, 0.08)",
+                    boxShadow: "0 4px 15px rgba(0,0,0,0.05)"
+                  }} 
+                />
+              )}
+              
+              {data.google_review && (
+                <GoogleReviewGate cardId={data.id} googleReviewUrl={data.google_review} brandColor={brandColor} />
+              )}
+
+              {links.map((l) => (
+                <motion.a
+                  variants={{
+                    hidden: { opacity: 0, y: 10 },
+                    show: { opacity: 1, y: 0 }
+                  }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  key={l.key}
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ 
+                    color: txtColor, 
+                    borderColor: linkBorderCol,
+                    backgroundColor: "rgba(255,255,255,0.08)",
+                    borderRadius: "14px",
+                    boxShadow: "inset 0 1px 2px rgba(255,255,255,0.05)"
+                  }}
+                  className={`flex items-center gap-3 px-4 py-3 border text-sm transition-all cursor-pointer ${alignFlexClass}`}
+                >
+                  <span style={{ color: mutedTxtColor }}>{l.icon}</span>
+                  {l.label}
+                </motion.a>
+              ))}
+
+              {data.plan === "business" && (
+                <WalletButton cardId={data.id} brandColor={brandColor} />
+              )}
+            </motion.div>
+          </div>
+        </div>
       </motion.div>
     );
   }

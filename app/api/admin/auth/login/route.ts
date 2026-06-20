@@ -8,11 +8,16 @@ export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
 
-    const adminEmail = "sparajuli802@gmail.com";
-    const adminPassword = "sudip@oneqrcode12345";
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+      console.error("ADMIN_EMAIL or ADMIN_PASSWORD environment variable is not configured.");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    }
 
     if (
-      email.trim().toLowerCase() !== adminEmail.toLowerCase() ||
+      email.trim().toLowerCase() !== adminEmail.trim().toLowerCase() ||
       password !== adminPassword
     ) {
       return NextResponse.json({ error: "Invalid admin credentials" }, { status: 401 });

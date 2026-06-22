@@ -32,6 +32,82 @@ import { DEFAULT_TITLES, DEFAULT_DATA, SectionType, BUSINESS_TYPE_DEFAULTS, getD
 
 const MAX_LOGO_BYTES = 300 * 1024; // ~300KB
 
+const THEME_LABELS_FOR_SOCIALS: Record<string, string> = {
+  facebook: "Facebook",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+  viber: "Viber",
+  x_twitter: "X (Twitter)",
+  threads: "Threads",
+  linkedin: "LinkedIn",
+  telegram: "Telegram"
+};
+
+const miniIcons: Record<string, JSX.Element> = {
+  facebook: (
+    <svg className="w-4 h-4 text-[#1877f2]" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.75z"/>
+    </svg>
+  ),
+  instagram: (
+    <svg className="w-4 h-4 text-[#e4405f]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.5" y2="6.5" />
+    </svg>
+  ),
+  tiktok: (
+    <svg className="w-4 h-4 text-stone-900" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+    </svg>
+  ),
+  youtube: (
+    <svg className="w-4 h-4 text-[#ff0000]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
+      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+    </svg>
+  ),
+  viber: (
+    <svg className="w-4 h-4 text-[#7360f2]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="10" r="1.5" />
+      <path d="M8 10.5c.5-1.5 2-2 3.5-1.5" />
+    </svg>
+  ),
+  x_twitter: (
+    <svg className="w-4 h-4 text-stone-900" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
+      <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" />
+    </svg>
+  ),
+  threads: (
+    <svg className="w-4 h-4 text-stone-900" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M12 2a10 10 0 1 0 10 10c0-2.5-2.5-4-5-4s-4 1.5-4 4 1.5 4 4 4 5-1.5 5-4" />
+    </svg>
+  ),
+  linkedin: (
+    <svg className="w-4 h-4 text-[#0077b5]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+      <rect x="2" y="9" width="4" height="12" />
+      <circle cx="4" cy="4" r="2" />
+    </svg>
+  ),
+  telegram: (
+    <svg className="w-4 h-4 text-[#229ed9]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  ),
+  link: (
+    <svg className="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  )
+};
+
+
 const STEPS = [
   { number: 1, label: "Category", short: "Category" },
   { number: 2, label: "The Basics", short: "Basics" },
@@ -63,6 +139,133 @@ export default function CardForm({
   const workspaceId = searchParams.get("workspaceId");
   
   const [data, setData] = useState<CardData>(initialData);
+  const [activeTabOverride, setActiveTabOverride] = useState<string | undefined>(undefined);
+
+  const triggerTabFocus = (sectionType: string) => {
+    const mapping: Record<string, string> = {
+      menu: "menu",
+      services: "services",
+      courses: "services",
+      gallery: "gallery",
+      featured_products: "products",
+      pricing_table: "products",
+      wifi: "wifi",
+      location: "location",
+      hours: "location",
+      booking: "booking",
+      lead_capture: "booking",
+      review: "profile",
+      contact: "profile",
+      socials: "profile",
+      basics: "profile",
+    };
+    const targetTab = mapping[sectionType] || "profile";
+    setActiveTabOverride(targetTab);
+  };
+
+  const [socialLinksList, setSocialLinksList] = useState<{ id: string; platform: string; value: string }[]>([]);
+  const [isSocialsInitialized, setIsSocialsInitialized] = useState(false);
+
+  useEffect(() => {
+    if (isSocialsInitialized) return;
+    const initialLinks: { id: string; platform: string; value: string }[] = [];
+    const keys = ["facebook", "instagram", "tiktok", "youtube", "viber", "x_twitter", "threads", "linkedin", "telegram"] as const;
+    keys.forEach((k, idx) => {
+      if (initialData[k]) {
+        initialLinks.push({ id: `${k}_${idx}`, platform: k, value: initialData[k] || "" });
+      }
+    });
+    if (initialLinks.length === 0) {
+      initialLinks.push({ id: "init_0", platform: "facebook", value: "" });
+    }
+    setSocialLinksList(initialLinks);
+    setIsSocialsInitialized(true);
+  }, [initialData, isSocialsInitialized]);
+
+  useEffect(() => {
+    if (!isSocialsInitialized) return;
+    const nextSocials: Record<string, string> = {
+      facebook: "",
+      instagram: "",
+      tiktok: "",
+      youtube: "",
+      viber: "",
+      x_twitter: "",
+      threads: "",
+      linkedin: "",
+      telegram: "",
+    };
+    socialLinksList.forEach((item) => {
+      const val = item.value.trim();
+      if (val && item.platform) {
+        nextSocials[item.platform] = val;
+      }
+    });
+    setData((prev) => {
+      let changed = false;
+      const keys = Object.keys(nextSocials);
+      for (const k of keys) {
+        if (prev[k as keyof CardData] !== nextSocials[k]) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) return prev;
+      return { ...prev, ...nextSocials };
+    });
+  }, [socialLinksList, isSocialsInitialized]);
+
+  const detectPlatform = (url: string): string => {
+    const normalized = url.toLowerCase().trim();
+    if (!normalized) return "link";
+    if (normalized.includes("facebook.com") || normalized.includes("fb.com")) return "facebook";
+    if (normalized.includes("instagram.com") || normalized.includes("ig.me") || normalized.includes("instagr.am")) return "instagram";
+    if (normalized.includes("tiktok.com")) return "tiktok";
+    if (normalized.includes("youtube.com") || normalized.includes("youtu.be")) return "youtube";
+    if (normalized.includes("viber")) return "viber";
+    if (normalized.includes("twitter.com") || normalized.includes("x.com")) return "x_twitter";
+    if (normalized.includes("threads.net")) return "threads";
+    if (normalized.includes("linkedin.com")) return "linkedin";
+    if (normalized.includes("t.me") || normalized.includes("telegram.me")) return "telegram";
+    return "link";
+  };
+
+  const addSocialLinkField = () => {
+    const keys = ["facebook", "instagram", "tiktok", "youtube", "viber", "x_twitter", "threads", "linkedin", "telegram"] as const;
+    const selectedPlatforms = socialLinksList.map(item => item.platform);
+    const nextPlatform = keys.find(k => !selectedPlatforms.includes(k)) || "facebook";
+    setSocialLinksList((prev) => [
+      ...prev,
+      { id: `new_${Date.now()}`, platform: nextPlatform, value: "" }
+    ]);
+  };
+
+  const removeSocialLinkField = (id: string) => {
+    setSocialLinksList((prev) => {
+      const filtered = prev.filter((item) => item.id !== id);
+      if (filtered.length === 0) {
+        return [{ id: `init_${Date.now()}`, platform: "facebook", value: "" }];
+      }
+      return filtered;
+    });
+  };
+
+  const updateSocialLinkField = (id: string, field: "platform" | "value", val: string) => {
+    setSocialLinksList((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const updated = { ...item, [field]: val };
+        if (field === "value") {
+          const detected = detectPlatform(val);
+          if (detected !== "link") {
+            updated.platform = detected;
+          }
+        }
+        return updated;
+      })
+    );
+  };
+
   const [logoError, setLogoError] = useState<string | null>(null);
   const [bgImageError, setBgImageError] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
@@ -429,7 +632,7 @@ export default function CardForm({
       {/* STEP 2: THE BASICS */}
       {isWizard && currentStep === 2 && (
         <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-10 max-w-5xl mx-auto items-start">
-          <div className="bg-white border border-stone-200 rounded-3xl p-8 space-y-6 shadow-sm">
+          <div className="bg-white border border-stone-200 rounded-3xl p-8 space-y-6 shadow-sm" onFocusCapture={() => triggerTabFocus("basics")}>
             <h2 className="text-xl font-bold text-stone-900 border-b border-stone-100 pb-3">The basics</h2>
             
             <div className="space-y-4">
@@ -513,7 +716,7 @@ export default function CardForm({
           {/* Sticky preview column */}
           <div className="hidden lg:sticky lg:top-24 lg:flex flex-col gap-6">
             <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Live card preview</h3>
-            <CardPreview data={data} onSaveContact={downloadVCardPreview} />
+            <CardPreview data={data} onSaveContact={downloadVCardPreview} activeTabOverride={activeTabOverride} />
           </div>
         </div>
       )}
@@ -524,7 +727,7 @@ export default function CardForm({
           {/* Column 1: Editors left */}
           <div className="space-y-8">
             {/* About & Bio Description */}
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left" onFocusCapture={() => triggerTabFocus("basics")}>
               <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5">About &amp; Bio</h3>
               <Field label="Bio Description (About summary)">
                 <textarea
@@ -538,7 +741,7 @@ export default function CardForm({
             </div>
 
             {/* Contact Details */}
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left" onFocusCapture={() => triggerTabFocus("contact")}>
               <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5">Contact Details</h3>
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label="Phone number">
@@ -577,82 +780,73 @@ export default function CardForm({
             </div>
 
             {/* Social Links */}
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
-              <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5">Social Media Profiles</h3>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Facebook">
-                  <input
-                    value={data.facebook || ""}
-                    onChange={(e) => update("facebook", e.target.value)}
-                    placeholder="https://facebook.com/yourpage"
-                    className="input"
-                  />
-                </Field>
-                <Field label="Instagram">
-                  <input
-                    value={data.instagram || ""}
-                    onChange={(e) => update("instagram", e.target.value)}
-                    placeholder="https://instagram.com/yourpage"
-                    className="input"
-                  />
-                </Field>
-                <Field label="TikTok">
-                  <input
-                    value={data.tiktok || ""}
-                    onChange={(e) => update("tiktok", e.target.value)}
-                    placeholder="https://tiktok.com/@username"
-                    className="input"
-                  />
-                </Field>
-                <Field label="YouTube">
-                  <input
-                    value={data.youtube || ""}
-                    onChange={(e) => update("youtube", e.target.value)}
-                    placeholder="https://youtube.com/@channel"
-                    className="input"
-                  />
-                </Field>
-                <Field label="Viber">
-                  <input
-                    value={data.viber || ""}
-                    onChange={(e) => update("viber", e.target.value)}
-                    placeholder="e.g. 98XXXXXXXX"
-                    className="input"
-                  />
-                </Field>
-                <Field label="X (Twitter)">
-                  <input
-                    value={data.x_twitter || ""}
-                    onChange={(e) => update("x_twitter", e.target.value)}
-                    placeholder="username or URL"
-                    className="input"
-                  />
-                </Field>
-                <Field label="Threads">
-                  <input
-                    value={data.threads || ""}
-                    onChange={(e) => update("threads", e.target.value)}
-                    placeholder="username or URL"
-                    className="input"
-                  />
-                </Field>
-                <Field label="LinkedIn">
-                  <input
-                    value={data.linkedin || ""}
-                    onChange={(e) => update("linkedin", e.target.value)}
-                    placeholder="profile URL or username"
-                    className="input"
-                  />
-                </Field>
-                <Field label="Telegram">
-                  <input
-                    value={data.telegram || ""}
-                    onChange={(e) => update("telegram", e.target.value)}
-                    placeholder="username or t.me URL"
-                    className="input"
-                  />
-                </Field>
+            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left" onFocusCapture={() => triggerTabFocus("socials")}>
+              <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex justify-between items-center">
+                <span>Social Media Profiles</span>
+                <span className="text-[10px] font-medium text-stone-400 normal-case">Auto-detects platform</span>
+              </h3>
+              
+              <div className="space-y-3.5">
+                {socialLinksList.map((item) => {
+                  const selectedPlatforms = socialLinksList.map(x => x.platform);
+                  return (
+                    <div key={item.id} className="flex gap-2 items-center animate-fade-in">
+                      {/* Platform Select & Icon */}
+                      <div className="flex gap-2 items-center border border-stone-200 rounded-xl px-3 py-2 bg-stone-50 select-none shrink-0 h-11">
+                        {miniIcons[item.platform] || miniIcons.link}
+                        <select
+                          value={item.platform}
+                          onChange={(e) => updateSocialLinkField(item.id, "platform", e.target.value)}
+                          className="bg-transparent text-xs font-semibold text-stone-700 outline-none border-none cursor-pointer pr-1"
+                        >
+                          {Object.entries(THEME_LABELS_FOR_SOCIALS).map(([k, label]) => {
+                            const isChosen = selectedPlatforms.includes(k) && item.platform !== k;
+                            if (isChosen) return null;
+                            return (
+                              <option key={k} value={k}>
+                                {label}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+
+                      {/* URL Input */}
+                      <div className="flex-1">
+                        <input
+                          value={item.value}
+                          onChange={(e) => updateSocialLinkField(item.id, "value", e.target.value)}
+                          placeholder={`Paste your ${THEME_LABELS_FOR_SOCIALS[item.platform] || "profile"} link here...`}
+                          className="input h-11"
+                        />
+                      </div>
+
+                      {/* Remove Button */}
+                      <button
+                        type="button"
+                        onClick={() => removeSocialLinkField(item.id)}
+                        className="p-2.5 rounded-xl border border-stone-200 hover:border-red-200 text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer flex items-center justify-center h-11 w-11"
+                        title="Remove link"
+                      >
+                        <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
+
+              {socialLinksList.length < Object.keys(THEME_LABELS_FOR_SOCIALS).length && (
+                <button
+                  type="button"
+                  onClick={addSocialLinkField}
+                  className="w-full py-2.5 border border-dashed border-stone-300 hover:border-brand/40 text-stone-600 hover:text-brand hover:bg-brand/5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer mt-2"
+                >
+                  <span>+</span> Add Social Link
+                </button>
+              )}
             </div>
 
             {/* Content Sections Editor (Up/Down re-ordering pool) */}
@@ -764,7 +958,7 @@ export default function CardForm({
                               </p>
                             </div>
                           ) : (
-                            <div className="p-4 border-t border-stone-100">
+                            <div className="p-4 border-t border-stone-100" onFocusCapture={() => triggerTabFocus(section.type)}>
                               {section.type === "menu" && (
                                 <MenuEditor
                                   data={section.data}
@@ -1168,6 +1362,7 @@ export default function CardForm({
               <CardPreview 
                 data={data} 
                 onSaveContact={downloadVCardPreview} 
+                activeTabOverride={activeTabOverride}
               />
               {qr && (
                 <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col items-center w-full shadow-xs">
@@ -2156,6 +2351,7 @@ export default function CardForm({
               <CardPreview 
                 data={data} 
                 onSaveContact={downloadVCardPreview} 
+                activeTabOverride={activeTabOverride}
               />
               {qr && (
                 <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col items-center w-full shadow-xs">
@@ -2178,7 +2374,7 @@ export default function CardForm({
           <div className="flex flex-col gap-4">
             <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Final card layout</h3>
             <div className="p-4 bg-stone-150 border border-stone-200 rounded-3xl shadow-inner flex justify-center">
-              <CardPreview data={data} />
+              <CardPreview data={data} activeTabOverride={activeTabOverride} />
             </div>
           </div>
 
@@ -2349,6 +2545,7 @@ export default function CardForm({
                 onSaveContact={downloadVCardPreview} 
                 isEditing={currentStep === 3} 
                 onChange={(updatedFields) => setData(d => ({ ...d, ...updatedFields }))}
+                activeTabOverride={activeTabOverride}
               />
             </div>
           </div>

@@ -243,7 +243,7 @@ function SocialsGrid({ socialLinks, isThemeDark }: { socialLinks: LinkItem[]; is
   };
 
   return (
-    <div className="grid grid-cols-5 gap-3.5 mt-4 w-full justify-items-center">
+    <div className="grid grid-cols-3 gap-5 mt-6 w-full max-w-[240px] mx-auto justify-items-center">
       {socialLinks.map((s) => {
         const style = getStyle(s.key);
         return (
@@ -255,9 +255,11 @@ function SocialsGrid({ socialLinks, isThemeDark }: { socialLinks: LinkItem[]; is
             target="_blank"
             rel="noopener noreferrer"
             title={s.label}
-            className={`w-11 h-11 rounded-full flex items-center justify-center shadow-xs transition-all cursor-pointer ${style.bg} ${style.text}`}
+            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-md transition-all cursor-pointer ${style.bg} ${style.text}`}
           >
-            {s.icon}
+            <div className="scale-[1.35] flex items-center justify-center">
+              {s.icon}
+            </div>
           </motion.a>
         );
       })}
@@ -271,6 +273,7 @@ interface Props {
   onDownloadCard?: () => void;
   isEditing?: boolean;
   onChange?: (updatedData: Partial<CardData>) => void;
+  activeTabOverride?: string;
 }
 
 /**
@@ -1887,7 +1890,7 @@ function SectionRenderer({ section, card }: { section: any; card: CardData }) {
   }
 }
 
-export default function CardPreview({ data, onSaveContact, onDownloadCard }: Props) {
+export default function CardPreview({ data, onSaveContact, onDownloadCard, activeTabOverride }: Props) {
   const sections = data.sections || [];
   const hasSection = (type: string) => sections.some((s: any) => s.type === type && s.enabled !== false);
   const getSectionData = (type: string) => {
@@ -1906,7 +1909,6 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
   if (hasSection("wifi")) tabs.push({ id: "wifi", label: "WiFi", emoji: "📶" });
   if (hasSection("location") || hasSection("hours")) tabs.push({ id: "location", label: "Location", emoji: "📍" });
   if (hasSection("booking") || hasSection("lead_capture")) tabs.push({ id: "booking", label: "Book", emoji: "📅" });
-  if (hasSection("review")) tabs.push({ id: "review", label: "Review", emoji: "⭐" });
   tabs.push({ id: "share", label: "Share", emoji: "🔗" });
 
   const getLandingTab = () => {
@@ -1915,18 +1917,6 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
     if (customDefaultTab && activeTabIds.includes(customDefaultTab)) {
       return customDefaultTab;
     }
-
-    if (data.business_type === "restaurant" && activeTabIds.includes("menu")) return "menu";
-    if (["salon", "clinic", "consultancy", "education"].includes(data.business_type || "") && activeTabIds.includes("services")) return "services";
-    if (["tattoo", "creative"].includes(data.business_type || "") && activeTabIds.includes("gallery")) return "gallery";
-    if (data.business_type === "retail" && activeTabIds.includes("products")) return "products";
-    if (data.business_type === "hotel" && activeTabIds.includes("location")) return "location";
-    
-    // Fallback priorities
-    if (activeTabIds.includes("menu")) return "menu";
-    if (activeTabIds.includes("services")) return "services";
-    if (activeTabIds.includes("gallery")) return "gallery";
-    if (activeTabIds.includes("products")) return "products";
     return "profile";
   };
 
@@ -1938,6 +1928,13 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
     setActiveTab(getLandingTab());
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.business_type, sections.length]);
+
+  // Sync tab override from parent component
+  useEffect(() => {
+    if (activeTabOverride && tabs.some(t => t.id === activeTabOverride)) {
+      setActiveTab(activeTabOverride);
+    }
+  }, [activeTabOverride]);
 
   const initials = getInitials(data.member_name || data.business_name || "Your Business");
   const color = data.brand_color || "#085041";
@@ -1981,6 +1978,9 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
         {activeTab === "profile" && (
           <div className="w-full flex flex-col gap-4">
             <CardMockup data={data} onSaveContact={onSaveContact} onDownloadCard={onDownloadCard} />
+            {hasSection("review") && (
+              <ReviewSectionRenderer data={getSectionData("review")} card={getResolvedCard("review")} />
+            )}
             <div className="w-full flex justify-center mt-1">
               <DownloadBusinessCard data={data} />
             </div>
@@ -2032,9 +2032,6 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard }: Pro
                 {hasSection("booking") && <BookingSectionRenderer data={getSectionData("booking")} card={getResolvedCard("booking")} />}
                 {hasSection("lead_capture") && <LeadCaptureSectionRenderer data={getSectionData("lead_capture")} card={getResolvedCard("lead_capture")} />}
               </div>
-            )}
-            {activeTab === "review" && hasSection("review") && (
-              <ReviewSectionRenderer data={getSectionData("review")} card={getResolvedCard("review")} />
             )}
           </div>
         )}

@@ -671,6 +671,67 @@ function drawSocialFooterIcons(ctx: CanvasRenderingContext2D, cx: number, cy: nu
   ctx.restore();
 }
 
+function drawFlyerTexture(ctx: CanvasRenderingContext2D, width: number, height: number, texture: string, isLight: boolean) {
+  ctx.save();
+  if (texture === "geometric") {
+    ctx.fillStyle = isLight ? "rgba(0, 0, 0, 0.04)" : "rgba(255, 255, 255, 0.04)";
+    const dotSpacing = 30;
+    for (let x = 40; x < width - 40; x += dotSpacing) {
+      for (let y = 40; y < height - 40; y += dotSpacing) {
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else if (texture === "linen") {
+    ctx.strokeStyle = isLight ? "rgba(0, 0, 0, 0.02)" : "rgba(255, 255, 255, 0.025)";
+    ctx.lineWidth = 1;
+    const spacing = 12;
+    for (let x = 40; x < width - 40; x += spacing) {
+      ctx.beginPath();
+      ctx.moveTo(x, 40);
+      ctx.lineTo(x, height - 40);
+      ctx.stroke();
+    }
+    for (let y = 40; y < height - 40; y += spacing) {
+      ctx.beginPath();
+      ctx.moveTo(40, y);
+      ctx.lineTo(width - 40, y);
+      ctx.stroke();
+    }
+  } else if (texture === "wood") {
+    ctx.strokeStyle = isLight ? "rgba(0, 0, 0, 0.025)" : "rgba(255, 255, 255, 0.02)";
+    ctx.lineWidth = 2;
+    for (let y = 50; y < height - 45; y += 18) {
+      ctx.beginPath();
+      ctx.moveTo(40, y);
+      ctx.bezierCurveTo(
+        width * 0.25, y - 5 + Math.sin(y) * 4,
+        width * 0.75, y + 5 - Math.cos(y) * 4,
+        width - 40, y + Math.sin(y * 0.5) * 3
+      );
+      ctx.stroke();
+    }
+  } else if (texture === "marble") {
+    ctx.strokeStyle = isLight ? "rgba(0, 0, 0, 0.025)" : "rgba(255, 255, 255, 0.035)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(100, 100);
+    ctx.bezierCurveTo(300, 400, 400, 800, 900, 1300);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(800, 100);
+    ctx.bezierCurveTo(700, 500, 300, 900, 200, 1300);
+    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(400, 200);
+    ctx.bezierCurveTo(500, 400, 250, 700, 500, 1100);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 /**
  * Generates an A6-sized premium Google Review Stand Flyer (1050x1485 px).
  * If the wifi section is added and enabled, includes both Business QR and WiFi QR side-by-side.
@@ -739,25 +800,55 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     throw new Error("Could not get canvas 2D context");
   }
 
-  // Draw premium dark matte background
-  ctx.fillStyle = "#1e2025";
+  const flyerTheme = data.design_settings?.stand_flyer?.theme || "dark_matte";
+  const flyerTexture = data.design_settings?.stand_flyer?.bg_texture || "none";
+  const showLogo = data.design_settings?.stand_flyer?.show_logo !== false;
+
+  let bgColor = "#1e2025";
+  let titleColor = "#ffffff";
+  let subtitleColor = "#f97316"; // Accent orange
+  let isLightTheme = false;
+  let outerBorderColor = brandColor;
+  let innerBorderColor = "rgba(255, 255, 255, 0.05)";
+
+  if (flyerTheme === "light_elegant") {
+    bgColor = "#faf8f5";
+    titleColor = "#1e2025";
+    subtitleColor = brandColor;
+    isLightTheme = true;
+    outerBorderColor = brandColor;
+    innerBorderColor = "rgba(0, 0, 0, 0.05)";
+  } else if (flyerTheme === "brand_accent") {
+    bgColor = brandColor;
+    titleColor = "#ffffff";
+    subtitleColor = "#fef08a"; // Bright yellow/gold accent
+    isLightTheme = false;
+    outerBorderColor = "#ffffff";
+    innerBorderColor = "rgba(255, 255, 255, 0.15)";
+  }
+
+  // Draw background
+  ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Outer border with Brand color
+  // Draw background texture overlay
+  drawFlyerTexture(ctx, canvas.width, canvas.height, flyerTexture, isLightTheme);
+
+  // Outer border with Brand/Theme color
   const outerBorderWidth = 16;
-  ctx.strokeStyle = brandColor;
+  ctx.strokeStyle = outerBorderColor;
   ctx.lineWidth = outerBorderWidth;
   ctx.strokeRect(outerBorderWidth / 2, outerBorderWidth / 2, canvas.width - outerBorderWidth, canvas.height - outerBorderWidth);
 
   // Inner thin border
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+  ctx.strokeStyle = innerBorderColor;
   ctx.lineWidth = 2;
   ctx.strokeRect(32, 32, canvas.width - 64, canvas.height - 64);
 
-  let currentY = 110;
+  let currentY = (showLogo && loadedImages.logo) ? 110 : 160;
 
   // 4. Logo Header
-  if (loadedImages.logo) {
+  if (showLogo && loadedImages.logo) {
     const logoSize = 130;
     const logoX = (canvas.width - logoSize) / 2;
     ctx.save();
@@ -767,7 +858,7 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     ctx.drawImage(loadedImages.logo, logoX, currentY, logoSize, logoSize);
     ctx.restore();
 
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.strokeStyle = isLightTheme ? "rgba(0, 0, 0, 0.1)" : "rgba(255, 255, 255, 0.1)";
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(logoX + logoSize / 2, currentY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
@@ -777,7 +868,7 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
   }
 
   // Business Name
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = titleColor;
   ctx.font = "bold 44px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
@@ -785,7 +876,7 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
   currentY += 65;
 
   // Scan Connect Explore text
-  ctx.fillStyle = "#f97316"; // Accent Orange
+  ctx.fillStyle = subtitleColor;
   ctx.font = "bold 26px sans-serif";
   ctx.fillText("SCAN • CONNECT • EXPLORE", canvas.width / 2, currentY);
   currentY += 65;
@@ -1100,12 +1191,12 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
   }
 
   // 7. Footer: Platform branding
-  ctx.fillStyle = "#94a3b8";
+  ctx.fillStyle = isLightTheme ? "#475569" : "#94a3b8";
   ctx.font = "bold 18px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   ctx.fillText("Powered by OneQR Card", canvas.width / 2, barY + barH + 30);
-  ctx.fillStyle = "#64748b";
+  ctx.fillStyle = isLightTheme ? "#52525b" : "#64748b";
   ctx.font = "bold 12px sans-serif";
   ctx.fillText("www.oneqrcard.com", canvas.width / 2, barY + barH + 58);
 

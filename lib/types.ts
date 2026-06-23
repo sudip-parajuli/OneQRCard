@@ -87,6 +87,9 @@ export interface CardData {
       wifi_title?: string | null;
       wifi_text1?: string | null;
       wifi_text2?: string | null;
+      theme?: "dark_matte" | "light_elegant" | "brand_accent" | null;
+      bg_texture?: "none" | "geometric" | "linen" | "wood" | "marble" | null;
+      show_logo?: boolean;
     } | null;
   } | null;
 

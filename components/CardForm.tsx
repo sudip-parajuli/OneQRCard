@@ -293,6 +293,9 @@ export default function CardForm({
       const wifi_title = prev.design_settings?.stand_flyer?.wifi_title ?? "Relax & Connect!";
       const wifi_text1 = prev.design_settings?.stand_flyer?.wifi_text1 ?? "Enjoy free WiFi while";
       const wifi_text2 = prev.design_settings?.stand_flyer?.wifi_text2 ?? "you are at our venue.";
+      const theme = prev.design_settings?.stand_flyer?.theme ?? "dark_matte";
+      const bg_texture = prev.design_settings?.stand_flyer?.bg_texture ?? "none";
+      const show_logo = prev.design_settings?.stand_flyer?.show_logo ?? true;
 
       return {
         ...prev,
@@ -304,6 +307,9 @@ export default function CardForm({
             wifi_title,
             wifi_text1,
             wifi_text2,
+            theme,
+            bg_texture,
+            show_logo,
           },
         },
       };
@@ -917,7 +923,7 @@ export default function CardForm({
                   else if (section.type === "review") sectionTitle = "⭐ Rate Us & Review";
 
                   return (
-                    <div key={section.type} className="border border-stone-200 rounded-2xl bg-white overflow-visible">
+                    <div key={section.type} id={`section-editor-${section.type}`} className="border border-stone-200 rounded-2xl bg-white overflow-visible transition-all duration-300">
                       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 bg-stone-50 border-b border-stone-200 rounded-t-xl">
                         <div className="flex items-center gap-2">
                           {/* Reordering */}
@@ -1114,7 +1120,7 @@ export default function CardForm({
                       const locked = isSectionLocked(section.type, data.plan, section.data);
 
                       return (
-                        <div key={section.type} className="border border-stone-200 rounded-xl bg-white overflow-visible">
+                        <div key={section.type} id={`section-editor-${section.type}`} className="border border-stone-200 rounded-xl bg-white overflow-visible transition-all duration-300">
                           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-stone-50 border-b border-stone-200 rounded-t-xl">
                             <div className="flex items-center gap-2">
                               {/* Reordering */}
@@ -2092,11 +2098,118 @@ export default function CardForm({
                           />
                         </div>
 
-                        {(!data.sections?.some(s => s.type === "wifi" && s.enabled !== false)) && (
-                          <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200/50 p-3 rounded-xl font-medium leading-normal">
-                            ⚠️ <strong>WiFi Section Inactive:</strong> Setup WiFi credentials in the &quot;Content &amp; Sections&quot; tab to enable a side-by-side WiFi QR code on the Stand Flyer. Otherwise, it will only display the business card QR code in a single layout.
+                        {/* Flyer styling controls */}
+                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-stone-100">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Flyer Theme</label>
+                            <select
+                              value={data.design_settings?.stand_flyer?.theme || "dark_matte"}
+                              onChange={(e) => {
+                                update("design_settings", {
+                                  ...(data.design_settings || {}),
+                                  stand_flyer: {
+                                    ...(data.design_settings?.stand_flyer || {}),
+                                    theme: e.target.value as any
+                                  }
+                                });
+                              }}
+                              className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                            >
+                              <option value="dark_matte">Dark Matte (Charcoal)</option>
+                              <option value="light_elegant">Light Elegant (Cream)</option>
+                              <option value="brand_accent">Brand Accent (Color)</option>
+                            </select>
                           </div>
-                        )}
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Background Texture</label>
+                            <select
+                              value={data.design_settings?.stand_flyer?.bg_texture || "none"}
+                              onChange={(e) => {
+                                update("design_settings", {
+                                  ...(data.design_settings || {}),
+                                  stand_flyer: {
+                                    ...(data.design_settings?.stand_flyer || {}),
+                                    bg_texture: e.target.value as any
+                                  }
+                                });
+                              }}
+                              className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                            >
+                              <option value="none">None (Solid)</option>
+                              <option value="geometric">Geometric Radial Grid</option>
+                              <option value="linen">Elegant Linen</option>
+                              <option value="wood">Wood Grain</option>
+                              <option value="marble">Classic Marble</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5 pt-2 border-t border-stone-100">
+                          <label className="flex items-center gap-2 text-xs font-semibold text-stone-750 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={data.design_settings?.stand_flyer?.show_logo !== false}
+                              onChange={(e) => {
+                                update("design_settings", {
+                                  ...(data.design_settings || {}),
+                                  stand_flyer: {
+                                    ...(data.design_settings?.stand_flyer || {}),
+                                    show_logo: e.target.checked
+                                  }
+                                });
+                              }}
+                              className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                            />
+                            <span>Show Business Logo at the Top</span>
+                          </label>
+                        </div>
+
+                        {(!data.sections?.some(s => s.type === "wifi" && s.enabled !== false && s.data?.ssid)) ? (
+                          <div className="bg-amber-50 border border-amber-200/50 p-4 rounded-xl text-center space-y-2.5">
+                            <p className="text-[10px] text-amber-800 font-medium leading-normal">
+                              ⚠️ <strong>WiFi Credentials Not Configured:</strong> The Stand Flyer requires active WiFi details to show a side-by-side WiFi QR code. Currently, it only displays the Business QR.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setData((prev) => {
+                                  const sections = [...(prev.sections || [])];
+                                  const wifiIdx = sections.findIndex(s => s.type === "wifi");
+                                  if (wifiIdx === -1) {
+                                    sections.push({
+                                      type: "wifi",
+                                      title: "WiFi Access",
+                                      enabled: true,
+                                      data: { ssid: "", password: "", show_password: true }
+                                    });
+                                  } else {
+                                    sections[wifiIdx] = {
+                                      ...sections[wifiIdx],
+                                      enabled: true
+                                    };
+                                  }
+                                  return { ...prev, sections };
+                                });
+                                
+                                setTimeout(() => {
+                                  document.getElementById("section-editor-wifi")?.scrollIntoView({ behavior: "smooth" });
+                                  const el = document.getElementById("section-editor-wifi");
+                                  if (el) {
+                                    el.classList.add("ring-2", "ring-brand");
+                                    setTimeout(() => el.classList.remove("ring-2", "ring-brand"), 2000);
+                                  }
+                                }, 100);
+                              }}
+                              className="py-1.5 px-3 bg-brand/10 hover:bg-brand/15 text-brand text-[10px] font-bold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                              </svg>
+                              + Add WiFi Credentials
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
 
                       {/* Right: Preview & Download */}
@@ -3323,11 +3436,120 @@ export default function CardForm({
                     />
                   </div>
 
-                  {(!data.sections?.some(s => s.type === "wifi" && s.enabled !== false)) && (
-                    <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200/50 p-3 rounded-xl font-medium leading-normal">
-                      ⚠️ <strong>WiFi Section Inactive:</strong> Setup WiFi credentials in the &quot;Content &amp; Sections&quot; tab to enable a side-by-side WiFi QR code on the Stand Flyer. Otherwise, it will only display the business card QR code in a single layout.
+                  {/* Flyer styling controls */}
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-stone-100">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Flyer Theme</label>
+                      <select
+                        value={data.design_settings?.stand_flyer?.theme || "dark_matte"}
+                        onChange={(e) => {
+                          update("design_settings", {
+                            ...(data.design_settings || {}),
+                            stand_flyer: {
+                              ...(data.design_settings?.stand_flyer || {}),
+                              theme: e.target.value as any
+                            }
+                          });
+                        }}
+                        className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                      >
+                        <option value="dark_matte">Dark Matte (Charcoal)</option>
+                        <option value="light_elegant">Light Elegant (Cream)</option>
+                        <option value="brand_accent">Brand Accent (Color)</option>
+                      </select>
                     </div>
-                  )}
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Background Texture</label>
+                      <select
+                        value={data.design_settings?.stand_flyer?.bg_texture || "none"}
+                        onChange={(e) => {
+                          update("design_settings", {
+                            ...(data.design_settings || {}),
+                            stand_flyer: {
+                              ...(data.design_settings?.stand_flyer || {}),
+                              bg_texture: e.target.value as any
+                            }
+                          });
+                        }}
+                        className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                      >
+                        <option value="none">None (Solid)</option>
+                        <option value="geometric">Geometric Radial Grid</option>
+                        <option value="linen">Elegant Linen</option>
+                        <option value="wood">Wood Grain</option>
+                        <option value="marble">Classic Marble</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-stone-100">
+                    <label className="flex items-center gap-2 text-xs font-semibold text-stone-750 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={data.design_settings?.stand_flyer?.show_logo !== false}
+                        onChange={(e) => {
+                          update("design_settings", {
+                            ...(data.design_settings || {}),
+                            stand_flyer: {
+                              ...(data.design_settings?.stand_flyer || {}),
+                              show_logo: e.target.checked
+                            }
+                          });
+                        }}
+                        className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                      />
+                      <span>Show Business Logo at the Top</span>
+                    </label>
+                  </div>
+
+                  {(!data.sections?.some(s => s.type === "wifi" && s.enabled !== false && s.data?.ssid)) ? (
+                    <div className="bg-amber-50 border border-amber-200/50 p-4 rounded-xl text-center space-y-2.5">
+                      <p className="text-[10px] text-amber-800 font-medium leading-normal">
+                        ⚠️ <strong>WiFi Credentials Not Configured:</strong> The Stand Flyer requires active WiFi details to show a side-by-side WiFi QR code. Currently, it only displays the Business QR.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setData((prev) => {
+                            const sections = [...(prev.sections || [])];
+                            const wifiIdx = sections.findIndex(s => s.type === "wifi");
+                            if (wifiIdx === -1) {
+                              sections.push({
+                                type: "wifi",
+                                title: "WiFi Access",
+                                enabled: true,
+                                  data: { ssid: "", password: "", show_password: true }
+                              });
+                            } else {
+                              sections[wifiIdx] = {
+                                ...sections[wifiIdx],
+                                enabled: true
+                              };
+                            }
+                            return { ...prev, sections };
+                          });
+                          
+                          setCurrentStep(3);
+                          
+                          setTimeout(() => {
+                            document.getElementById("section-editor-wifi")?.scrollIntoView({ behavior: "smooth" });
+                            const el = document.getElementById("section-editor-wifi");
+                            if (el) {
+                              el.classList.add("ring-2", "ring-brand");
+                              setTimeout(() => el.classList.remove("ring-2", "ring-brand"), 2000);
+                            }
+                          }, 150);
+                        }}
+                        className="py-1.5 px-3 bg-brand/10 hover:bg-brand/15 text-brand text-[10px] font-bold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        + Add WiFi Credentials
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* Preview & Download */}

@@ -383,10 +383,10 @@ export default async function DashboardPage() {
                           +
                         </div>
                         <h4 className="font-bold text-stone-800 text-sm group-hover:text-brand transition-colors">
-                          Add Team Card
+                          Create Card for Members/Staff/Owners
                         </h4>
-                        <p className="text-xs text-stone-400 mt-1 max-w-[180px]">
-                          Add a new teammate card. Bypasses plan selection and payment.
+                        <p className="text-xs text-stone-400 mt-1 max-w-[200px]">
+                          Create a card for staff, members, or owners under your workspace (Pro: 2 total, Business: 5 total).
                         </p>
                       </Link>
                     )}

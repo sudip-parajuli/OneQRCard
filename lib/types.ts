@@ -81,7 +81,15 @@ export interface CardData {
       border_radius?: "none" | "small" | "medium" | "large";
       border_glow?: boolean;
     } | null;
+    about_section_order?: string[] | null;
+    show_wallet?: boolean;
+    stand_flyer?: {
+      wifi_title?: string | null;
+      wifi_text1?: string | null;
+      wifi_text2?: string | null;
+    } | null;
   } | null;
+
   created_at?: string;
 }
 

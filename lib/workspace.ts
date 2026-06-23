@@ -5,7 +5,7 @@ import { supabaseAdmin } from "./supabase";
  */
 export function getCardLimitForPlan(plan: string): number {
   if (plan === "business") return 5;
-  if (plan === "pro") return 1;
+  if (plan === "pro") return 2;
   return 1; // basic/free
 }
 

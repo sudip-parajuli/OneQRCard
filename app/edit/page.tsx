@@ -15,6 +15,17 @@ export default function LoginPage() {
     setMessage(null);
 
     try {
+      const dummyDomains = ["example.com", "test.com", "invalid.com", "placeholder.com"];
+      const emailDomain = email.split("@")[1]?.toLowerCase();
+      if (dummyDomains.includes(emailDomain)) {
+        setMessage({
+          type: "error",
+          text: "Placeholder domains (e.g. example.com, test.com) are not allowed. Please use a valid email address.",
+        });
+        setLoading(false);
+        return;
+      }
+
       const baseUrl = window.location.origin;
       const { error } = await supabase.auth.signInWithOtp({
         email,

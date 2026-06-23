@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CardData, THEME_LABELS, ThemeId } from "@/lib/types";
-import { darken, getInitials, lighten, normalizePhone } from "@/lib/utils";
+import { darken, getInitials, lighten, normalizePhone, slugify } from "@/lib/utils";
 import { motion } from "framer-motion";
 import ShareQR from "@/components/ShareQR";
 import DownloadBusinessCard from "@/components/DownloadBusinessCard";
@@ -403,12 +403,367 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
     initial: anim === "fade" ? "initial" : undefined
   } : {};
 
-  if (data.theme === "glassmorphic") {
-    const txtColor = textColor;
-    const mutedTxtColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : "rgba(255, 255, 255, 0.75)");
-    const borderCol = vibe ? `${brandColor}33` : "rgba(255, 255, 255, 0.2)";
-    const linkBorderCol = vibe ? `${brandColor}22` : "rgba(255, 255, 255, 0.1)";
+  const txtColor = textColor;
+  const isClassic = data.theme === "classic";
+  const classicHeaderTextColor = customTextColor || (vibe ? textColor : lighten(brandColor, 0.92));
+  const classicHeaderMutedColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : lighten(brandColor, 0.6));
+  const classicBodyTextColor = customTextColor || (vibe ? textColor : "#0f172a");
+  const classicBodyMutedColor = customTextColor ? `${customTextColor}b3` : (vibe ? `${textColor}b3` : "#6b7280");
 
+  let linkBorderCol = "rgba(0, 0, 0, 0.06)";
+  if (data.theme === "glassmorphic") {
+    linkBorderCol = vibe ? `${brandColor}22` : "rgba(255, 255, 255, 0.1)";
+  } else if (data.theme === "neonDark") {
+    linkBorderCol = vibe ? `${brandColor}22` : "rgba(255, 255, 255, 0.08)";
+  } else if (data.theme === "bold") {
+    linkBorderCol = "rgba(255, 255, 255, 0.12)";
+  } else if (data.theme === "gradient") {
+    linkBorderCol = "rgba(255, 255, 255, 0.08)";
+  }
+
+  let borderCol = "rgba(0, 0, 0, 0.08)";
+  if (data.theme === "glassmorphic") {
+    borderCol = vibe ? `${brandColor}33` : "rgba(255, 255, 255, 0.2)";
+  } else if (data.theme === "neonDark") {
+    borderCol = vibe ? `${brandColor}33` : "rgba(255, 255, 255, 0.12)";
+  } else if (data.theme === "minimal") {
+    borderCol = "rgba(0, 0, 0, 0.05)";
+  } else if (data.theme === "bold") {
+    borderCol = "rgba(255, 255, 255, 0.15)";
+  } else if (data.theme === "claymorphic") {
+    borderCol = "rgba(0, 0, 0, 0.04)";
+  } else if (data.theme === "neumorphic") {
+    borderCol = "rgba(0, 0, 0, 0.03)";
+  } else if (data.theme === "skeuomorphic") {
+    borderCol = "rgba(0, 0, 0, 0.04)";
+  } else if (data.theme === "liquidGlass") {
+    borderCol = "rgba(255, 255, 255, 0.2)";
+  } else if (data.theme === "gradient") {
+    borderCol = "rgba(255, 255, 255, 0.12)";
+  }
+
+  let mutedTxtColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : "rgba(255, 255, 255, 0.75)");
+  if (data.theme === "minimal" || data.theme === "neumorphic") {
+    mutedTxtColor = customTextColor ? `${customTextColor}b3` : (vibe ? `${textColor}b3` : "#6b7280");
+  } else if (data.theme === "claymorphic") {
+    mutedTxtColor = customTextColor ? `${customTextColor}b3` : (vibe ? `${textColor}b3` : "#4b5563");
+  } else if (data.theme === "skeuomorphic") {
+    mutedTxtColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : "#6b7280");
+  } else if (data.theme === "neonDark") {
+    mutedTxtColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : "rgba(255, 255, 255, 0.65)");
+  } else if (data.theme === "gradient") {
+    mutedTxtColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : "rgba(255, 255, 255, 0.7)");
+  } else if (data.theme === "bold") {
+    mutedTxtColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : "rgba(255, 255, 255, 0.8)");
+  }
+
+  const getContactBoxStyle = (): React.CSSProperties => {
+    const base: React.CSSProperties = {
+      padding: "16px",
+      borderRadius: "20px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px",
+      width: "100%",
+    };
+    
+    if (data.theme === "glassmorphic") {
+      return {
+        ...base,
+        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        backdropFilter: "blur(12px)",
+        border: "1px solid rgba(255, 255, 255, 0.15)",
+      };
+    }
+    if (data.theme === "neonDark") {
+      return {
+        ...base,
+        backgroundColor: "rgba(9, 13, 22, 0.6)",
+        border: `1px solid ${brandColor}33`,
+      };
+    }
+    if (data.theme === "claymorphic") {
+      return {
+        ...base,
+        backgroundColor: "rgba(255, 255, 255, 0.55)",
+        border: "2px solid rgba(255, 255, 255, 0.8)",
+        borderRadius: "24px",
+        boxShadow: "inset -2px -2px 6px rgba(0,0,0,0.04), 4px 4px 12px rgba(0,0,0,0.03)",
+      };
+    }
+    if (data.theme === "neumorphic") {
+      return {
+        ...base,
+        backgroundColor: "#f5f5f5",
+        borderRadius: "24px",
+        ...getNeomorphicStyle(false)
+      };
+    }
+    if (data.theme === "skeuomorphic") {
+      return {
+        ...base,
+        backgroundColor: "rgba(250, 248, 245, 0.85)",
+        border: "1px solid rgba(0,0,0,0.06)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8)",
+      };
+    }
+    if (data.theme === "liquidGlass") {
+      return {
+        ...base,
+        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        backdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.25)",
+        boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07), inset 0 1px 0 rgba(255,255,255,0.2)",
+      };
+    }
+    if (data.theme === "bold") {
+      return {
+        ...base,
+        backgroundColor: "rgba(255, 255, 255, 0.12)",
+        border: "1px solid rgba(255, 255, 255, 0.15)",
+      };
+    }
+    if (data.theme === "gradient") {
+      return {
+        ...base,
+        backgroundColor: "rgba(255, 255, 255, 0.07)",
+        backdropFilter: "blur(8px)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+      };
+    }
+    if (data.theme === "minimal") {
+      return {
+        ...base,
+        backgroundColor: "rgba(244, 244, 245, 0.5)",
+        border: "1px solid rgba(228, 228, 231, 0.8)",
+      };
+    }
+    // classic
+    return {
+      ...base,
+      backgroundColor: "rgba(244, 244, 245, 0.45)",
+      border: "1px solid rgba(228, 228, 231, 0.7)",
+    };
+  };
+
+  const getIconButtonStyle = (): React.CSSProperties => {
+    if (isDarkTheme) {
+      return {
+        width: "48px",
+        height: "48px",
+        borderRadius: "9999px",
+        border: `1px solid ${linkBorderCol}`,
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        color: txtColor,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        ...getNeomorphicStyle(true)
+      };
+    } else {
+      return {
+        width: "48px",
+        height: "48px",
+        borderRadius: "9999px",
+        border: "1px solid rgba(0, 0, 0, 0.06)",
+        backgroundColor: "rgba(255, 255, 255, 0.8)",
+        color: data.theme === "classic" ? classicBodyTextColor : txtColor,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        ...getNeomorphicStyle(true)
+      };
+    }
+  };
+
+  const defaultAboutOrder: ("contact_details" | "review" | "social_links")[] = ["contact_details", "review", "social_links"];
+  let aboutOrder = [...defaultAboutOrder];
+  if (data.sections && Array.isArray(data.sections)) {
+    const aboutSectionsInOrder = data.sections
+      .filter((s: any) => s.type === "contact" || s.type === "review" || s.type === "socials")
+      .map((s: any) => {
+        if (s.type === "contact") return "contact_details";
+        if (s.type === "socials") return "social_links";
+        return "review";
+      });
+    if (aboutSectionsInOrder.length > 0) {
+      aboutOrder.sort((a, b) => {
+        const idxA = aboutSectionsInOrder.indexOf(a);
+        const idxB = aboutSectionsInOrder.indexOf(b);
+        const valA = idxA === -1 ? 99 : idxA;
+        const valB = idxB === -1 ? 99 : idxB;
+        return valA - valB;
+      });
+    }
+  }
+
+  const renderAboutSection = (sectionId: string) => {
+    const isClassic = data.theme === "classic";
+    const bodyTextColor = isClassic ? classicBodyTextColor : txtColor;
+    const bodyMutedColor = isClassic ? classicBodyMutedColor : mutedTxtColor;
+    const borderCol = isClassic ? "rgba(0, 0, 0, 0.08)" : linkBorderCol;
+
+    switch (sectionId) {
+      case "contact_details": {
+        const contactSection = data.sections?.find((s: any) => s.type === "contact");
+        const isEnabled = contactSection ? contactSection.enabled !== false : true;
+        if (!isEnabled) return null;
+        return (
+          <div
+            key="contact_details"
+            style={getContactBoxStyle()}
+            className="w-full text-left"
+          >
+            {/* Save to contacts */}
+            <SaveButton 
+              color={data.theme === "glassmorphic" ? "rgba(255, 255, 255, 0.22)" : brandColor} 
+              textColor={data.theme === "glassmorphic" ? (customTextColor || "#fff") : (data.theme === "neonDark" ? "#0c0a09" : "#fff")} 
+              onClick={onSaveContact} 
+              style={getNeomorphicStyle(true)} 
+            />
+
+            {/* Download business card */}
+            {onDownloadCard && (
+              <DownloadButton 
+                color={data.theme === "glassmorphic" ? txtColor : brandColor} 
+                onClick={onDownloadCard} 
+                style={getNeomorphicStyle(true)} 
+              />
+            )}
+
+            {/* Phone link (shown just like it is right now) */}
+            {data.phone && (
+              <a
+                href={`tel:${normalizePhone(data.phone)}`}
+                style={{ 
+                  color: bodyTextColor, 
+                  borderColor: borderCol,
+                  ...getNeomorphicStyle(true) 
+                }}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border bg-white/5 hover:bg-white/10 text-sm transition-all cursor-pointer ${alignFlexClass}`}
+              >
+                <span style={{ color: bodyMutedColor }}>{icons.phone}</span>
+                Call — {data.phone}
+              </a>
+            )}
+
+            {/* Circular icons row for website, whatsapp, and email */}
+            {(data.website || data.whatsapp || data.email) && (
+              <div className="flex justify-center items-center gap-6 py-2.5">
+                {data.website && (
+                  <motion.a
+                    whileHover={{ scale: 1.1, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    href={data.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-12 h-12 rounded-full flex items-center justify-center shadow-md bg-[#3b82f6] text-white cursor-pointer hover:opacity-95 transition-all"
+                    title="Website"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5.5 h-5.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                  </motion.a>
+                )}
+                {data.whatsapp && (
+                  <motion.a
+                    whileHover={{ scale: 1.1, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    href={`https://wa.me/${normalizePhone(data.whatsapp)}?text=Hello!%20I%20saw%20your%20digital%20business%2520card%20and%20wanted%20to%20reach%20out.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-12 h-12 rounded-full flex items-center justify-center shadow-md bg-[#25D366] text-white cursor-pointer hover:opacity-95 transition-all"
+                    title="WhatsApp"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5.5 h-5.5">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.455 5.703 1.457h.004c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                    </svg>
+                  </motion.a>
+                )}
+                {data.email && (
+                  <motion.a
+                    whileHover={{ scale: 1.1, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    href={`mailto:${data.email}`}
+                    className="w-12 h-12 rounded-full flex items-center justify-center shadow-md bg-[#ea4335] text-white cursor-pointer hover:opacity-95 transition-all"
+                    title="Email"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5.5 h-5.5">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                      <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                  </motion.a>
+                )}
+              </div>
+            )}
+
+            {/* Address and Custom Links */}
+            {links.filter(l => l.key !== "phone" && l.key !== "website" && l.key !== "whatsapp" && l.key !== "email").map((l) => {
+              const isGoogleReview = l.key === "google_review";
+              return (
+                <motion.a
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  key={l.key}
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ 
+                     color: isClassic ? (isGoogleReview ? undefined : classicBodyTextColor) : bodyTextColor, 
+                     borderColor: isClassic ? "rgba(0,0,0,0.08)" : borderCol,
+                     ...getNeomorphicStyle(true) 
+                  }}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border bg-white/5 hover:bg-white/10 text-sm transition-all cursor-pointer ${alignFlexClass} ${
+                    isClassic && isGoogleReview
+                      ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
+                      : ""
+                  }`}
+                >
+                  <span 
+                    style={{ color: isClassic ? (isGoogleReview ? undefined : classicBodyMutedColor) : bodyMutedColor }}
+                    className={isClassic && isGoogleReview ? "text-amber-500" : ""}
+                  >
+                    {l.icon}
+                  </span>
+                  {l.label}
+                </motion.a>
+              );
+            })}
+          </div>
+        );
+      }
+      case "review": {
+        const reviewSection = data.sections?.find((s: any) => s.type === "review");
+        const isEnabled = reviewSection ? reviewSection.enabled !== false : true;
+        const reviewUrl = reviewSection?.data?.google_review_url || data.google_review;
+        return (isEnabled && reviewUrl) ? (
+          <div key="review" className="w-full">
+            <GoogleReviewGate
+              cardId={data.id}
+              googleReviewUrl={reviewUrl}
+              brandColor={brandColor}
+            />
+          </div>
+        ) : null;
+      }
+      case "social_links": {
+        const socialsSection = data.sections?.find((s: any) => s.type === "socials");
+        const isEnabled = socialsSection ? socialsSection.enabled !== false : true;
+        return (isEnabled && socialLinks.length > 0) ? (
+          <div key="social_links" className="w-full flex justify-center">
+            <SocialsGrid socialLinks={socialLinks} isThemeDark={isDarkTheme} />
+          </div>
+        ) : null;
+      }
+      default:
+        return null;
+    }
+  };
+
+  if (data.theme === "glassmorphic") {
     return (
       <motion.div
         {...motionProps}
@@ -461,7 +816,6 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
               {data.bio}
             </p>
           )}
-
           <motion.div
             variants={{
               hidden: { opacity: 0 },
@@ -474,43 +828,12 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             }}
             initial="hidden"
             animate="show"
-            className="mt-6 flex flex-col gap-2 w-full"
+            className="mt-6 flex flex-col gap-4 w-full"
           >
-            <SaveButton color="rgba(255, 255, 255, 0.22)" textColor={customTextColor || "#fff"} onClick={onSaveContact} style={getNeomorphicStyle(true)} />
-            {onDownloadCard && <DownloadButton color={txtColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
-            
-            {data.google_review && (
-              <GoogleReviewGate
-                cardId={data.id}
-                googleReviewUrl={data.google_review}
-                brandColor={brandColor}
-              />
-            )}
-
-            {links.map((l) => (
-              <motion.a
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 }
-                }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                key={l.key}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: txtColor, borderColor: linkBorderCol, ...getNeomorphicStyle(true) }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border bg-white/5 hover:bg-white/15 text-sm transition-all cursor-pointer ${alignFlexClass}`}
-              >
-                <span style={{ color: mutedTxtColor }}>{l.icon}</span>
-                {l.label}
-              </motion.a>
-            ))}
-
-            <SocialsGrid socialLinks={socialLinks} isThemeDark={true} />
+            {aboutOrder.map((sectionId) => renderAboutSection(sectionId))}
 
             {data.plan === "business" && (
-              <WalletButton cardId={data.id} brandColor={brandColor} />
+              <WalletButton cardId={data.id} brandColor={brandColor} show={data.design_settings?.show_wallet} />
             )}
           </motion.div>
         </div>
@@ -519,18 +842,11 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
   }
 
   if (data.theme === "neonDark") {
-    const txtColor = textColor;
-    const mutedTxtColor = vibe ? `${textColor}cc` : "#a1a1aa";
-
     return (
       <motion.div
         {...motionProps}
-        className="bg-stone-950 rounded-3xl overflow-hidden max-w-sm w-full mx-auto border-2 p-6 transition-all"
-        style={{
-          borderColor: brandColor,
-          boxShadow: embossed ? getNeomorphicStyle().boxShadow : `0 0 20px ${brandColor}33`,
-          ...bgStyle,
-        }}
+        className="rounded-3xl p-1.5 max-w-sm w-full mx-auto relative overflow-hidden shadow-xl"
+        style={{ ...bgStyle, ...getNeomorphicStyle() }}
       >
         <style dangerouslySetInnerHTML={{__html: `
           @keyframes gradientMotion {
@@ -539,16 +855,26 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             100%{background-position:0% 50%}
           }
         `}} />
-        <div className={`text-center pb-6 border-b border-stone-800/60 bg-stone-950/70 backdrop-blur-sm rounded-t-xl flex flex-col ${alignClass}`}>
-          <Logo data={data} initials={initials} color={brandColor} size={76} />
-          <div
-            className="text-xl font-extrabold tracking-tight mt-4"
-            style={{ textShadow: `0 0 10px ${brandColor}66`, color: txtColor }}
-          >
+        {!hasBg && !vibe && (
+          <div className="absolute inset-0 -z-10 bg-stone-950 overflow-hidden">
+            <div
+              className="absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl opacity-30"
+              style={{ backgroundColor: brandColor }}
+            ></div>
+          </div>
+        )}
+        <div
+          style={{ borderColor: borderCol }}
+          className={`bg-stone-900/50 backdrop-blur-xl border rounded-2xl p-6 shadow-2xl flex flex-col ${alignClass} ${
+            hasBg ? "backdrop-blur-[2px]" : ""
+          }`}
+        >
+          <Logo data={data} initials={initials} color={brandColor} size={76} inverse />
+          <div style={{ color: txtColor }} className="text-xl font-bold mt-4 drop-shadow-sm">
             {data.member_name ? data.member_name : (data.business_name || "Your Business")}
           </div>
           {(data.member_role || data.tagline) && (
-            <div style={{ color: mutedTxtColor }} className="text-xs mt-1.5">
+            <div style={{ color: mutedTxtColor }} className="text-xs mt-1">
               {data.member_name
                 ? `${data.member_role || ""}${data.member_role && data.business_name ? " @ " : ""}${data.business_name || ""}`
                 : data.tagline}
@@ -576,55 +902,12 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
           }}
           initial="hidden"
           animate="show"
-          className="pt-6 flex flex-col gap-2 bg-stone-950/70 backdrop-blur-sm rounded-b-xl px-1"
+          className="pt-6 flex flex-col gap-4 bg-stone-950/70 backdrop-blur-sm rounded-b-xl px-1"
         >
-          <SaveButton color={brandColor} textColor="#0c0a09" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
-          {onDownloadCard && <DownloadButton color={brandColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
-          
-          {data.google_review && (
-            <GoogleReviewGate
-              cardId={data.id}
-              googleReviewUrl={data.google_review}
-              brandColor={brandColor}
-            />
-          )}
-
-          {links.map((l) => {
-            const isGoogleReview = l.key === "google_review";
-            return (
-              <motion.a
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 }
-                }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                key={l.key}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: isGoogleReview ? undefined : txtColor, ...getNeomorphicStyle(true) }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${alignFlexClass} ${
-                  isGoogleReview
-                    ? "border-amber-500/30 bg-amber-500/5 text-amber-300 hover:bg-amber-500/10"
-                    : "border-stone-800 hover:bg-stone-900"
-                }`}
-              >
-                <span 
-                  style={{ color: isGoogleReview ? undefined : mutedTxtColor }}
-                  className={isGoogleReview ? "text-amber-400" : ""}
-                >
-                  {l.icon}
-                </span>
-                {l.label}
-              </motion.a>
-            );
-          })}
-
-          <SocialsGrid socialLinks={socialLinks} isThemeDark={true} />
+          {aboutOrder.map((sectionId) => renderAboutSection(sectionId))}
 
           {data.plan === "business" && (
-            <WalletButton cardId={data.id} brandColor={brandColor} />
+            <WalletButton cardId={data.id} brandColor={brandColor} show={data.design_settings?.show_wallet} />
           )}
         </motion.div>
       </motion.div>
@@ -684,53 +967,10 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
           animate="show"
           className={`px-6 pb-6 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}
         >
-          <SaveButton color={brandColor} textColor="#fff" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
-          {onDownloadCard && <DownloadButton color={brandColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
-          
-          {data.google_review && (
-            <GoogleReviewGate
-              cardId={data.id}
-              googleReviewUrl={data.google_review}
-              brandColor={brandColor}
-            />
-          )}
-
-          {links.map((l) => {
-            const isGoogleReview = l.key === "google_review";
-            return (
-              <motion.a
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 }
-                }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                key={l.key}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: isGoogleReview ? undefined : txtColor, ...getNeomorphicStyle(true) }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${alignFlexClass} ${
-                  isGoogleReview
-                    ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
-                    : "border-stone-200 hover:bg-stone-50"
-                }`}
-              >
-                <span 
-                  style={{ color: isGoogleReview ? undefined : mutedTxtColor }}
-                  className={isGoogleReview ? "text-amber-500" : ""}
-                >
-                  {l.icon}
-                </span>
-                {l.label}
-              </motion.a>
-            );
-          })}
-
-          <SocialsGrid socialLinks={socialLinks} isThemeDark={false} />
+          {aboutOrder.map((sectionId) => renderAboutSection(sectionId))}
 
           {data.plan === "business" && (
-            <WalletButton cardId={data.id} brandColor={brandColor} />
+            <WalletButton cardId={data.id} brandColor={brandColor} show={data.design_settings?.show_wallet} />
           )}
         </motion.div>
       </motion.div>
@@ -790,53 +1030,10 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
           animate="show"
           className={`bg-white rounded-t-3xl px-6 py-6 flex flex-col gap-2 ${hasBg ? "bg-white/90 backdrop-blur-md" : ""}`}
         >
-          <SaveButton color={brandColor} textColor="#fff" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
-          {onDownloadCard && <DownloadButton color={brandColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
-          
-          {data.google_review && (
-            <GoogleReviewGate
-              cardId={data.id}
-              googleReviewUrl={data.google_review}
-              brandColor={brandColor}
-            />
-          )}
-
-          {links.map((l) => {
-            const isGoogleReview = l.key === "google_review";
-            return (
-              <motion.a
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 }
-                }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                key={l.key}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: isGoogleReview ? undefined : (customTextColor || "#0f172a"), ...getNeomorphicStyle(true) }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${alignFlexClass} ${
-                  isGoogleReview
-                    ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
-                    : "border-stone-200 hover:bg-stone-50"
-                }`}
-              >
-                <span 
-                  style={{ color: isGoogleReview ? undefined : "#6b7280" }}
-                  className={isGoogleReview ? "text-amber-505" : ""}
-                >
-                  {l.icon}
-                </span>
-                {l.label}
-              </motion.a>
-            );
-          })}
-
-          <SocialsGrid socialLinks={socialLinks} isThemeDark={true} />
+          {aboutOrder.map((sectionId) => renderAboutSection(sectionId))}
 
           {data.plan === "business" && (
-            <WalletButton cardId={data.id} brandColor={brandColor} />
+            <WalletButton cardId={data.id} brandColor={brandColor} show={data.design_settings?.show_wallet} />
           )}
         </motion.div>
       </motion.div>
@@ -895,61 +1092,10 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             animate="show"
             className="mt-6 flex flex-col gap-2.5 w-full"
           >
-            <SaveButton 
-              color={brandColor} 
-              textColor={customTextColor || "#ffffff"} 
-              onClick={onSaveContact} 
-              style={{
-                borderRadius: "20px",
-                boxShadow: "inset -2px -2px 4px rgba(0,0,0,0.15), inset 2px 2px 4px rgba(255,255,255,0.25), 0 4px 6px rgba(0,0,0,0.05)"
-              }} 
-            />
-            {onDownloadCard && (
-              <DownloadButton 
-                color={brandColor} 
-                onClick={onDownloadCard} 
-                style={{
-                  borderRadius: "20px",
-                  backgroundColor: "rgba(255,255,255,0.4)",
-                  boxShadow: "inset -1px -1px 3px rgba(0,0,0,0.05), 0 4px 6px rgba(0,0,0,0.05)"
-                }} 
-              />
-            )}
-            
-            {data.google_review && (
-              <GoogleReviewGate cardId={data.id} googleReviewUrl={data.google_review} brandColor={brandColor} />
-            )}
-
-            {links.map((l) => (
-              <motion.a
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 }
-                }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                key={l.key}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ 
-                  color: txtColor, 
-                  borderColor: "rgba(255,255,255,0.3)",
-                  borderRadius: "18px",
-                  backgroundColor: "rgba(255,255,255,0.45)",
-                  boxShadow: "inset -1px -1px 3px rgba(0,0,0,0.04), 0 4px 6px rgba(0,0,0,0.04)"
-                }}
-                className={`flex items-center gap-3 px-4 py-3 border text-sm transition-all cursor-pointer ${alignFlexClass}`}
-              >
-                <span style={{ color: mutedTxtColor }}>{l.icon}</span>
-                {l.label}
-              </motion.a>
-            ))}
-
-            <SocialsGrid socialLinks={socialLinks} isThemeDark={false} />
+            {aboutOrder.map((sectionId) => renderAboutSection(sectionId))}
 
             {data.plan === "business" && (
-              <WalletButton cardId={data.id} brandColor={brandColor} />
+              <WalletButton cardId={data.id} brandColor={brandColor} show={data.design_settings?.show_wallet} />
             )}
           </motion.div>
         </div>
@@ -1006,62 +1152,10 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             animate="show"
             className="mt-6 flex flex-col gap-3 w-full"
           >
-            <SaveButton 
-              color={brandColor} 
-              textColor={customTextColor || "#ffffff"} 
-              onClick={onSaveContact} 
-              style={{
-                borderRadius: "16px",
-                boxShadow: "-3px -3px 8px rgba(255,255,255,0.8), 3px 3px 8px rgba(0,0,0,0.08)"
-              }} 
-            />
-            {onDownloadCard && (
-              <DownloadButton 
-                color={brandColor} 
-                onClick={onDownloadCard} 
-                style={{
-                  borderRadius: "16px",
-                  backgroundColor: neuBgColor,
-                  borderColor: "transparent",
-                  boxShadow: "-3px -3px 8px rgba(255,255,255,0.8), 3px 3px 8px rgba(0,0,0,0.08)"
-                }} 
-              />
-            )}
-            
-            {data.google_review && (
-              <GoogleReviewGate cardId={data.id} googleReviewUrl={data.google_review} brandColor={brandColor} />
-            )}
-
-            {links.map((l) => (
-              <motion.a
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 }
-                }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                key={l.key}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ 
-                  color: txtColor, 
-                  borderRadius: "16px",
-                  backgroundColor: neuBgColor,
-                  borderColor: "transparent",
-                  boxShadow: "-3px -3px 8px rgba(255,255,255,0.85), 3px 3px 8px rgba(0,0,0,0.06)"
-                }}
-                className={`flex items-center gap-3 px-4 py-3 text-sm transition-all cursor-pointer ${alignFlexClass}`}
-              >
-                <span style={{ color: mutedTxtColor }}>{l.icon}</span>
-                {l.label}
-              </motion.a>
-            ))}
-
-            <SocialsGrid socialLinks={socialLinks} isThemeDark={false} />
+            {aboutOrder.map((sectionId) => renderAboutSection(sectionId))}
 
             {data.plan === "business" && (
-              <WalletButton cardId={data.id} brandColor={brandColor} />
+              <WalletButton cardId={data.id} brandColor={brandColor} show={data.design_settings?.show_wallet} />
             )}
           </motion.div>
         </div>
@@ -1119,64 +1213,10 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
             animate="show"
             className="mt-6 flex flex-col gap-2.5 w-full"
           >
-            <SaveButton 
-              color={brandColor} 
-              textColor={customTextColor || "#ffffff"} 
-              onClick={onSaveContact} 
-              style={{
-                borderRadius: "12px",
-                border: "1px solid rgba(0,0,0,0.15)",
-                background: `linear-gradient(180deg, ${lighten(brandColor, 0.15)} 0%, ${brandColor} 100%)`,
-                boxShadow: "0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.25)"
-              }} 
-            />
-            {onDownloadCard && (
-              <DownloadButton 
-                color={brandColor} 
-                onClick={onDownloadCard} 
-                style={{
-                  borderRadius: "12px",
-                  border: "1px solid #cbd5e1",
-                  background: "linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%)",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8)"
-                }} 
-              />
-            )}
-            
-            {data.google_review && (
-              <GoogleReviewGate cardId={data.id} googleReviewUrl={data.google_review} brandColor={brandColor} />
-            )}
-
-            {links.map((l) => (
-              <motion.a
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 }
-                }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                key={l.key}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ 
-                  color: txtColor, 
-                  borderColor: "#cbd5e1",
-                  borderRadius: "12px",
-                  background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.8)"
-                }}
-                className={`flex items-center gap-3 px-4 py-3 border text-sm transition-all cursor-pointer ${alignFlexClass}`}
-              >
-                <span style={{ color: mutedTxtColor }}>{l.icon}</span>
-                {l.label}
-              </motion.a>
-            ))}
-
-            <SocialsGrid socialLinks={socialLinks} isThemeDark={false} />
+            {aboutOrder.map((sectionId) => renderAboutSection(sectionId))}
 
             {data.plan === "business" && (
-              <WalletButton cardId={data.id} brandColor={brandColor} />
+              <WalletButton cardId={data.id} brandColor={brandColor} show={data.design_settings?.show_wallet} />
             )}
           </motion.div>
         </div>
@@ -1248,64 +1288,10 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
               animate="show"
               className="mt-6 flex flex-col gap-2.5 w-full"
             >
-              <SaveButton 
-                color="rgba(255, 255, 255, 0.28)" 
-                textColor={customTextColor || "#ffffff"} 
-                onClick={onSaveContact} 
-                style={{
-                  borderRadius: "14px",
-                  border: "1px solid rgba(255, 255, 255, 0.35)",
-                  backdropFilter: "blur(8px)",
-                  boxShadow: "0 4px 15px rgba(255,255,255,0.05), inset 0 2px 4px rgba(255,255,255,0.15)"
-                }} 
-              />
-              {onDownloadCard && (
-                <DownloadButton 
-                  color={txtColor} 
-                  onClick={onDownloadCard} 
-                  style={{
-                    borderRadius: "14px",
-                    border: "1px solid rgba(255, 255, 255, 0.22)",
-                    backgroundColor: "rgba(255, 255, 255, 0.08)",
-                    boxShadow: "0 4px 15px rgba(0,0,0,0.05)"
-                  }} 
-                />
-              )}
-              
-              {data.google_review && (
-                <GoogleReviewGate cardId={data.id} googleReviewUrl={data.google_review} brandColor={brandColor} />
-              )}
-
-              {links.map((l) => (
-                <motion.a
-                  variants={{
-                    hidden: { opacity: 0, y: 10 },
-                    show: { opacity: 1, y: 0 }
-                  }}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.98 }}
-                  key={l.key}
-                  href={l.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ 
-                    color: txtColor, 
-                    borderColor: linkBorderCol,
-                    backgroundColor: "rgba(255,255,255,0.08)",
-                    borderRadius: "14px",
-                    boxShadow: "inset 0 1px 2px rgba(255,255,255,0.05)"
-                  }}
-                  className={`flex items-center gap-3 px-4 py-3 border text-sm transition-all cursor-pointer ${alignFlexClass}`}
-                >
-                  <span style={{ color: mutedTxtColor }}>{l.icon}</span>
-                  {l.label}
-                </motion.a>
-              ))}
-
-              <SocialsGrid socialLinks={socialLinks} isThemeDark={true} />
+              {aboutOrder.map((sectionId) => renderAboutSection(sectionId))}
 
               {data.plan === "business" && (
-                <WalletButton cardId={data.id} brandColor={brandColor} />
+                <WalletButton cardId={data.id} brandColor={brandColor} show={data.design_settings?.show_wallet} />
               )}
             </motion.div>
           </div>
@@ -1374,53 +1360,10 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
           animate="show"
           className={`px-6 pt-6 pb-6 -mt-6 mx-4 mb-2 bg-white rounded-2xl shadow-sm flex flex-col gap-2 relative ${hasBg ? "bg-white/90 backdrop-blur-md" : ""}`}
         >
-          <SaveButton color={brandColor} textColor="#fff" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
-          {onDownloadCard && <DownloadButton color={brandColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
-          
-          {data.google_review && (
-            <GoogleReviewGate
-              cardId={data.id}
-              googleReviewUrl={data.google_review}
-              brandColor={brandColor}
-            />
-          )}
-
-          {links.map((l) => {
-            const isGoogleReview = l.key === "google_review";
-            return (
-              <motion.a
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 }
-                }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                key={l.key}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: isGoogleReview ? undefined : (customTextColor || "#0f172a"), ...getNeomorphicStyle(true) }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${alignFlexClass} ${
-                  isGoogleReview
-                    ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
-                    : "border-stone-200 hover:bg-stone-50"
-                }`}
-              >
-                <span 
-                  style={{ color: isGoogleReview ? undefined : "#6b7280" }}
-                  className={isGoogleReview ? "text-amber-505" : ""}
-                >
-                  {l.icon}
-                </span>
-                {l.label}
-              </motion.a>
-            );
-          })}
-
-          <SocialsGrid socialLinks={socialLinks} isThemeDark={true} />
+          {aboutOrder.map((sectionId) => renderAboutSection(sectionId))}
 
           {data.plan === "business" && (
-            <WalletButton cardId={data.id} brandColor={brandColor} />
+            <WalletButton cardId={data.id} brandColor={brandColor} show={data.design_settings?.show_wallet} />
           )}
         </motion.div>
       </motion.div>
@@ -1428,10 +1371,7 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
   }
 
   // "classic" — default
-  const classicHeaderTextColor = customTextColor || (vibe ? textColor : lighten(brandColor, 0.92));
-  const classicHeaderMutedColor = customTextColor ? `${customTextColor}cc` : (vibe ? `${textColor}cc` : lighten(brandColor, 0.6));
-  const classicBodyTextColor = customTextColor || (vibe ? textColor : "#0f172a");
-  const classicBodyMutedColor = customTextColor ? `${customTextColor}b3` : (vibe ? `${textColor}b3` : "#6b7280");
+
 
   return (
     <motion.div
@@ -1485,53 +1425,10 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
         animate="show"
         className={`px-5 py-5 flex flex-col gap-2 ${hasBg ? "bg-white/85 backdrop-blur-md" : ""}`}
       >
-        <SaveButton color={brandColor} textColor="#fff" onClick={onSaveContact} style={getNeomorphicStyle(true)} />
-        {onDownloadCard && <DownloadButton color={brandColor} onClick={onDownloadCard} style={getNeomorphicStyle(true)} />}
-        
-        {data.google_review && (
-          <GoogleReviewGate
-            cardId={data.id}
-            googleReviewUrl={data.google_review}
-            brandColor={brandColor}
-          />
-        )}
-
-        {links.map((l) => {
-          const isGoogleReview = l.key === "google_review";
-          return (
-            <motion.a
-              variants={{
-                hidden: { opacity: 0, y: 10 },
-                show: { opacity: 1, y: 0 }
-              }}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              key={l.key}
-              href={l.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: isGoogleReview ? undefined : classicBodyTextColor, ...getNeomorphicStyle(true) }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all cursor-pointer ${alignFlexClass} ${
-                isGoogleReview
-                  ? "border-amber-200 bg-amber-50/50 text-amber-900 hover:bg-amber-100/60 font-medium shadow-sm"
-                  : "border-stone-200 hover:bg-stone-50"
-              }`}
-            >
-              <span 
-                style={{ color: isGoogleReview ? undefined : classicBodyMutedColor }}
-                className={isGoogleReview ? "text-amber-500" : ""}
-              >
-                {l.icon}
-              </span>
-              {l.label}
-            </motion.a>
-          );
-        })}
-
-        <SocialsGrid socialLinks={socialLinks} isThemeDark={false} />
+        {aboutOrder.map((sectionId) => renderAboutSection(sectionId))}
 
         {data.plan === "business" && (
-          <WalletButton cardId={data.id} brandColor={brandColor} />
+          <WalletButton cardId={data.id} brandColor={brandColor} show={data.design_settings?.show_wallet} />
         )}
       </motion.div>
     </motion.div>
@@ -1780,8 +1677,8 @@ function GoogleReviewGate({
 }
 
 
-function WalletButton({ cardId, brandColor }: { cardId?: string; brandColor: string }) {
-  if (!cardId) return null;
+function WalletButton({ cardId, brandColor, show }: { cardId?: string; brandColor: string; show?: boolean }) {
+  if (!cardId || !show) return null;
   return (
     <a
       href={`/api/cards/${cardId}/wallet`}
@@ -1950,9 +1847,9 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard, activ
 
   return (
     <div className="w-full max-w-sm mx-auto flex flex-col gap-3">
-      {/* Scrollable Tab Navigation */}
+      {/* Grid Tab Navigation */}
       {tabs.length > 1 && (
-        <div className="flex overflow-x-auto gap-2 pb-2.5 scrollbar-none border-b border-stone-200/50 mb-1 snap-x snap-mandatory">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pb-2.5 border-b border-stone-200/50 mb-1 w-full">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -1961,12 +1858,12 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard, activ
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 style={isActive ? { backgroundColor: color, borderColor: color } : {}}
-                className={`px-3.5 py-2 rounded-xl border text-xs font-semibold shrink-0 cursor-pointer transition-all flex items-center gap-1.5 snap-center ${
+                className={`px-2.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all flex items-center justify-center gap-1.5 w-full ${
                   isActive ? "bg-brand text-white border-brand shadow-sm" : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
                 }`}
               >
                 <span>{tab.emoji}</span>
-                <span>{tab.label}</span>
+                <span className="truncate">{tab.label}</span>
               </button>
             );
           })}
@@ -1978,12 +1875,6 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard, activ
         {activeTab === "profile" && (
           <div className="w-full flex flex-col gap-4">
             <CardMockup data={data} onSaveContact={onSaveContact} onDownloadCard={onDownloadCard} />
-            {hasSection("review") && (
-              <ReviewSectionRenderer data={getSectionData("review")} card={getResolvedCard("review")} />
-            )}
-            <div className="w-full flex justify-center mt-1">
-              <DownloadBusinessCard data={data} />
-            </div>
           </div>
         )}
 
@@ -2038,7 +1929,7 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard, activ
 
         {activeTab === "share" && (
           <div className="w-full flex justify-center">
-            <ShareQR data={data} url={`${SITE.baseUrl}/card/${data.slug || ""}`} />
+            <ShareQR data={data} url={`${SITE.baseUrl}/card/${data.slug || slugify(data.business_name || "your-business")}`} />
           </div>
         )}
       </div>

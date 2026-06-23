@@ -138,7 +138,45 @@ export default function CardForm({
   const searchParams = useSearchParams();
   const workspaceId = searchParams.get("workspaceId");
   
-  const [data, setData] = useState<CardData>(initialData);
+  const [data, setData] = useState<CardData>(() => {
+    const sections = [...(initialData.sections || [])];
+    let updated = false;
+
+    if (!sections.some((s) => s.type === "contact")) {
+      sections.push({
+        type: "contact",
+        title: "Contact Details",
+        enabled: true,
+        data: {},
+      });
+      updated = true;
+    }
+
+    if (!sections.some((s) => s.type === "socials")) {
+      sections.push({
+        type: "socials",
+        title: "Social Links",
+        enabled: true,
+        data: {},
+      });
+      updated = true;
+    }
+
+    if (!sections.some((s) => s.type === "review")) {
+      sections.push({
+        type: "review",
+        title: "Rate Us & Review",
+        enabled: true,
+        data: { google_review_url: initialData.google_review || "" },
+      });
+      updated = true;
+    }
+
+    return {
+      ...initialData,
+      sections,
+    };
+  });
   const [activeTabOverride, setActiveTabOverride] = useState<string | undefined>(undefined);
 
   // Wizard flow states (Create Mode Only)
@@ -345,6 +383,7 @@ export default function CardForm({
       }
 
       const reviewIdx = sections.findIndex((s) => s.type === "review");
+      let nextGoogleReview = prev.google_review;
       if (reviewIdx === -1) {
         sections.push({
           type: "review",
@@ -357,26 +396,32 @@ export default function CardForm({
         const currentUrl = sections[reviewIdx].data?.google_review_url || "";
         const expectedUrl = prev.google_review || "";
         if (currentUrl !== expectedUrl) {
-          sections[reviewIdx] = {
-            ...sections[reviewIdx],
-            data: {
-              ...sections[reviewIdx].data,
-              google_review_url: expectedUrl,
-            },
-          };
-          updated = true;
+          if (expectedUrl === "" && currentUrl !== "") {
+            nextGoogleReview = currentUrl;
+            updated = true;
+          } else {
+            sections[reviewIdx] = {
+              ...sections[reviewIdx],
+              data: {
+                ...sections[reviewIdx].data,
+                google_review_url: expectedUrl,
+              },
+            };
+            updated = true;
+          }
         }
       }
 
       if (updated) {
         return {
           ...prev,
+          google_review: nextGoogleReview,
           sections,
         };
       }
       return prev;
     });
-  }, [data.google_review]);
+  }, [data.google_review, data.sections]);
 
   // Generate stand flyer preview
   useEffect(() => {
@@ -531,6 +576,23 @@ export default function CardForm({
   const handleCategorySelect = (key: string) => {
     const defaults = BUSINESS_TYPE_DEFAULTS[key] || BUSINESS_TYPE_DEFAULTS.general;
     const sections = getDefaultSectionsForType(key);
+    
+    // Ensure contact, socials, and review are always present
+    if (!sections.some(s => s.type === "contact")) {
+      sections.push({ type: "contact", title: "Contact Details", enabled: true, data: {} });
+    }
+    if (!sections.some(s => s.type === "socials")) {
+      sections.push({ type: "socials", title: "Social Links", enabled: true, data: {} });
+    }
+    if (!sections.some(s => s.type === "review")) {
+      sections.push({
+        type: "review",
+        title: "Rate Us & Review",
+        enabled: true,
+        data: { google_review_url: data.google_review || "" }
+      });
+    }
+
     setData((d) => ({
       ...d,
       business_type: key,
@@ -1074,7 +1136,25 @@ export default function CardForm({
                                 <input
                                   value={data.google_review || ""}
                                   onChange={(e) => {
-                                    update("google_review", e.target.value);
+                                    const val = e.target.value;
+                                    setData((prev) => {
+                                      const sections = [...(prev.sections || [])];
+                                      const idx = sections.findIndex((s) => s.type === "review");
+                                      if (idx !== -1) {
+                                        sections[idx] = {
+                                          ...sections[idx],
+                                          data: {
+                                            ...sections[idx].data,
+                                            google_review_url: val,
+                                          },
+                                        };
+                                      }
+                                      return {
+                                        ...prev,
+                                        google_review: val,
+                                        sections,
+                                      };
+                                    });
                                   }}
                                   placeholder="e.g. https://g.page/r/XXXXXXXX/review"
                                   className="input"

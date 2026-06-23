@@ -580,12 +580,13 @@ export function ReviewSectionRenderer({ data, card }: { data: any; card: CardDat
   const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
   const googleReviewUrl = data.google_review_url || card.google_review || "";
+  const hasValidUrl = googleReviewUrl && googleReviewUrl.trim() !== "" && googleReviewUrl !== "https://g.page/r/...";
   const [rated, setRated] = useState<"happy" | "unhappy" | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  if (!googleReviewUrl) return null;
+  if (!hasValidUrl) return null;
 
   if (submitted) {
     return (

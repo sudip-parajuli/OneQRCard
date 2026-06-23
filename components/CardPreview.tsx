@@ -729,8 +729,12 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
       }
       case "review": {
         const reviewSection = data.sections?.find((s: any) => s.type === "review");
-        const isEnabled = reviewSection ? reviewSection.enabled !== false : true;
-        const reviewUrl = reviewSection?.data?.google_review_url || data.google_review || (data.business_name ? `https://www.google.com/search?q=${encodeURIComponent(data.business_name)}+reviews` : "https://google.com");
+        const reviewUrl = reviewSection?.data?.google_review_url || data.google_review || "";
+        const hasValidUrl = reviewUrl && reviewUrl.trim() !== "" && reviewUrl !== "https://g.page/r/...";
+        const isEnabled = reviewSection 
+          ? (reviewSection.enabled !== false && !!hasValidUrl)
+          : !!hasValidUrl;
+
         return isEnabled ? (
           <div key="review" className="w-full animate-fade-in">
             <GoogleReviewGate

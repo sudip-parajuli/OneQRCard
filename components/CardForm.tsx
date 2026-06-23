@@ -278,7 +278,6 @@ export default function CardForm({
   const [qrLoading, setQrLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previewTab, setPreviewTab] = useState<"digital" | "business">("digital");
   const [businessCardPreview, setBusinessCardPreview] = useState<string | null>(null);
   const [generatingPreview, setGeneratingPreview] = useState(false);
   
@@ -463,7 +462,8 @@ export default function CardForm({
 
   // Generate business card preview
   useEffect(() => {
-    if (previewTab !== "business") return;
+    const shouldGenerate = (isWizard && currentStep === 4) || (!isWizard && editDesignTab === "bc");
+    if (!shouldGenerate) return;
 
     let active = true;
     setGeneratingPreview(true);
@@ -484,7 +484,7 @@ export default function CardForm({
     return () => {
       active = false;
     };
-  }, [data, previewTab]);
+  }, [data, isWizard, currentStep, editDesignTab]);
 
   function update<K extends keyof CardData>(key: K, value: CardData[K]) {
     setData((d) => ({ ...d, [key]: value }));
@@ -1402,7 +1402,10 @@ export default function CardForm({
                     <button
                       key={tab}
                       type="button"
-                      onClick={() => setEditDesignTab(tab)}
+                      onClick={() => {
+                        setEditDesignTab(tab);
+                        setActiveTabOverride(tab === "card" ? "profile" : "share");
+                      }}
                       className={`py-2 px-1 border rounded-xl font-bold text-xs transition-all cursor-pointer text-center ${
                         isSel
                           ? "border-brand bg-brand-light ring-1 ring-brand text-stone-900"
@@ -1418,7 +1421,10 @@ export default function CardForm({
 
               {/* RENDER ACTIVE TAB INPUTS */}
               {editDesignTab === "card" && (
-                <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-6 shadow-sm text-left">
+                <div 
+                  onFocusCapture={() => setActiveTabOverride("profile")}
+                  className="bg-white border border-stone-200 rounded-3xl p-6 space-y-6 shadow-sm text-left"
+                >
                   <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5">🎨 Digital Card Style</h3>
 
                   {/* Theme Selector */}
@@ -1548,221 +1554,262 @@ export default function CardForm({
               )}
 
               {editDesignTab === "qr" && (
-                <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
+                <div 
+                  onFocusCapture={() => setActiveTabOverride("share")}
+                  className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left"
+                >
                   <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5">🔲 Custom QR Code Art</h3>
                   {data.plan === "basic" ? (
                     <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-4 rounded-xl text-center bg-stone-50 font-medium leading-relaxed">
                       🔒 Custom QR Code Art features are locked on Free trial. Upgrade to Pro or Business to make your QR code scan as art!
                     </div>
                   ) : (
-                    <div className="space-y-3.5 text-xs">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Dot Shape</label>
-                          <select
-                            value={data.qr_customization?.dotStyle || "square"}
-                            onChange={(e) => {
-                              update("qr_customization", {
-                                ...(data.qr_customization || {}),
-                                dotStyle: e.target.value as any
-                              });
-                            }}
-                            className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
-                          >
-                            <option value="square">Rigid Square</option>
-                            <option value="rounded">Smooth Rounded</option>
-                            <option value="dots">Circular Dots</option>
-                            <option value="waves">Flowing Waves (Business)</option>
-                            <option value="teardrops">Teardrops (Business)</option>
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Corner Frame</label>
-                          <select
-                            value={data.qr_customization?.cornerStyle || "square"}
-                            onChange={(e) => {
-                              update("qr_customization", {
-                                ...(data.qr_customization || {}),
-                                cornerStyle: e.target.value as any
-                              });
-                            }}
-                            className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
-                          >
-                            <option value="square">Rigid Squares</option>
-                            <option value="rounded">Soft Rounded</option>
-                            <option value="custom_frame">Camera Lens Circle (Business)</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Logo Center</label>
-                          <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
-                            <input
-                              type="checkbox"
-                              checked={data.qr_customization?.logoEnabled !== false}
-                              onChange={(e) => {
-                                update("qr_customization", {
-                                  ...(data.qr_customization || {}),
-                                  logoEnabled: e.target.checked
-                                });
-                              }}
-                              className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
-                            />
-                            Center branding
-                          </label>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">QR Color Style</label>
-                          <select
-                            value={data.qr_customization?.colorStyle || "solid"}
-                            onChange={(e) => {
-                              update("qr_customization", {
-                                ...(data.qr_customization || {}),
-                                colorStyle: e.target.value as any
-                              });
-                            }}
-                            className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
-                          >
-                            <option value="solid">Solid brand color</option>
-                            <option value="gradient">High-Contrast Gradient (Business)</option>
-                            <option value="spotlight">Corner Spotlighting (Business)</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      {data.qr_customization?.colorStyle === "gradient" && (
-                        <div className="grid grid-cols-2 gap-2 p-2.5 bg-stone-50 rounded-xl border border-stone-150 animate-fade-in">
+                    <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6 items-start">
+                      {/* Left: Inputs */}
+                      <div className="space-y-3.5 text-xs">
+                        <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold text-stone-500 uppercase block">Gradient start</label>
-                            <input
-                              type="color"
-                              value={data.qr_customization?.gradientColor1 || brandColor}
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Dot Shape</label>
+                            <select
+                              value={data.qr_customization?.dotStyle || "square"}
                               onChange={(e) => {
                                 update("qr_customization", {
                                   ...(data.qr_customization || {}),
-                                  gradientColor1: e.target.value
+                                  dotStyle: e.target.value as any
                                 });
                               }}
-                              className="h-8 w-full rounded border border-stone-250 cursor-pointer p-0.5 bg-white"
-                            />
+                              className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                            >
+                              <option value="square">Rigid Square</option>
+                              <option value="rounded">Smooth Rounded</option>
+                              <option value="dots">Circular Dots</option>
+                              <option value="waves">Flowing Waves (Business)</option>
+                              <option value="teardrops">Teardrops (Business)</option>
+                            </select>
                           </div>
+
                           <div className="space-y-1">
-                            <label className="text-[9px] font-bold text-stone-500 uppercase block">Gradient end</label>
-                            <input
-                              type="color"
-                              value={data.qr_customization?.gradientColor2 || "#10b981"}
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Corner Frame</label>
+                            <select
+                              value={data.qr_customization?.cornerStyle || "square"}
                               onChange={(e) => {
                                 update("qr_customization", {
                                   ...(data.qr_customization || {}),
-                                  gradientColor2: e.target.value
+                                  cornerStyle: e.target.value as any
                                 });
                               }}
-                              className="h-8 w-full rounded border border-stone-250 cursor-pointer p-0.5 bg-white"
-                            />
+                              className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                            >
+                              <option value="square">Rigid Squares</option>
+                              <option value="rounded">Soft Rounded</option>
+                              <option value="custom_frame">Camera Lens Circle (Business)</option>
+                            </select>
                           </div>
                         </div>
-                      )}
 
-                      {data.qr_customization?.colorStyle === "spotlight" && (
-                        <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-150 animate-fade-in space-y-1">
-                          <label className="text-[9px] font-bold text-stone-500 uppercase block">Spotlight Corner Color</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Logo Center</label>
+                            <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
+                              <input
+                                type="checkbox"
+                                checked={data.qr_customization?.logoEnabled !== false}
+                                onChange={(e) => {
+                                  update("qr_customization", {
+                                    ...(data.qr_customization || {}),
+                                    logoEnabled: e.target.checked
+                                  });
+                                }}
+                                className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                              />
+                              Center branding
+                            </label>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">QR Color Style</label>
+                            <select
+                              value={data.qr_customization?.colorStyle || "solid"}
+                              onChange={(e) => {
+                                update("qr_customization", {
+                                  ...(data.qr_customization || {}),
+                                  colorStyle: e.target.value as any
+                                });
+                              }}
+                              className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                            >
+                              <option value="solid">Solid brand color</option>
+                              <option value="gradient">High-Contrast Gradient (Business)</option>
+                              <option value="spotlight">Corner Spotlighting (Business)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {data.qr_customization?.colorStyle === "gradient" && (
+                          <div className="grid grid-cols-2 gap-2 p-2.5 bg-stone-50 rounded-xl border border-stone-150 animate-fade-in">
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-stone-500 uppercase block">Gradient start</label>
+                              <input
+                                type="color"
+                                value={data.qr_customization?.gradientColor1 || brandColor}
+                                onChange={(e) => {
+                                  update("qr_customization", {
+                                    ...(data.qr_customization || {}),
+                                    gradientColor1: e.target.value
+                                  });
+                                }}
+                                className="h-8 w-full rounded border border-stone-250 cursor-pointer p-0.5 bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-stone-500 uppercase block">Gradient end</label>
+                              <input
+                                type="color"
+                                value={data.qr_customization?.gradientColor2 || "#10b981"}
+                                onChange={(e) => {
+                                  update("qr_customization", {
+                                    ...(data.qr_customization || {}),
+                                    gradientColor2: e.target.value
+                                  });
+                                }}
+                                className="h-8 w-full rounded border border-stone-250 cursor-pointer p-0.5 bg-white"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {data.qr_customization?.colorStyle === "spotlight" && (
+                          <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-150 animate-fade-in space-y-1">
+                            <label className="text-[9px] font-bold text-stone-500 uppercase block">Spotlight Corner Color</label>
+                            <input
+                              type="color"
+                              value={data.qr_customization?.spotlightColor || brandColor}
+                              onChange={(e) => {
+                                update("qr_customization", {
+                                  ...(data.qr_customization || {}),
+                                  spotlightColor: e.target.value
+                                  });
+                              }}
+                              className="h-8 w-full rounded border border-stone-200 cursor-pointer p-0.5 bg-white"
+                            />
+                            <p className="text-[9px] text-stone-400 mt-1 leading-normal">
+                              Highlights the three corner squares in a bold accent color.
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">QR Background Pattern</label>
+                            <select
+                              disabled={data.plan !== "business"}
+                              value={data.qr_customization?.bg_texture || "none"}
+                              onChange={(e) => {
+                                update("qr_customization", {
+                                  ...(data.qr_customization || {}),
+                                  bg_texture: e.target.value as any
+                                });
+                              }}
+                              className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
+                            >
+                              <option value="none">None (Solid white)</option>
+                              <option value="wood">Earthy Wood {data.plan !== "business" && "🔒"}</option>
+                              <option value="geometric">Geometric Dot-Grid {data.plan !== "business" && "🔒"}</option>
+                              <option value="marble">Marble Veins {data.plan !== "business" && "🔒"}</option>
+                              <option value="linen">Linen Crosshatch {data.plan !== "business" && "🔒"}</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">3D Depth Effect</label>
+                            <select
+                              disabled={data.plan !== "business"}
+                              value={data.qr_customization?.threeDStyle || "none"}
+                              onChange={(e) => {
+                                update("qr_customization", {
+                                  ...(data.qr_customization || {}),
+                                  threeDStyle: e.target.value as any
+                                });
+                              }}
+                              className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
+                            >
+                              <option value="none">Flat (2D)</option>
+                              <option value="raised">3D Shadow Raised {data.plan !== "business" && "🔒"}</option>
+                              <option value="embossed">Embossed depth {data.plan !== "business" && "🔒"}</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">CTA Symbol Accent</label>
+                          <select
+                            disabled={data.plan !== "business"}
+                            value={data.qr_customization?.cta_style || "default"}
+                            onChange={(e) => {
+                              update("qr_customization", {
+                                ...(data.qr_customization || {}),
+                                cta_style: e.target.value as any
+                              });
+                            }}
+                            className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
+                          >
+                            <option value="default">Standard Frame</option>
+                            <option value="arrow">Down Arrow Symbol ⬇️ {data.plan !== "business" && "🔒"}</option>
+                            <option value="hand">Pointing Hand 👉 {data.plan !== "business" && "🔒"}</option>
+                            <option value="star">Promotional Star ⭐ {data.plan !== "business" && "🔒"}</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Physical CTA Frame Banner (Business)</label>
                           <input
-                            type="color"
-                            value={data.qr_customization?.spotlightColor || brandColor}
+                            disabled={data.plan !== "business"}
+                            value={data.qr_customization?.custom_cta_frame || ""}
                             onChange={(e) => {
                               update("qr_customization", {
                                 ...(data.qr_customization || {}),
-                                spotlightColor: e.target.value
+                                custom_cta_frame: e.target.value
                               });
                             }}
-                            className="h-8 w-full rounded border border-stone-200 cursor-pointer p-0.5 bg-white"
+                            placeholder="e.g. Scan me to explore our menu"
+                            className="input py-1 text-xs disabled:bg-stone-50 disabled:text-stone-400"
                           />
-                          <p className="text-[9px] text-stone-400 mt-1 leading-normal">
-                            Highlights the three corner squares in a bold accent color.
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">QR Background Pattern</label>
-                          <select
-                            disabled={data.plan !== "business"}
-                            value={data.qr_customization?.bg_texture || "none"}
-                            onChange={(e) => {
-                              update("qr_customization", {
-                                ...(data.qr_customization || {}),
-                                bg_texture: e.target.value as any
-                              });
-                            }}
-                            className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
-                          >
-                            <option value="none">None (Solid white)</option>
-                            <option value="wood">Earthy Wood {data.plan !== "business" && "🔒"}</option>
-                            <option value="geometric">Geometric Dot-Grid {data.plan !== "business" && "🔒"}</option>
-                            <option value="marble">Marble Veins {data.plan !== "business" && "🔒"}</option>
-                            <option value="linen">Linen Crosshatch {data.plan !== "business" && "🔒"}</option>
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">3D Depth Effect</label>
-                          <select
-                            disabled={data.plan !== "business"}
-                            value={data.qr_customization?.threeDStyle || "none"}
-                            onChange={(e) => {
-                              update("qr_customization", {
-                                ...(data.qr_customization || {}),
-                                threeDStyle: e.target.value as any
-                              });
-                            }}
-                            className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
-                          >
-                            <option value="none">Flat (2D)</option>
-                            <option value="raised">3D Shadow Raised {data.plan !== "business" && "🔒"}</option>
-                            <option value="embossed">Embossed depth {data.plan !== "business" && "🔒"}</option>
-                          </select>
                         </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">CTA Symbol Accent</label>
-                        <select
-                          disabled={data.plan !== "business"}
-                          value={data.qr_customization?.cta_style || "default"}
-                          onChange={(e) => {
-                            update("qr_customization", {
-                              ...(data.qr_customization || {}),
-                              cta_style: e.target.value as any
-                            });
-                          }}
-                          className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
-                        >
-                          <option value="default">Standard Frame</option>
-                          <option value="arrow">Down Arrow Symbol ⬇️ {data.plan !== "business" && "🔒"}</option>
-                          <option value="hand">Pointing Hand 👉 {data.plan !== "business" && "🔒"}</option>
-                          <option value="star">Promotional Star ⭐ {data.plan !== "business" && "🔒"}</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Physical CTA Frame Banner (Business)</label>
-                        <input
-                          disabled={data.plan !== "business"}
-                          value={data.qr_customization?.custom_cta_frame || ""}
-                          onChange={(e) => {
-                            update("qr_customization", {
-                              ...(data.qr_customization || {}),
-                              custom_cta_frame: e.target.value
-                            });
-                          }}
-                          placeholder="e.g. Scan me to explore our menu"
-                          className="input py-1 text-xs disabled:bg-stone-50 disabled:text-stone-400"
-                        />
+                      {/* Right: Live Preview & Download */}
+                      <div className="flex flex-col gap-4 items-center bg-stone-50 border border-stone-200 rounded-2xl p-6 shadow-xs w-full">
+                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Live QR Art Preview</span>
+                        {qrLoading ? (
+                          <div className="w-8 h-8 rounded-full border-4 border-t-brand border-stone-200 animate-spin my-8" />
+                        ) : qr ? (
+                          <>
+                            <img src={qr} alt="Live Custom QR" className="max-w-[200px] object-contain rounded-lg shadow-sm border border-stone-100 animate-fade-in bg-white" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!qr) return;
+                                const a = document.createElement("a");
+                                a.href = qr;
+                                a.download = `${data.business_name || "business"}_qr_code.png`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                              }}
+                              className="py-2.5 px-4 bg-brand text-white text-xs font-bold rounded-xl shadow-md w-full flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer"
+                              style={{ backgroundColor: brandColor }}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                              </svg>
+                              Download QR Code
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-xs text-stone-400 font-medium my-8">No QR available</span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1770,171 +1817,204 @@ export default function CardForm({
               )}
 
               {editDesignTab === "bc" && (
-                <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
+                <div 
+                  onFocusCapture={() => setActiveTabOverride("share")}
+                  className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left"
+                >
                   <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5">🪪 Printable Business Card Design</h3>
                   {data.plan !== "business" ? (
                     <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-4 rounded-xl text-center bg-stone-55 font-medium leading-relaxed">
                       🔒 Custom printable card styling is locked. Upgrade to the Business plan to unlock card themes, background textures, rounded borders, watermark opacities, and neon border glows!
                     </div>
                   ) : (
-                    <div className="space-y-3.5 text-xs">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Card Theme</label>
-                          <select
-                            value={data.design_settings?.business_card?.theme || "classic"}
-                            onChange={(e) => {
-                              update("design_settings", {
-                                ...(data.design_settings || {}),
-                                business_card: {
-                                  ...(data.design_settings?.business_card || {}),
-                                  theme: e.target.value as any
-                                }
-                              });
-                            }}
-                            className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
-                          >
-                            <option value="classic">Classic (Brand background)</option>
-                            <option value="modern_dark">Modern Dark (slate + glow)</option>
-                            <option value="minimal_light">Minimal Light (borderless)</option>
-                            <option value="luxury_gold">Luxury Gold (matte charcoal & gold)</option>
-                            <option value="neon_glow">Neon Glow (electric cyan/green)</option>
-                            <option value="organic_wood">Organic Wood (earthy brown)</option>
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Background Texture</label>
-                          <select
-                            value={data.design_settings?.business_card?.bg_texture || "none"}
-                            onChange={(e) => {
-                              update("design_settings", {
-                                ...(data.design_settings || {}),
-                                business_card: {
-                                  ...(data.design_settings?.business_card || {}),
-                                  bg_texture: e.target.value as any
-                                }
-                              });
-                            }}
-                            className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
-                          >
-                            <option value="none">None (Solid background)</option>
-                            <option value="metal">Brushed Metal</option>
-                            <option value="wood">Organic Wood Grain</option>
-                            <option value="geometric">Geometric Grid</option>
-                            <option value="marble">Thin Marble Veins</option>
-                            <option value="linen">Linen Crosshatch</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
-                          <input
-                            type="checkbox"
-                            checked={data.design_settings?.business_card?.show_logo !== false}
-                            onChange={(e) => {
-                              update("design_settings", {
-                                ...(data.design_settings || {}),
-                                business_card: {
-                                  ...(data.design_settings?.business_card || {}),
-                                  show_logo: e.target.checked
-                                }
-                              });
-                            }}
-                            className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
-                          />
-                          Show Front Logo
-                        </label>
-
-                        <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
-                          <input
-                            type="checkbox"
-                            checked={!!data.design_settings?.business_card?.watermark_logo}
-                            onChange={(e) => {
-                              update("design_settings", {
-                                ...(data.design_settings || {}),
-                                business_card: {
-                                  ...(data.design_settings?.business_card || {}),
-                                  watermark_logo: e.target.checked
-                                }
-                              });
-                            }}
-                            className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
-                          />
-                          Watermark BG Logo
-                        </label>
-                      </div>
-
-                      {data.design_settings?.business_card?.watermark_logo && (
-                        <div className="space-y-1 p-2 bg-stone-50 border border-stone-150 rounded-xl animate-fade-in">
-                          <div className="flex justify-between items-center text-[10px] font-bold text-stone-550">
-                            <span>Watermark Opacity</span>
-                            <span>{Math.round((data.design_settings?.business_card?.watermark_opacity || 0.15) * 100)}%</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0.05"
-                            max="1.0"
-                            step="0.05"
-                            value={data.design_settings?.business_card?.watermark_opacity ?? 0.15}
-                            onChange={(e) => {
-                              update("design_settings", {
-                                ...(data.design_settings || {}),
-                                business_card: {
-                                  ...(data.design_settings?.business_card || {}),
-                                  watermark_opacity: parseFloat(e.target.value)
-                                }
-                              });
-                            }}
-                            className="w-full h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-brand"
-                          />
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Border Radius</label>
-                          <select
-                            value={data.design_settings?.business_card?.border_radius || "medium"}
-                            onChange={(e) => {
-                              update("design_settings", {
-                                ...(data.design_settings || {}),
-                                business_card: {
-                                  ...(data.design_settings?.business_card || {}),
-                                  border_radius: e.target.value as any
-                                }
-                              });
-                            }}
-                            className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
-                          >
-                            <option value="none">Square (none)</option>
-                            <option value="small">Small (rounded)</option>
-                            <option value="medium">Medium (standard)</option>
-                            <option value="large">Large (extra round)</option>
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Visual Border Glow</label>
-                          <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-2">
-                            <input
-                              type="checkbox"
-                              checked={!!data.design_settings?.business_card?.border_glow}
+                    <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6 items-start">
+                      {/* Left: Inputs */}
+                      <div className="space-y-3.5 text-xs">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Card Theme</label>
+                            <select
+                              value={data.design_settings?.business_card?.theme || "classic"}
                               onChange={(e) => {
                                 update("design_settings", {
                                   ...(data.design_settings || {}),
                                   business_card: {
                                     ...(data.design_settings?.business_card || {}),
-                                    border_glow: e.target.checked
+                                    theme: e.target.value as any
+                                  }
+                                });
+                              }}
+                              className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                            >
+                              <option value="classic">Classic (Brand background)</option>
+                              <option value="modern_dark">Modern Dark (slate + glow)</option>
+                              <option value="minimal_light">Minimal Light (borderless)</option>
+                              <option value="luxury_gold">Luxury Gold (matte charcoal & gold)</option>
+                              <option value="neon_glow">Neon Glow (electric cyan/green)</option>
+                              <option value="organic_wood">Organic Wood (earthy brown)</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Background Texture</label>
+                            <select
+                              value={data.design_settings?.business_card?.bg_texture || "none"}
+                              onChange={(e) => {
+                                update("design_settings", {
+                                  ...(data.design_settings || {}),
+                                  business_card: {
+                                    ...(data.design_settings?.business_card || {}),
+                                    bg_texture: e.target.value as any
+                                  }
+                                });
+                              }}
+                              className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                            >
+                              <option value="none">None (Solid background)</option>
+                              <option value="metal">Brushed Metal</option>
+                              <option value="wood">Organic Wood Grain</option>
+                              <option value="geometric">Geometric Grid</option>
+                              <option value="marble">Thin Marble Veins</option>
+                              <option value="linen">Linen Crosshatch</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
+                            <input
+                              type="checkbox"
+                              checked={data.design_settings?.business_card?.show_logo !== false}
+                              onChange={(e) => {
+                                update("design_settings", {
+                                  ...(data.design_settings || {}),
+                                  business_card: {
+                                    ...(data.design_settings?.business_card || {}),
+                                    show_logo: e.target.checked
                                   }
                                 });
                               }}
                               className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
                             />
-                            Cyan/Neon border glow
+                            Show Front Logo
+                          </label>
+
+                          <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
+                            <input
+                              type="checkbox"
+                              checked={!!data.design_settings?.business_card?.watermark_logo}
+                              onChange={(e) => {
+                                update("design_settings", {
+                                  ...(data.design_settings || {}),
+                                  business_card: {
+                                    ...(data.design_settings?.business_card || {}),
+                                    watermark_logo: e.target.checked
+                                  }
+                                });
+                              }}
+                              className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                            />
+                            Watermark BG Logo
                           </label>
                         </div>
+
+                        {data.design_settings?.business_card?.watermark_logo && (
+                          <div className="space-y-1 p-2 bg-stone-50 border border-stone-150 rounded-xl animate-fade-in">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-stone-550">
+                              <span>Watermark Opacity</span>
+                              <span>{Math.round((data.design_settings?.business_card?.watermark_opacity || 0.15) * 100)}%</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0.05"
+                              max="1.0"
+                              step="0.05"
+                              value={data.design_settings?.business_card?.watermark_opacity ?? 0.15}
+                              onChange={(e) => {
+                                update("design_settings", {
+                                  ...(data.design_settings || {}),
+                                  business_card: {
+                                    ...(data.design_settings?.business_card || {}),
+                                    watermark_opacity: parseFloat(e.target.value)
+                                  }
+                                });
+                              }}
+                              className="w-full h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-brand"
+                            />
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Border Radius</label>
+                            <select
+                              value={data.design_settings?.business_card?.border_radius || "medium"}
+                              onChange={(e) => {
+                                update("design_settings", {
+                                  ...(data.design_settings || {}),
+                                  business_card: {
+                                    ...(data.design_settings?.business_card || {}),
+                                    border_radius: e.target.value as any
+                                  }
+                                });
+                              }}
+                              className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer"
+                            >
+                              <option value="none">Square (none)</option>
+                              <option value="small">Small (rounded)</option>
+                              <option value="medium">Medium (standard)</option>
+                              <option value="large">Large (extra round)</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Visual Border Glow</label>
+                            <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-2">
+                              <input
+                                type="checkbox"
+                                checked={!!data.design_settings?.business_card?.border_glow}
+                                onChange={(e) => {
+                                  update("design_settings", {
+                                    ...(data.design_settings || {}),
+                                    business_card: {
+                                      ...(data.design_settings?.business_card || {}),
+                                      border_glow: e.target.checked
+                                    }
+                                  });
+                                }}
+                                className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                              />
+                              Cyan/Neon border glow
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Preview & Download */}
+                      <div className="flex flex-col gap-4 items-center bg-stone-50 border border-stone-200 rounded-2xl p-6 shadow-xs w-full">
+                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Live Business Card Preview</span>
+                        {generatingPreview ? (
+                          <div className="w-8 h-8 rounded-full border-4 border-t-brand border-stone-200 animate-spin my-8" />
+                        ) : businessCardPreview ? (
+                          <>
+                            <img src={businessCardPreview} alt="Business Card Preview" className="max-w-full rounded-lg shadow-md border animate-fade-in animate-duration-300" />
+                            <button
+                              type="button"
+                              onClick={handleDownloadBusinessCard}
+                              className="py-2.5 px-4 bg-brand text-white text-xs font-bold rounded-xl shadow-md w-full flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer"
+                              style={{ backgroundColor: brandColor }}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                              </svg>
+                              Download Business Card
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-xs text-stone-400 font-medium my-8">No preview available</span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1942,76 +2022,109 @@ export default function CardForm({
               )}
 
               {editDesignTab === "flyer" && (
-                <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
+                <div 
+                  onFocusCapture={() => setActiveTabOverride("share")}
+                  className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left"
+                >
                   <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5">📋 Stand Flyer Customization</h3>
                   {data.plan !== "business" ? (
                     <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-4 rounded-xl text-center bg-stone-50 font-medium leading-relaxed">
                       🔒 Custom printable stand flyer is locked. Upgrade to the Business plan to customize WiFi headers and print beautiful side-by-side stand tables.
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">WiFi Section Title</label>
-                        <input
-                          type="text"
-                          value={data.design_settings?.stand_flyer?.wifi_title ?? ""}
-                          onChange={(e) => {
-                            update("design_settings", {
-                              ...(data.design_settings || {}),
-                              stand_flyer: {
-                                ...(data.design_settings?.stand_flyer || {}),
-                                wifi_title: e.target.value
-                              }
-                            });
-                          }}
-                          placeholder="Relax & Connect!"
-                          className="input"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">WiFi Subtitle Line 1</label>
-                        <input
-                          type="text"
-                          value={data.design_settings?.stand_flyer?.wifi_text1 ?? ""}
-                          onChange={(e) => {
-                            update("design_settings", {
-                              ...(data.design_settings || {}),
-                              stand_flyer: {
-                                ...(data.design_settings?.stand_flyer || {}),
-                                wifi_text1: e.target.value
-                              }
-                            });
-                          }}
-                          placeholder="Enjoy free WiFi while"
-                          className="input"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">WiFi Subtitle Line 2</label>
-                        <input
-                          type="text"
-                          value={data.design_settings?.stand_flyer?.wifi_text2 ?? ""}
-                          onChange={(e) => {
-                            update("design_settings", {
-                              ...(data.design_settings || {}),
-                              stand_flyer: {
-                                ...(data.design_settings?.stand_flyer || {}),
-                                wifi_text2: e.target.value
-                              }
-                            });
-                          }}
-                          placeholder="you are at our venue."
-                          className="input"
-                        />
-                      </div>
-
-                      {(!data.sections?.some(s => s.type === "wifi" && s.enabled !== false)) && (
-                        <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200/50 p-3 rounded-xl font-medium leading-normal">
-                          ⚠️ <strong>WiFi Section Inactive:</strong> Setup WiFi credentials in the &quot;Content &amp; Sections&quot; tab to enable a side-by-side WiFi QR code on the Stand Flyer. Otherwise, it will only display the business card QR code in a single layout.
+                    <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6 items-start">
+                      {/* Left: Inputs */}
+                      <div className="space-y-4 text-xs">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">WiFi Section Title</label>
+                          <input
+                            type="text"
+                            value={data.design_settings?.stand_flyer?.wifi_title ?? ""}
+                            onChange={(e) => {
+                              update("design_settings", {
+                                ...(data.design_settings || {}),
+                                stand_flyer: {
+                                  ...(data.design_settings?.stand_flyer || {}),
+                                  wifi_title: e.target.value
+                                }
+                              });
+                            }}
+                            placeholder="Relax & Connect!"
+                            className="input"
+                          />
                         </div>
-                      )}
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">WiFi Subtitle Line 1</label>
+                          <input
+                            type="text"
+                            value={data.design_settings?.stand_flyer?.wifi_text1 ?? ""}
+                            onChange={(e) => {
+                              update("design_settings", {
+                                ...(data.design_settings || {}),
+                                stand_flyer: {
+                                  ...(data.design_settings?.stand_flyer || {}),
+                                  wifi_text1: e.target.value
+                                }
+                              });
+                            }}
+                            placeholder="Enjoy free WiFi while"
+                            className="input"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">WiFi Subtitle Line 2</label>
+                          <input
+                            type="text"
+                            value={data.design_settings?.stand_flyer?.wifi_text2 ?? ""}
+                            onChange={(e) => {
+                              update("design_settings", {
+                                ...(data.design_settings || {}),
+                                stand_flyer: {
+                                  ...(data.design_settings?.stand_flyer || {}),
+                                  wifi_text2: e.target.value
+                                }
+                              });
+                            }}
+                            placeholder="you are at our venue."
+                            className="input"
+                          />
+                        </div>
+
+                        {(!data.sections?.some(s => s.type === "wifi" && s.enabled !== false)) && (
+                          <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200/50 p-3 rounded-xl font-medium leading-normal">
+                            ⚠️ <strong>WiFi Section Inactive:</strong> Setup WiFi credentials in the &quot;Content &amp; Sections&quot; tab to enable a side-by-side WiFi QR code on the Stand Flyer. Otherwise, it will only display the business card QR code in a single layout.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: Preview & Download */}
+                      <div className="flex flex-col gap-4 items-center bg-stone-50 border border-stone-200 rounded-2xl p-6 shadow-xs w-full">
+                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Live Stand Flyer Preview</span>
+                        {generatingFlyerPreview ? (
+                          <div className="w-8 h-8 rounded-full border-4 border-t-brand border-stone-200 animate-spin my-8" />
+                        ) : flyerPreview ? (
+                          <>
+                            <img src={flyerPreview} alt="Stand Flyer Preview" className="max-w-[200px] rounded-lg shadow-md border animate-fade-in" />
+                            <button
+                              type="button"
+                              onClick={handleDownloadFlyer}
+                              className="py-2.5 px-4 bg-brand text-white text-xs font-bold rounded-xl shadow-md w-full flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer"
+                              style={{ backgroundColor: brandColor }}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                              </svg>
+                              Download Stand Flyer
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-xs text-stone-400 font-medium my-8">No preview available</span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2033,123 +2146,15 @@ export default function CardForm({
           {/* Column 3: Live Preview (Right) */}
           <div className="hidden lg:sticky lg:top-24 lg:flex flex-col gap-6">
             <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-              {isWizard ? "Live card preview" : (
-                <>
-                  {editDesignTab === "card" && "Live digital card preview"}
-                  {editDesignTab === "qr" && "Live QR Code Art"}
-                  {editDesignTab === "bc" && "Live Business Card Design"}
-                  {editDesignTab === "flyer" && "Live Stand Flyer Design"}
-                </>
-              )}
+              Live digital card preview
             </h3>
             
             <div className="bg-stone-100 rounded-3xl p-5 border border-stone-200 shadow-inner flex flex-col items-center gap-4 min-h-[300px]">
-              {(isWizard || editDesignTab === "card") && (
-                <CardPreview 
-                  data={data} 
-                  onSaveContact={downloadVCardPreview} 
-                  activeTabOverride={activeTabOverride}
-                />
-              )}
-
-              {!isWizard && editDesignTab === "qr" && (
-                <div className="w-full flex flex-col gap-4 items-center bg-white border border-stone-200 rounded-2xl p-6 shadow-xs">
-                  {qrLoading ? (
-                    <div className="w-8 h-8 rounded-full border-4 border-t-brand border-stone-200 animate-spin" />
-                  ) : qr ? (
-                    <>
-                      <img src={qr} alt="Live Custom QR" className="w-40 h-40 object-contain rounded-lg shadow-sm border border-stone-100" />
-                      <a
-                        href={qr}
-                        download={`${data.business_name || "business"}_qr.png`}
-                        className="py-2.5 px-4 bg-brand text-white text-xs font-bold rounded-xl shadow-md w-full text-center hover:opacity-90 transition-all cursor-pointer"
-                        style={{ backgroundColor: brandColor }}
-                      >
-                        Download QR Code
-                      </a>
-                    </>
-                  ) : (
-                    <span className="text-xs text-stone-400 font-medium">No QR available</span>
-                  )}
-                </div>
-              )}
-
-              {!isWizard && editDesignTab === "bc" && (
-                <div className="w-full flex flex-col gap-4 items-center bg-white border border-stone-200 rounded-2xl p-6 shadow-xs">
-                  {data.plan === "basic" ? (
-                    <div className="text-center py-6">
-                      <span className="text-xl mb-1 block">🔒</span>
-                      <h4 className="text-xs font-bold text-stone-850">Business Card Locked</h4>
-                      <p className="text-[10px] text-stone-500 mt-1 max-w-[200px] mx-auto leading-relaxed">
-                        Upgrade to Pro or Business to download printable business cards.
-                      </p>
-                    </div>
-                  ) : generatingPreview ? (
-                    <div className="w-8 h-8 rounded-full border-4 border-t-brand border-stone-200 animate-spin" />
-                  ) : businessCardPreview ? (
-                    <>
-                      <img src={businessCardPreview} alt="Business Card Preview" className="max-w-full rounded-lg shadow-md border animate-fade-in" />
-                      <button
-                        type="button"
-                        onClick={handleDownloadBusinessCard}
-                        className="py-2.5 px-4 bg-brand text-white text-xs font-bold rounded-xl shadow-md w-full flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer"
-                        style={{ backgroundColor: brandColor }}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Download Business Card
-                      </button>
-                    </>
-                  ) : (
-                    <span className="text-xs text-stone-400 font-medium">No preview available</span>
-                  )}
-                </div>
-              )}
-
-              {!isWizard && editDesignTab === "flyer" && (
-                <div className="w-full flex flex-col gap-4 items-center bg-white border border-stone-200 rounded-2xl p-6 shadow-xs">
-                  {data.plan !== "business" ? (
-                    <div className="text-center py-6">
-                      <span className="text-xl mb-1 block">🔒</span>
-                      <h4 className="text-xs font-bold text-stone-850">Stand Flyer Locked</h4>
-                      <p className="text-[10px] text-stone-500 mt-1 max-w-[200px] mx-auto leading-relaxed">
-                        Upgrade to the Business plan to download Stand Flyers.
-                      </p>
-                    </div>
-                  ) : generatingFlyerPreview ? (
-                    <div className="w-8 h-8 rounded-full border-4 border-t-brand border-stone-200 animate-spin" />
-                  ) : flyerPreview ? (
-                    <>
-                      <img src={flyerPreview} alt="Stand Flyer Preview" className="max-w-[200px] rounded-lg shadow-md border animate-fade-in" />
-                      <button
-                        type="button"
-                        onClick={handleDownloadFlyer}
-                        className="py-2.5 px-4 bg-brand text-white text-xs font-bold rounded-xl shadow-md w-full flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer"
-                        style={{ backgroundColor: brandColor }}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Download Stand Flyer
-                      </button>
-                    </>
-                  ) : (
-                    <span className="text-xs text-stone-400 font-medium">No preview available</span>
-                  )}
-                </div>
-              )}
-
-              {isWizard && qr && (
-                <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col items-center w-full shadow-xs">
-                  <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-2">Live QR Preview</span>
-                  <img src={qr} alt="Live QR" className="w-24 h-24 object-contain" />
-                </div>
-              )}
+              <CardPreview 
+                data={data} 
+                onSaveContact={downloadVCardPreview} 
+                activeTabOverride={activeTabOverride}
+              />
             </div>
           </div>
         </div>
@@ -2161,7 +2166,10 @@ export default function CardForm({
           <div className="grid lg:grid-cols-[1.1fr_1.1fr_0.8fr] gap-6 items-start">
           
           {/* Column 1 (Left): Style overrides & navigation */}
-          <div className="space-y-6 bg-white border border-stone-200 rounded-3xl p-6 shadow-sm">
+          <div 
+            onFocusCapture={() => setActiveTabOverride("profile")}
+            className="space-y-6 bg-white border border-stone-200 rounded-3xl p-6 shadow-sm"
+          >
             <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex items-center gap-1.5">
               <span>🧭 Layout &amp; Navigation</span>
             </h3>
@@ -2417,8 +2425,11 @@ export default function CardForm({
             </div>
           </div>
 
-          {/* Column 2 (Center): Branding & QR Art panel */}
-          <div className="space-y-6">
+          {/* Column 2 (Center): Branding & Colors panel */}
+          <div 
+            onFocusCapture={() => setActiveTabOverride("profile")}
+            className="space-y-6"
+          >
             {/* Vibes & Colors Block */}
             <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
               <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex justify-between items-center">
@@ -2707,23 +2718,44 @@ export default function CardForm({
               </div>
 
             </div>
+          </div>
 
-            {/* Premium QR Art Customizer Block */}
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
-              <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex items-center justify-between">
-                <span>🔲 Custom QR Code Art</span>
-                {data.plan !== "basic" && (
-                  <span className="text-[9px] font-bold text-brand bg-brand-light/30 border border-brand/20 px-2 py-0.5 rounded uppercase">
-                    Premium
-                  </span>
-                )}
-              </h3>
+          {/* Column 3 (Right): Sticky preview column */}
+          <div className="hidden lg:sticky lg:top-24 lg:flex flex-col gap-6">
+            <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Live design preview</h3>
+            
+            <div className="bg-stone-100 rounded-3xl p-5 border border-stone-200 shadow-inner flex flex-col items-center gap-4">
+              <CardPreview 
+                data={data} 
+                onSaveContact={downloadVCardPreview} 
+                activeTabOverride={activeTabOverride}
+              />
+            </div>
+          </div>
 
-              {data.plan === "basic" ? (
-                <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-4 rounded-xl text-center bg-stone-50 font-medium leading-relaxed">
-                  🔒 Custom QR Code Art features are locked on Free trial. Upgrade to Pro or Business to make your QR code scan as art!
-                </div>
-              ) : (
+          </div>
+
+          {/* Row 2: Custom QR Code Art */}
+          <div 
+            onFocusCapture={() => setActiveTabOverride("share")}
+            className="bg-white border border-stone-200 rounded-3xl p-6 space-y-6 shadow-sm text-left"
+          >
+            <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex items-center justify-between">
+              <span>🔲 Custom QR Code Art</span>
+              {data.plan !== "basic" && (
+                <span className="text-[9px] font-bold text-brand bg-brand-light/30 border border-brand/20 px-2 py-0.5 rounded uppercase">
+                  Premium
+                </span>
+              )}
+            </h3>
+
+            {data.plan === "basic" ? (
+              <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-4 rounded-xl text-center bg-stone-50 font-medium leading-relaxed">
+                🔒 Custom QR Code Art features are locked on Free trial. Upgrade to Pro or Business to make your QR code scan as art!
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6 items-start">
+                {/* Left: Inputs */}
                 <div className="space-y-3.5 text-xs">
                   {/* Dot styles & corner style */}
                   <div className="grid grid-cols-2 gap-3">
@@ -2872,7 +2904,7 @@ export default function CardForm({
                         }}
                         className="h-8 w-full rounded border border-stone-200 cursor-pointer p-0.5 bg-white"
                       />
-                      <p className="text-[9px] text-stone-400 mt-1 leading-normal">
+                      <p className="text-[9px] text-stone-450 mt-1 leading-normal">
                         Highlights the three corner squares in a bold accent color.
                       </p>
                     </div>
@@ -2962,23 +2994,64 @@ export default function CardForm({
                     </p>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Printable Business Card Customizer */}
-            <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-sm text-left">
-              <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex items-center justify-between">
-                <span>🪪 Printable Business Card Design</span>
-                <span className="text-[9px] font-bold text-brand bg-brand-light/30 border border-brand/20 px-2 py-0.5 rounded uppercase">
-                  {data.plan === "business" ? "Business" : "🔒 Business Feature"}
-                </span>
-              </h3>
-
-              {data.plan !== "business" ? (
-                <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-4 rounded-xl text-center bg-stone-50 font-medium leading-relaxed">
-                  🔒 Custom printable card styling is locked. Upgrade to the Business plan to unlock card themes, background textures, rounded borders, watermark opacities, and neon border glows!
+                {/* Right: Live Preview & Download */}
+                <div className="flex flex-col gap-4 items-center bg-stone-50 border border-stone-200 rounded-2xl p-6 shadow-xs w-full">
+                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Live QR Art Preview</span>
+                  {qrLoading ? (
+                    <div className="w-8 h-8 rounded-full border-4 border-t-brand border-stone-200 animate-spin my-8" />
+                  ) : qr ? (
+                    <>
+                      <img src={qr} alt="Live Custom QR" className="max-w-[200px] object-contain rounded-lg shadow-sm border border-stone-100 animate-fade-in bg-white" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!qr) return;
+                          const a = document.createElement("a");
+                          a.href = qr;
+                          a.download = `${data.business_name || "business"}_qr_code.png`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                        }}
+                        className="py-2.5 px-4 bg-brand text-white text-xs font-bold rounded-xl shadow-md w-full flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer"
+                        style={{ backgroundColor: brandColor }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Download QR Code
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-xs text-stone-400 font-medium my-8">No QR available</span>
+                  )}
                 </div>
-              ) : (
+              </div>
+            )}
+          </div>
+
+          {/* Row 3: Printable Business Card Design */}
+          <div 
+            onFocusCapture={() => setActiveTabOverride("share")}
+            className="bg-white border border-stone-200 rounded-3xl p-6 space-y-6 shadow-sm text-left"
+          >
+            <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex items-center justify-between">
+              <span>🪪 Printable Business Card Design</span>
+              <span className="text-[9px] font-bold text-brand bg-brand-light/30 border border-brand/20 px-2 py-0.5 rounded uppercase">
+                {data.plan === "business" ? "Business" : "🔒 Business Feature"}
+              </span>
+            </h3>
+
+            {data.plan !== "business" ? (
+              <div className="text-[10px] text-stone-400 border border-dashed border-stone-200 p-4 rounded-xl text-center bg-stone-50 font-medium leading-relaxed">
+                🔒 Custom printable card styling is locked. Upgrade to the Business plan to unlock card themes, background textures, rounded borders, watermark opacities, and neon border glows!
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6 items-start">
+                {/* Left: Inputs */}
                 <div className="space-y-3.5 text-xs">
                   {/* Theme & Background Texture */}
                   <div className="grid grid-cols-2 gap-3">
@@ -3073,7 +3146,7 @@ export default function CardForm({
                   {/* Watermark Opacity slider */}
                   {data.design_settings?.business_card?.watermark_logo && (
                     <div className="space-y-1 p-2 bg-stone-50 border border-stone-150 rounded-xl animate-fade-in">
-                      <div className="flex justify-between items-center text-[10px] font-bold text-stone-550">
+                      <div className="flex justify-between items-center text-[10px] font-bold text-stone-555">
                         <span>Watermark Opacity</span>
                         <span>{Math.round((data.design_settings?.business_card?.watermark_opacity || 0.15) * 100)}%</span>
                       </div>
@@ -3122,7 +3195,6 @@ export default function CardForm({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Visual Border Glow</label>
                       <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-2">
                         <input
                           type="checkbox"
@@ -3143,35 +3215,42 @@ export default function CardForm({
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
 
-          </div>
-
-          {/* Column 3 (Right): Sticky preview column */}
-          <div className="hidden lg:sticky lg:top-24 lg:flex flex-col gap-6">
-            <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Live design &amp; QR preview</h3>
-            
-            <div className="bg-stone-100 rounded-3xl p-5 border border-stone-200 shadow-inner flex flex-col items-center gap-4">
-              <CardPreview 
-                data={data} 
-                onSaveContact={downloadVCardPreview} 
-                activeTabOverride={activeTabOverride}
-              />
-              {qr && (
-                <div className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col items-center w-full shadow-xs">
-                  <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-2">Live QR Code</span>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qr} alt="Live Custom QR" className="w-40 h-40 object-contain rounded-lg" />
+                {/* Right: Preview & Download */}
+                <div className="flex flex-col gap-4 items-center bg-stone-50 border border-stone-200 rounded-2xl p-6 shadow-xs w-full">
+                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Live Business Card Preview</span>
+                  {generatingPreview ? (
+                    <div className="w-8 h-8 rounded-full border-4 border-t-brand border-stone-200 animate-spin my-8" />
+                  ) : businessCardPreview ? (
+                    <>
+                      <img src={businessCardPreview} alt="Business Card Preview" className="max-w-full rounded-lg shadow-md border animate-fade-in animate-duration-300" />
+                      <button
+                        type="button"
+                        onClick={handleDownloadBusinessCard}
+                        className="py-2.5 px-4 bg-brand text-white text-xs font-bold rounded-xl shadow-md w-full flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer"
+                        style={{ backgroundColor: brandColor }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Download Business Card
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-xs text-stone-400 font-medium my-8">No preview available</span>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-
+              </div>
+            )}
           </div>
 
           {/* Row 4: A6 Stand Flyer Design */}
-          <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-6 shadow-sm">
+          <div 
+            onFocusCapture={() => setActiveTabOverride("share")}
+            className="bg-white border border-stone-200 rounded-3xl p-6 space-y-6 shadow-sm"
+          >
             <h3 className="text-sm font-bold text-stone-900 border-b border-stone-100 pb-2.5 flex items-center justify-between">
               <span>📋 Stand Flyer Customization (A6 Stand Flyer)</span>
               <span className="text-[9px] font-bold text-brand bg-brand-light/30 border border-brand/20 px-2 py-0.5 rounded uppercase">

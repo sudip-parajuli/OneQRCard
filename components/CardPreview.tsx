@@ -624,14 +624,6 @@ function CardMockup({ data, onSaveContact, onDownloadCard }: Props) {
               style={getNeomorphicStyle(true)} 
             />
 
-            {/* Download business card */}
-            {onDownloadCard && (
-              <DownloadButton 
-                color={data.theme === "glassmorphic" ? txtColor : brandColor} 
-                onClick={onDownloadCard} 
-                style={getNeomorphicStyle(true)} 
-              />
-            )}
 
             {/* Phone link (shown just like it is right now) */}
             {data.phone && (
@@ -1517,40 +1509,6 @@ function SaveButton({
   );
 }
 
-function DownloadButton({
-  color,
-  onClick,
-  style,
-}: {
-  color: string;
-  onClick?: () => void;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      style={{ borderColor: color, color: color, ...style }}
-      className="w-full py-3 rounded-xl text-sm font-semibold border-2 hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 mb-1 cursor-pointer"
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="w-4 h-4"
-      >
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="7 10 12 15 17 10" />
-        <line x1="12" y1="15" x2="12" y2="3" />
-      </svg>
-      Download Business Card
-    </motion.button>
-  );
-}
 
 function LinkRow({ item, variant }: { item: LinkItem; variant: "outline" }) {
   const isGoogleReview = item.key === "google_review";

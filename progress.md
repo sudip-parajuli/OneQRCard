@@ -79,3 +79,7 @@ This log tracks the upgrades, feature development, and current progress of the B
 * **Integrated Share Tab**: Housed the custom QR code viewer and sharing tools into a dedicated **Share** tab (`🔗 Share`) inside the `CardPreview` component, keeping all profile features inside a single premium tab container.
 * **Empty Slug Guard**: Implemented placeholder instruction card inside the `ShareQR` component to guide users through custom link generation (slug selection) before showing QR codes.
 * **Walled Garden Offline Tip**: Added detailed guidance inside `WifiEditor` on how to set up Guest WiFi as Open with a Walled Garden (DNS Whitelist) pointing to the card domain, solving the chicken-and-egg problem of needing internet to scan the card.
+
+### June 2026: Google Review Input & Live Preview Gating Fix
+* **Bidirectional State Sync**: Resolved an issue in `CardForm.tsx` where loading a card with an empty flat `data.google_review` column would overwrite and wipe out any configured `google_review_url` inside the `sections` array. Created a bidirectional sync that populates `google_review` from `sections` when appropriate.
+* **Strict Preview Gating**: Updated `CardPreview.tsx` and `SectionRenderers.tsx` to verify that the configured Google Review URL is non-empty, not whitespace-only, and is not a default placeholder (`https://g.page/r/...`) before enabling and displaying the rating block widget. This ensures the review gate only appears when a valid link is entered.

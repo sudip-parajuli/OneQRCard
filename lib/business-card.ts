@@ -1004,14 +1004,34 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     listItems.push({ type: "contact", title: "CONTACT US", desc: "Call, Email & More" });
   }
 
-  // 5. Draw Middle QR Cards
+  const showFooterBar = sfSettings.show_footer_bar !== false; // default ON
+  const showWifiCredentials = sfSettings.show_wifi_credentials !== false; // default ON
+
+  // Calculate card heights dynamically based on content to prevent excessive empty space
+  let cardH = 0;
+  if (hasWifi) {
+    const leftRequiredH = 20 + 56 + 20 + 60 + 250 + (listItems.slice(0, 5).length * 68) + 20;
+    const wifiDataH = showWifiCredentials ? (wifiData.password ? 240 : 140) : 150;
+    const rightRequiredH = 20 + 56 + 20 + 60 + 250 + 20 + wifiDataH + 20;
+    cardH = Math.max(leftRequiredH, rightRequiredH);
+  } else {
+    cardH = 30 + 70 + 30 + 40 + 320 + 20 + (Math.ceil(listItems.slice(0, 6).length / 2) * 76) + 30;
+  }
+
+  // Calculate remaining vertical space to distribute margins evenly
+  const footerRequiredSpace = showFooterBar ? 220 : 100;
+  const totalContentH = currentY + cardH + footerRequiredSpace;
+  const remainingSpace = Math.max(0, 1485 - totalContentH);
+
+  // Position cards and footer bar dynamically
+  const cardsY = currentY + (remainingSpace * 0.35);
+  const barY = cardsY + cardH + (remainingSpace * 0.35);
+
   if (hasWifi) {
     // LAYOUT A: Dual column side-by-side cards (WiFi + Business)
     const cardW = 440;
-    const cardH = 860;
     const leftX = 60;
     const rightX = 550;
-    const cardsY = 265;
 
     // LEFT CARD: Business QR Card
     ctx.save();
@@ -1020,63 +1040,63 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     ctx.shadowBlur = 30;
     ctx.shadowOffsetY = 10;
     ctx.beginPath();
-    drawRoundedRect(ctx, leftX, cardsY, cardW, cardH, 36);
+    drawRoundedRect(ctx, leftX, cardsY, cardW, cardH, 32);
     ctx.fill();
     ctx.restore();
 
     // Left Banner Header: Business QR
     ctx.fillStyle = brandColor;
     ctx.beginPath();
-    drawRoundedRect(ctx, leftX + 24, cardsY + 24, cardW - 48, 60, 16);
+    drawRoundedRect(ctx, leftX + 20, cardsY + 20, cardW - 40, 56, 14);
     ctx.fill();
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 24px sans-serif";
+    ctx.font = "bold 22px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("BUSINESS QR", leftX + cardW / 2, cardsY + 54);
+    const bCardTitle = sfSettings.business_card_title || "BUSINESS QR";
+    ctx.fillText(bCardTitle, leftX + cardW / 2, cardsY + 48);
 
     // Left Subtitle
     ctx.fillStyle = "#334155";
-    ctx.font = "bold 20px sans-serif";
+    ctx.font = "bold 18px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     const subL1 = sfSettings.business_flyer_subtitle_l1 || "Scan to Explore";
-    ctx.fillText(subL1, leftX + cardW / 2, cardsY + 104);
-    ctx.font = "bold 15px sans-serif";
+    ctx.fillText(subL1, leftX + cardW / 2, cardsY + 94);
+    ctx.font = "bold 13px sans-serif";
     ctx.fillStyle = "#64748b";
     const subL2 = sfSettings.business_flyer_subtitle_l2 || "Our Services & More";
-    ctx.fillText(subL2, leftX + cardW / 2, cardsY + 130);
+    ctx.fillText(subL2, leftX + cardW / 2, cardsY + 118);
 
     // Left QR code
     if (loadedImages.qr) {
-      const qrSize = 250;
-      ctx.drawImage(loadedImages.qr, leftX + (cardW - qrSize) / 2, cardsY + 165, qrSize, qrSize);
+      const qrSize = 230;
+      ctx.drawImage(loadedImages.qr, leftX + (cardW - qrSize) / 2, cardsY + 150, qrSize, qrSize);
     }
 
-    // Left bullet points list (Y: cardsY + 440)
-    let itemY = cardsY + 440;
+    // Left bullet points list below QR
+    let itemY = cardsY + 396;
     listItems.slice(0, 5).forEach((item) => {
+      if (itemY + 60 > cardsY + cardH - 16) return; // guard overflow
       ctx.fillStyle = "#f8fafc";
       ctx.beginPath();
-      drawRoundedRect(ctx, leftX + 24, itemY, cardW - 48, 64, 16);
+      drawRoundedRect(ctx, leftX + 20, itemY, cardW - 40, 58, 14);
       ctx.fill();
 
-      // Circle icon
-      drawListIcon(ctx, leftX + 60, itemY + 32, 18, item.type);
+      drawListIcon(ctx, leftX + 54, itemY + 29, 16, item.type);
 
-      // Text titles
       ctx.fillStyle = "#0f172a";
-      ctx.font = "bold 13px sans-serif";
+      ctx.font = "bold 12px sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(item.title, leftX + 94, itemY + 22);
+      ctx.fillText(item.title, leftX + 86, itemY + 20);
 
       ctx.fillStyle = "#64748b";
-      ctx.font = "medium 10px sans-serif";
-      ctx.fillText(item.desc, leftX + 94, itemY + 42);
+      ctx.font = "10px sans-serif";
+      ctx.fillText(item.desc, leftX + 86, itemY + 38);
 
-      itemY += 76;
+      itemY += 68;
     });
 
     // RIGHT CARD: WiFi QR Card
@@ -1086,71 +1106,115 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     ctx.shadowBlur = 30;
     ctx.shadowOffsetY = 10;
     ctx.beginPath();
-    drawRoundedRect(ctx, rightX, cardsY, cardW, cardH, 36);
+    drawRoundedRect(ctx, rightX, cardsY, cardW, cardH, 32);
     ctx.fill();
     ctx.restore();
 
     // Right Banner Header: WiFi QR
-    ctx.fillStyle = "#2563eb"; // Blue WiFi color
+    ctx.fillStyle = "#2563eb";
     ctx.beginPath();
-    drawRoundedRect(ctx, rightX + 24, cardsY + 24, cardW - 48, 60, 16);
+    drawRoundedRect(ctx, rightX + 20, cardsY + 20, cardW - 40, 56, 14);
     ctx.fill();
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 24px sans-serif";
+    ctx.font = "bold 22px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("WIFI QR", rightX + cardW / 2, cardsY + 54);
+    const wCardTitle = sfSettings.wifi_card_title || "WiFi QR";
+    ctx.fillText(wCardTitle, rightX + cardW / 2, cardsY + 48);
 
     // Right Subtitle
     ctx.fillStyle = "#334155";
-    ctx.font = "bold 20px sans-serif";
+    ctx.font = "bold 18px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText("Scan to Connect", rightX + cardW / 2, cardsY + 104);
-    ctx.font = "bold 15px sans-serif";
+    const wCardSub = sfSettings.wifi_card_subtitle || "Scan to Connect";
+    ctx.fillText(wCardSub, rightX + cardW / 2, cardsY + 94);
+    ctx.font = "bold 13px sans-serif";
     ctx.fillStyle = "#64748b";
-    ctx.fillText(`to ${wifiData.ssid || "WiFi"}`, rightX + cardW / 2, cardsY + 130);
+    ctx.fillText(`Network: ${wifiData.ssid || "WiFi"}`, rightX + cardW / 2, cardsY + 118);
 
     // Right WiFi QR code
     if (loadedImages.wifiQr) {
-      const qrSize = 250;
-      ctx.drawImage(loadedImages.wifiQr, rightX + (cardW - qrSize) / 2, cardsY + 165, qrSize, qrSize);
+      const qrSize = 230;
+      ctx.drawImage(loadedImages.wifiQr, rightX + (cardW - qrSize) / 2, cardsY + 150, qrSize, qrSize);
     }
 
-    // Right shield connect card below (Y: cardsY + 440)
-    const shieldY = cardsY + 440;
-    ctx.fillStyle = "#f8fafc";
-    ctx.beginPath();
-    drawRoundedRect(ctx, rightX + 24, shieldY, cardW - 48, 380, 24);
-    ctx.fill();
+    // Right: WiFi credentials info box (replaces shield/lock icon)
+    const credBoxY = cardsY + 390;
+    const credBoxH = cardH - 390 - 20;
+    if (credBoxH > 60) {
+      ctx.fillStyle = "#eff6ff";
+      ctx.beginPath();
+      drawRoundedRect(ctx, rightX + 20, credBoxY, cardW - 40, Math.min(credBoxH, 280), 20);
+      ctx.fill();
 
-    // Draw shield lock icon
-    drawShieldIcon(ctx, rightX + cardW / 2, shieldY + 110, 48);
+      // WiFi icon circle (simple arc-based wifi symbol)
+      ctx.fillStyle = "#2563eb";
+      ctx.beginPath();
+      ctx.arc(rightX + cardW / 2, credBoxY + 48, 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 20px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("WiFi", rightX + cardW / 2, credBoxY + 48);
 
-    // Text box (Dynamic WiFi flyer texts)
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 20px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    
-    const wifiTitle = data.design_settings?.stand_flyer?.wifi_title || "Relax & Connect!";
-    const wifiTxt1 = data.design_settings?.stand_flyer?.wifi_text1 || "Enjoy free WiFi while";
-    const wifiTxt2 = data.design_settings?.stand_flyer?.wifi_text2 || "you are at our venue.";
-    
-    ctx.fillText(wifiTitle, rightX + cardW / 2, shieldY + 190);
+      if (showWifiCredentials) {
+        // Show SSID and Password
+        ctx.fillStyle = "#1e40af";
+        ctx.font = "bold 16px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText("Network Name:", rightX + cardW / 2, credBoxY + 86);
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 20px sans-serif";
+        const ssidDisplay = wifiData.ssid || "";
+        ctx.fillText(ssidDisplay, rightX + cardW / 2, credBoxY + 110);
 
-    ctx.fillStyle = "#475569";
-    ctx.font = "medium 15px sans-serif";
-    ctx.fillText(wifiTxt1, rightX + cardW / 2, shieldY + 240);
-    ctx.fillText(wifiTxt2, rightX + cardW / 2, shieldY + 268);
+        if (wifiData.password) {
+          // Divider line
+          ctx.strokeStyle = "rgba(37, 99, 235, 0.15)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(rightX + 60, credBoxY + 150);
+          ctx.lineTo(rightX + cardW - 60, credBoxY + 150);
+          ctx.stroke();
+
+          ctx.fillStyle = "#1e40af";
+          ctx.font = "bold 16px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          ctx.fillText("Password:", rightX + cardW / 2, credBoxY + 162);
+          ctx.fillStyle = "#0f172a";
+          ctx.font = "bold 20px sans-serif";
+          const pwDisplay = wifiData.show_password !== false ? wifiData.password : "••••••••";
+          ctx.fillText(pwDisplay, rightX + cardW / 2, credBoxY + 186);
+        }
+
+        ctx.fillStyle = "#6b7280";
+        ctx.font = "12px sans-serif";
+        ctx.fillText("Scan QR above to auto-connect", rightX + cardW / 2, credBoxY + Math.min(credBoxH - 36, 228));
+      } else {
+        // Simple "Scan QR above" message when credentials are hidden
+        ctx.fillStyle = "#1e40af";
+        ctx.font = "bold 18px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText("Scan to Connect!", rightX + cardW / 2, credBoxY + 88);
+        ctx.fillStyle = "#475569";
+        ctx.font = "15px sans-serif";
+        ctx.fillText(`Network: ${wifiData.ssid || ""}`, rightX + cardW / 2, credBoxY + 120);
+        ctx.fillStyle = "#6b7280";
+        ctx.font = "12px sans-serif";
+        ctx.fillText("Point your camera at the QR code", rightX + cardW / 2, credBoxY + 150);
+      }
+    }
 
   } else {
     // LAYOUT B: Single wider card layout (Business QR only)
     const cardW = 760;
-    const cardH = 880;
     const leftX = (canvas.width - cardW) / 2;
-    const cardsY = 265;
 
     ctx.save();
     ctx.fillStyle = "#ffffff";
@@ -1165,115 +1229,125 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     // Banner Header
     ctx.fillStyle = brandColor;
     ctx.beginPath();
-    drawRoundedRect(ctx, leftX + 40, cardsY + 30, cardW - 80, 70, 20);
+    drawRoundedRect(ctx, leftX + 40, cardsY + 28, cardW - 80, 66, 18);
     ctx.fill();
 
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 28px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("BUSINESS QR", leftX + cardW / 2, cardsY + 65);
+    const bCardTitleSingle = sfSettings.business_card_title || "BUSINESS QR";
+    ctx.fillText(bCardTitleSingle, leftX + cardW / 2, cardsY + 61);
 
     // Subtitle
     ctx.fillStyle = "#334155";
-    ctx.font = "bold 22px sans-serif";
+    ctx.font = "bold 21px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     const subCombined = sfSettings.business_flyer_subtitle_l1
       ? `${sfSettings.business_flyer_subtitle_l1}${sfSettings.business_flyer_subtitle_l2 ? " " + sfSettings.business_flyer_subtitle_l2 : ""}`
       : "Scan to Explore Our Services & More";
-    ctx.fillText(subCombined, leftX + cardW / 2, cardsY + 120);
+    ctx.fillText(subCombined, leftX + cardW / 2, cardsY + 112);
 
     // Large Business QR code
     if (loadedImages.qr) {
-      const qrSize = 340;
-      ctx.drawImage(loadedImages.qr, leftX + (cardW - qrSize) / 2, cardsY + 175, qrSize, qrSize);
+      const qrSize = 320;
+      ctx.drawImage(loadedImages.qr, leftX + (cardW - qrSize) / 2, cardsY + 162, qrSize, qrSize);
     }
 
     // Two-column list items layout below QR code
-    let col1Y = cardsY + 560;
-    let col2Y = cardsY + 560;
+    let col1Y = cardsY + 500;
+    let col2Y = cardsY + 500;
     listItems.slice(0, 6).forEach((item, index) => {
       const isCol1 = index % 2 === 0;
-      const itemX = isCol1 ? leftX + 40 : leftX + cardW / 2 + 10;
+      const itemX = isCol1 ? leftX + 36 : leftX + cardW / 2 + 10;
       const itemY = isCol1 ? col1Y : col2Y;
+      if (itemY + 64 > cardsY + cardH - 16) return;
 
       ctx.fillStyle = "#f8fafc";
       ctx.beginPath();
-      drawRoundedRect(ctx, itemX, itemY, 330, 68, 16);
+      drawRoundedRect(ctx, itemX, itemY, 330, 62, 14);
       ctx.fill();
 
-      // Circle icon
-      drawListIcon(ctx, itemX + 38, itemY + 34, 18, item.type);
+      drawListIcon(ctx, itemX + 36, itemY + 31, 16, item.type);
 
-      // Text titles
       ctx.fillStyle = "#0f172a";
-      ctx.font = "bold 13px sans-serif";
+      ctx.font = "bold 12px sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(item.title, itemX + 72, itemY + 24);
+      ctx.fillText(item.title, itemX + 68, itemY + 22);
 
       ctx.fillStyle = "#64748b";
-      ctx.font = "medium 10px sans-serif";
-      ctx.fillText(item.desc, itemX + 72, itemY + 44);
+      ctx.font = "10px sans-serif";
+      ctx.fillText(item.desc, itemX + 68, itemY + 40);
 
-      if (isCol1) col1Y += 82;
-      else col2Y += 82;
+      if (isCol1) col1Y += 76;
+      else col2Y += 76;
     });
   }
 
-  // 6. Bottom Horizontal Bar: Socials and website info (Y: 1210)
-  const barW = 930;
-  const barH = 110;
-  const barX = (canvas.width - barW) / 2;
-  const barY = 1210;
+  // 6. Bottom Horizontal Bar: Socials and website info
+  if (showFooterBar) {
+    const barW = 930;
+    const barH = 80; // reduced from 110 to 80
+    const barX = (canvas.width - barW) / 2;
 
-  ctx.save();
-  ctx.fillStyle = "#272a30";
-  ctx.beginPath();
-  drawRoundedRect(ctx, barX, barY, barW, barH, 20);
-  ctx.fill();
-  ctx.restore();
+    ctx.save();
+    ctx.fillStyle = isLightTheme ? "rgba(0,0,0,0.08)" : "#272a30";
+    ctx.beginPath();
+    drawRoundedRect(ctx, barX, barY, barW, barH, 18);
+    ctx.fill();
+    ctx.restore();
 
-  // Draw circular socials in bottom horizontal bar (only active ones)
-  const socialSec = data.sections?.find((s: any) => s.type === "socials");
-  const footerSocialsEnabled = socialSec ? socialSec.enabled !== false : true;
-  const activeFooterPlatforms = footerSocialsEnabled
-    ? ["facebook", "instagram", "tiktok", "youtube"].filter(p => !!(data as any)[p])
-    : [];
-  let fIconX = barX + 35;
-  const fIconY = barY + barH / 2;
-  activeFooterPlatforms.forEach((p) => {
-    drawSocialFooterIcons(ctx, fIconX + 20, fIconY, 20, p);
-    fIconX += 60;
-  });
+    // Social icons on the left
+    const socialSec = data.sections?.find((s: any) => s.type === "socials");
+    const footerSocialsEnabled = socialSec ? socialSec.enabled !== false : true;
+    const activeFooterPlatforms = footerSocialsEnabled
+      ? ["facebook", "instagram", "tiktok", "youtube"].filter(p => !!(data as any)[p])
+      : [];
+    let fIconX = barX + 28;
+    const fIconY = barY + barH / 2;
+    activeFooterPlatforms.forEach((p) => {
+      drawSocialFooterIcons(ctx, fIconX + 18, fIconY, 18, p);
+      fIconX += 52;
+    });
 
-  // Draw website text on the right side of the horizontal bar
-  if (data.website) {
-    let displayWeb = data.website.replace(/^https?:\/\/(www\.)?/, "");
-    if (displayWeb.length > 30) displayWeb = displayWeb.substring(0, 27) + "...";
+    // Website text on the right
+    if (data.website) {
+      let displayWeb = data.website.replace(/^https?:\/\/(www\.)?/, "");
+      if (displayWeb.length > 30) displayWeb = displayWeb.substring(0, 27) + "...";
 
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "bold 14px sans-serif";
-    ctx.textAlign = "right";
+      ctx.fillStyle = isLightTheme ? "#6b7280" : "#94a3b8";
+      ctx.font = "bold 12px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      ctx.fillText("VISIT OUR WEBSITE", barX + barW - 28, barY + 16);
+
+      ctx.fillStyle = isLightTheme ? "#0f172a" : "#ffffff";
+      ctx.font = "bold 20px sans-serif";
+      ctx.fillText(displayWeb, barX + barW - 28, barY + 36);
+    }
+
+    // 7. Footer: Platform branding
+    ctx.fillStyle = isLightTheme ? "#475569" : "#94a3b8";
+    ctx.font = "bold 16px sans-serif";
+    ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText("VISIT OUR WEBSITE", barX + barW - 35, barY + 24);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 22px sans-serif";
-    ctx.fillText(displayWeb, barX + barW - 35, barY + 52);
+    ctx.fillText("Powered by OneQR Card", canvas.width / 2, barY + barH + 26);
+    ctx.fillStyle = isLightTheme ? "#52525b" : "#64748b";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText("www.oneqrcard.com", canvas.width / 2, barY + barH + 50);
+  } else {
+    // No footer bar — just the branding text
+    ctx.fillStyle = isLightTheme ? "#475569" : "#94a3b8";
+    ctx.font = "bold 16px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText("Powered by OneQR Card", canvas.width / 2, 1420);
+    ctx.fillStyle = isLightTheme ? "#52525b" : "#64748b";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText("www.oneqrcard.com", canvas.width / 2, 1444);
   }
-
-  // 7. Footer: Platform branding
-  ctx.fillStyle = isLightTheme ? "#475569" : "#94a3b8";
-  ctx.font = "bold 18px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  ctx.fillText("Powered by OneQR Card", canvas.width / 2, barY + barH + 30);
-  ctx.fillStyle = isLightTheme ? "#52525b" : "#64748b";
-  ctx.font = "bold 12px sans-serif";
-  ctx.fillText("www.oneqrcard.com", canvas.width / 2, barY + barH + 58);
 
   return canvas.toDataURL("image/png");
 }
-

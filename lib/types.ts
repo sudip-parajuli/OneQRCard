@@ -90,6 +90,8 @@ export interface CardData {
       wifi_title?: string | null;
       wifi_text1?: string | null;
       wifi_text2?: string | null;
+      show_wifi_credentials?: boolean;
+      show_footer_bar?: boolean;
       theme?: "dark_matte" | "light_elegant" | "brand_accent" | "forest_dark" | "ocean_dark" | "warm_sunset" | "rose_gold" | "slate_blue" | null;
       bg_texture?: "none" | "geometric" | "linen" | "wood" | "marble" | "hexagon" | "noise" | null;
       show_logo?: boolean;
@@ -97,6 +99,9 @@ export interface CardData {
       business_flyer_subtitle?: string | null;
       business_flyer_subtitle_l1?: string | null;
       business_flyer_subtitle_l2?: string | null;
+      business_card_title?: string | null;
+      wifi_card_title?: string | null;
+      wifi_card_subtitle?: string | null;
       show_contact?: boolean;
       show_socials?: boolean;
       show_whatsapp?: boolean;

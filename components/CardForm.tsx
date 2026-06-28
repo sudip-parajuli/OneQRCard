@@ -184,6 +184,7 @@ export default function CardForm({
   const [currentStep, setCurrentStep] = useState(data.parent_id || workspaceId ? 2 : 1);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [wizardSelectedCards, setWizardSelectedCards] = useState<string[]>(["qr", "bc"]);
 
 
   const triggerTabFocus = (sectionType: string) => {
@@ -963,6 +964,48 @@ export default function CardForm({
                   No password needed. Enter this email on the <strong>/edit</strong> page to log in instantly via a magic link.
                 </p>
               </Field>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <label className="text-xs font-semibold text-stone-600 block">Select materials to customize &amp; print</label>
+              <div className="flex flex-wrap gap-5">
+                <label className="flex items-center gap-2 text-xs font-semibold text-stone-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={wizardSelectedCards.includes("qr")}
+                    onChange={(e) => {
+                      if (e.target.checked) setWizardSelectedCards(prev => [...prev, "qr"]);
+                      else setWizardSelectedCards(prev => prev.filter(c => c !== "qr"));
+                    }}
+                    className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                  />
+                  <span>Custom QR Art</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-stone-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={wizardSelectedCards.includes("bc")}
+                    onChange={(e) => {
+                      if (e.target.checked) setWizardSelectedCards(prev => [...prev, "bc"]);
+                      else setWizardSelectedCards(prev => prev.filter(c => c !== "bc"));
+                    }}
+                    className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                  />
+                  <span>Printable Business Card</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-stone-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={wizardSelectedCards.includes("flyer")}
+                    onChange={(e) => {
+                      if (e.target.checked) setWizardSelectedCards(prev => [...prev, "flyer"]);
+                      else setWizardSelectedCards(prev => prev.filter(c => c !== "flyer"));
+                    }}
+                    className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                  />
+                  <span>Stand Flyer (A6)</span>
+                </label>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -3057,17 +3100,6 @@ export default function CardForm({
               )}
             </div>
 
-            {/* Button to go to Step 5 */}
-            <div className="pt-4 border-t border-stone-100">
-              <button
-                type="button"
-                onClick={nextStep}
-                style={{ backgroundColor: brandColor }}
-                className="w-full py-3.5 bg-brand text-white rounded-2xl font-bold text-sm shadow-sm hover:opacity-95 transition-opacity cursor-pointer text-center"
-              >
-                Continue to Review &rarr;
-              </button>
-            </div>
           </div>
 
           {/* Column 2 (Center): Branding & Colors panel */}
@@ -3381,6 +3413,7 @@ export default function CardForm({
           </div>
 
           {/* Row 2: Custom QR Code Art */}
+          {(!isWizard || wizardSelectedCards.includes("qr")) && (
           <div 
             onFocusCapture={() => setActiveTabOverride("share")}
             className="bg-white border border-stone-200 rounded-3xl p-6 space-y-6 shadow-sm text-left"
@@ -3719,8 +3752,10 @@ export default function CardForm({
               </div>
             )}
           </div>
+          )}
 
           {/* Row 3: Printable Business Card Design */}
+          {(!isWizard || wizardSelectedCards.includes("bc")) && (
           <div 
             onFocusCapture={() => setActiveTabOverride("share")}
             className="bg-white border border-stone-200 rounded-3xl p-6 space-y-6 shadow-sm text-left"
@@ -4016,8 +4051,10 @@ export default function CardForm({
               </div>
             )}
           </div>
+          )}
 
           {/* Row 4: A6 Stand Flyer Design */}
+          {(!isWizard || wizardSelectedCards.includes("flyer")) && (
           <div 
             onFocusCapture={() => setActiveTabOverride("share")}
             className="bg-white border border-stone-200 rounded-3xl p-6 space-y-6 shadow-sm"
@@ -4403,6 +4440,19 @@ export default function CardForm({
                 </div>
               </div>
             )}
+          </div>
+          )}
+
+          {/* Continue to Review — placed at the very end of Step 4 */}
+          <div className="flex justify-center pt-8">
+            <button
+              type="button"
+              onClick={nextStep}
+              style={{ backgroundColor: brandColor }}
+              className="w-full max-w-sm py-4 bg-brand text-white rounded-2xl font-bold text-sm shadow-md hover:opacity-95 hover:shadow-lg transition-all cursor-pointer text-center"
+            >
+              Continue to Review &rarr;
+            </button>
           </div>
 
         </div>

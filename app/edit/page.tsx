@@ -35,12 +35,15 @@ export default function LoginPage() {
       });
 
       if (error) {
-        // Supabase AuthError has non-enumerable properties — JSON.stringify gives '{}'
-        // so we explicitly extract the message.
-        const errMsg =
-          (typeof error === "object" && (error as any).message)
-            ? (error as any).message
-            : (typeof error === "string" ? error : "Authentication failed. Please try again.");
+        let errMsg = "Authentication failed. Please try again.";
+        if (typeof error === "object" && error !== null) {
+          const errObj = error as any;
+          if (errObj.message && errObj.message !== "{}") {
+            errMsg = errObj.message;
+          } else if (errObj.name === "AuthRetryableFetchError" || errObj.status === 500) {
+            errMsg = "Unable to send login email. This usually happens when the Supabase SMTP rate limit is reached or the email service is temporarily unavailable. Please try again in a few minutes.";
+          }
+        }
         throw new Error(errMsg);
       }
 
@@ -49,9 +52,22 @@ export default function LoginPage() {
         text: "Check your email! We sent you a passwordless login link.",
       });
     } catch (err: any) {
+      console.error("Login error details:", err);
+      let errMsg = "Something went wrong. Please try again.";
+      if (err) {
+        if (typeof err === "string") {
+          errMsg = err;
+        } else if (typeof err === "object") {
+          if (err.message && err.message !== "{}") {
+            errMsg = err.message;
+          } else if (err.name === "AuthRetryableFetchError" || err.status === 500) {
+            errMsg = "Unable to send login email. This usually happens when the Supabase SMTP rate limit is reached or the email service is temporarily unavailable. Please try again in a few minutes.";
+          }
+        }
+      }
       setMessage({
         type: "error",
-        text: err.message || "Something went wrong. Please try again.",
+        text: errMsg,
       });
     } finally {
       setLoading(false);

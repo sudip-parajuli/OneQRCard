@@ -34,7 +34,15 @@ export default function LoginPage() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Supabase AuthError has non-enumerable properties — JSON.stringify gives '{}'
+        // so we explicitly extract the message.
+        const errMsg =
+          (typeof error === "object" && (error as any).message)
+            ? (error as any).message
+            : (typeof error === "string" ? error : "Authentication failed. Please try again.");
+        throw new Error(errMsg);
+      }
 
       setMessage({
         type: "success",

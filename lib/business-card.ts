@@ -763,9 +763,8 @@ function drawFlyerTexture(ctx: CanvasRenderingContext2D, width: number, height: 
 export async function generateQRFlyer(data: CardData): Promise<string> {
   const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || SITE.domain;
   const cardUrl = `https://${baseDomain}/card/${data.slug}`;
-  const reviewSection = data.sections?.find((s: any) => s.type === "review" && s.enabled !== false);
-  const targetUrl = reviewSection?.data?.google_review_url || data.google_review || cardUrl;
   const brandColor = data.brand_color || "#085041";
+  // The business QR on the flyer always links to the card page, not a review link.
 
   // Check if wifi section is enabled and has SSID configured
   const wifiSection = data.sections?.find((s: any) => s.type === "wifi" && s.enabled !== false);
@@ -774,7 +773,7 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
 
   // 1. Generate Business QR Code
   const qrCodeDataUrl = await generateQRCodeWithLogo(
-    targetUrl,
+    cardUrl,
     brandColor,
     data.logo_data_url,
     data.business_name,

@@ -307,10 +307,13 @@ export function GallerySectionRenderer({ data, card }: { data: GallerySectionDat
 
   if (images.length === 0) return null;
 
+  const isIndividual = card.business_type === "individual";
+  const displayTitle = isIndividual ? "My Portfolio" : "Photo Gallery";
+
   return (
     <div className={t.cardBg}>
       <h3 style={t.titleStyle} className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
-        <span>🎨</span> <span>Portfolio / Gallery</span>
+        <span>🎨</span> <span>{displayTitle}</span>
       </h3>
 
       {/* Rendering Layouts */}
@@ -418,10 +421,14 @@ export function ServicesSectionRenderer({ data, card }: { data: ServicesSectionD
 
   if (services.length === 0) return null;
 
+  const isIndividual = card.business_type === "individual";
+  const displayTitle = isIndividual ? "What I offer" : "Our Services";
+  const displayEmoji = isIndividual ? "💼" : "✂️";
+
   return (
     <div className={t.cardBg}>
       <h3 style={t.titleStyle} className={`text-base mb-4 flex items-center gap-2 ${t.titleText}`}>
-        <span>✂️</span> <span>Our Services</span>
+        <span>{displayEmoji}</span> <span>{displayTitle}</span>
       </h3>
 
       <div className="space-y-3">
@@ -895,7 +902,9 @@ export function WifiSectionRenderer({ data, card }: { data: any; card: CardData 
 export function LeadCaptureSectionRenderer({ data, card }: { data: any; card: CardData }) {
   const t = getThemeStyles(card.theme, card.text_color);
   const brandColor = card.brand_color || "#7c3aed";
-  const title = data.title || "Get in Touch";
+  const isIndividual = card.business_type === "individual";
+  const defaultTitle = isIndividual ? "Work with me" : "Get in Touch";
+  const title = data.title || defaultTitle;
   const success = data.success_message || "Thank you! We'll get back to you shortly.";
   const fields = data.fields || { name: true, phone: true, email: true, message: true };
 

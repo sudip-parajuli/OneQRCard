@@ -183,6 +183,7 @@ export default function CardForm({
   const isWizard = mode === "create";
   const [currentStep, setCurrentStep] = useState(data.parent_id || workspaceId ? 2 : 1);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
 
   const triggerTabFocus = (sectionType: string) => {
@@ -605,10 +606,44 @@ export default function CardForm({
     }, 300);
   };
 
+  const handleRefinementSelect = (key: string) => {
+    const defaults = BUSINESS_TYPE_DEFAULTS[key] || BUSINESS_TYPE_DEFAULTS.general;
+    const sections = getDefaultSectionsForType(key);
+    
+    // Ensure contact, socials, and review are always present
+    if (!sections.some(s => s.type === "contact")) {
+      sections.push({ type: "contact", title: "Contact Details", enabled: true, data: {} });
+    }
+    if (!sections.some(s => s.type === "socials")) {
+      sections.push({ type: "socials", title: "Social Links", enabled: true, data: {} });
+    }
+    if (!sections.some(s => s.type === "review")) {
+      sections.push({
+        type: "review",
+        title: "Rate Us & Review",
+        enabled: true,
+        data: { google_review_url: data.google_review || "" }
+      });
+    }
+
+    setData((d) => ({
+      ...d,
+      business_type: key,
+      brand_color: defaults.suggestedColor,
+      sections: sections,
+      section_order: sections.map((s) => s.type),
+    }));
+
+    setToast(`Sections updated for ${defaults.label.split(" / ")[0]}`);
+    setTimeout(() => {
+      setToast(null);
+    }, 2000);
+  };
+
   const nextStep = () => {
     if (currentStep === 2) {
       if (!data.business_name || !data.business_name.trim()) {
-        setSubmitError("Business name is required.");
+        setSubmitError("Name or business name is required.");
         return;
       }
       if (!data.owner_email || !data.owner_email.trim()) {
@@ -643,7 +678,7 @@ export default function CardForm({
       return;
     }
     if (!data.business_name.trim()) {
-      setSubmitError("Business name is required.");
+      setSubmitError("Name or business name is required.");
       return;
     }
     if (!data.owner_email || !data.owner_email.trim()) {
@@ -712,7 +747,7 @@ export default function CardForm({
     return (
       <main className="max-w-4xl mx-auto px-6 py-12">
         {/* Step Indicator Header */}
-        <div className="flex items-center justify-between max-w-xs mx-auto mb-8 border border-stone-200 bg-white rounded-full py-2 px-4 shadow-sm text-xs font-semibold text-stone-500">
+        <div className="flex items-center justify-between max-w-xs mx-auto mb-12 border border-stone-200 bg-white rounded-full py-2 px-4 shadow-sm text-xs font-semibold text-stone-500">
           <span>Step 1 of 5</span>
           <div className="flex gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-brand"></span>
@@ -725,51 +760,85 @@ export default function CardForm({
 
         <div className="text-center max-w-xl mx-auto mb-10">
           <h1 className="text-3xl font-extrabold tracking-tight text-stone-900 sm:text-4xl">
-            What kind of business do you run?
+            Who is this card for?
           </h1>
           <p className="mt-3 text-sm text-stone-500">
-            Select a category to pre-configure your default sections, suggested theme colors, and visual layout. You can customize everything later.
+            We'll set up the right layout for you.
           </p>
         </div>
 
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 max-w-4xl mx-auto">
-          {Object.entries(BUSINESS_TYPE_DEFAULTS).map(([key, detail]) => {
-            const isSelected = data.business_type === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleCategorySelect(key)}
-                className={`relative flex flex-col items-center text-center p-5 bg-white border rounded-2xl cursor-pointer select-none h-full justify-between gap-4 transition-all duration-200 hover:-translate-y-0.5 ${
-                  isSelected
-                    ? "border-brand bg-brand-light/30 ring-2 ring-brand"
-                    : "border-stone-200 hover:border-stone-300 hover:shadow-xs"
-                }`}
-              >
-                <div className="w-14 h-14 rounded-full bg-stone-50 flex items-center justify-center text-3xl border border-stone-100/50 shadow-inner">
-                  {detail.emoji}
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-bold text-stone-900 text-sm leading-tight">
-                    {detail.label}
-                  </h3>
-                  <p className="text-[11px] text-stone-500 leading-normal max-w-[180px] mx-auto">
-                    {detail.description}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        <div className="grid gap-6 md:grid-cols-2 max-w-3xl mx-auto">
+          {/* Card A: Individual */}
+          <button
+            type="button"
+            onClick={() => handleCategorySelect("individual")}
+            className={`group relative flex flex-col items-center text-center p-8 bg-white border rounded-2xl cursor-pointer select-none transition-all duration-300 hover:border-brand hover:shadow-md ${
+              data.business_type === "individual"
+                ? "border-2 border-brand bg-brand/5 ring-1 ring-brand"
+                : "border-stone-200 shadow-sm"
+            }`}
+          >
+            {data.business_type === "individual" && (
+              <span className="absolute top-4 right-4 bg-brand text-white rounded-full p-1 flex items-center justify-center w-5 h-5 shadow">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </span>
+            )}
+            <div className="w-16 h-16 rounded-full bg-stone-50 group-hover:bg-brand/10 flex items-center justify-center border border-stone-100/50 shadow-inner mb-4 transition-colors">
+              <svg className="w-8 h-8 text-stone-400 group-hover:text-brand transition-colors" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-stone-900 leading-tight">
+              Just me
+            </h3>
+            <p className="text-sm text-stone-500 mt-2 leading-relaxed">
+              Freelancer, professional, student, or anyone who wants a personal digital card with their own contact details, portfolio, and social links.
+            </p>
+            <p className="text-xs text-stone-400 mt-4 font-medium italic">
+              e.g. Photographer · Consultant · Job seeker · Artist · Developer
+            </p>
+          </button>
 
-        <div className="text-center mt-8">
+          {/* Card B: Business */}
           <button
             type="button"
             onClick={() => handleCategorySelect("general")}
-            className="text-xs text-stone-400 hover:text-stone-700 underline font-medium cursor-pointer"
+            className={`group relative flex flex-col items-center text-center p-8 bg-white border rounded-2xl cursor-pointer select-none transition-all duration-300 hover:border-brand hover:shadow-md ${
+              data.business_type !== "individual" && data.business_type !== ""
+                ? "border-2 border-brand bg-brand/5 ring-1 ring-brand"
+                : "border-stone-200 shadow-sm"
+            }`}
           >
-            Skip — General business
+            {data.business_type !== "individual" && data.business_type !== "" && (
+              <span className="absolute top-4 right-4 bg-brand text-white rounded-full p-1 flex items-center justify-center w-5 h-5 shadow">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </span>
+            )}
+            <div className="w-16 h-16 rounded-full bg-stone-50 group-hover:bg-brand/10 flex items-center justify-center border border-stone-100/50 shadow-inner mb-4 transition-colors">
+              <svg className="w-8 h-8 text-stone-400 group-hover:text-brand transition-colors" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.015a2.992 2.992 0 002.25 1.015c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72M6.75 18h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .414.336.75.75.75z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-stone-900 leading-tight">
+              My business
+            </h3>
+            <p className="text-sm text-stone-500 mt-2 leading-relaxed">
+              A shop, restaurant, clinic, hotel, salon, or any business that wants a digital profile customers can scan to find their menu, services, location, and contact.
+            </p>
+            <p className="text-xs text-stone-400 mt-4 font-medium italic">
+              e.g. Restaurant · Hotel · Salon · Clinic · Retail shop · Café
+            </p>
           </button>
+        </div>
+
+        <div className="text-center mt-10">
+          <p className="text-xs text-stone-400 font-medium">
+            Not sure? Pick either — you can adjust everything in the next step.
+          </p>
         </div>
       </main>
     );
@@ -861,13 +930,13 @@ export default function CardForm({
             <h2 className="text-xl font-bold text-stone-900 border-b border-stone-100 pb-3">The basics</h2>
             
             <div className="space-y-4">
-              <Field label="Business name" required>
+              <Field label="Your name or business name" required>
                 <input
                   required
                   autoFocus
                   value={data.business_name}
                   onChange={(e) => update("business_name", e.target.value)}
-                  placeholder="e.g. The Himalayan Bistro"
+                  placeholder="e.g. John Doe / Himalayan Bistro"
                   className="input text-lg font-bold"
                 />
               </Field>
@@ -876,7 +945,7 @@ export default function CardForm({
                 <input
                   value={data.tagline || ""}
                   onChange={(e) => update("tagline", e.target.value)}
-                  placeholder="e.g. Taste the authentic Himalayan spice"
+                  placeholder="e.g. Freelance designer · Full-stack developer · Café owner"
                   className="input"
                 />
               </Field>
@@ -955,6 +1024,38 @@ export default function CardForm({
                 <span>👤 Profile (About Page) Content</span>
                 <span className="text-[9px] font-bold text-stone-400 uppercase">Step 3 of 5</span>
               </h3>
+
+              {/* Optional Business Type Refinement Chips */}
+              {isWizard && data.business_type !== "individual" && (
+                <div className="border-b border-stone-100 pb-5 space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-stone-800">What best describes your business? (optional)</label>
+                    <p className="text-[11px] text-stone-500">Helps us suggest the right sections — skip if unsure.</p>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                    {Object.entries(BUSINESS_TYPE_DEFAULTS)
+                      .filter(([key]) => key !== "individual" && key !== "general")
+                      .map(([key, detail]) => {
+                        const isSelected = data.business_type === key;
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => handleRefinementSelect(key)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[13px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                              isSelected
+                                ? "bg-brand text-white border-brand shadow-sm"
+                                : "bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200"
+                            }`}
+                          >
+                            <span>{detail.emoji}</span>
+                            <span>{detail.label.split(" / ")[0]}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
 
               {/* About & Bio Description */}
               <div className="space-y-4" onFocusCapture={() => triggerTabFocus("basics")}>
@@ -3850,6 +3951,19 @@ export default function CardForm({
           </div>
         </div>
       )}
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2"
+          >
+            <span>⚡</span> {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </form>
   );

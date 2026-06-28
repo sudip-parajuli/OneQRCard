@@ -37,7 +37,7 @@ export default async function HomePage() {
           <span className="text-brand">Your customers have one phone.</span>
         </h1>
         <p className="text-stone-500 mt-6 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
-          {SITE.name} replaces your separate printed QR codes for contact details, WhatsApp, Google reviews, social media, menu, and more — with a single scannable, mobile-optimized profile for your business.
+          Whether you&apos;re a freelancer sharing your portfolio or a restaurant showing your menu — one QR code puts everything in your customers&apos; and contacts&apos; hands instantly.
         </p>
         
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
@@ -56,7 +56,7 @@ export default async function HomePage() {
         </div>
 
         <p className="text-xs text-stone-400 mt-5 font-medium tracking-wide">
-          Used by restaurants, hotels, salons &amp; consultancies across Nepal
+          Used by freelancers, restaurants, hotels &amp; salons across Nepal
         </p>
       </section>
 

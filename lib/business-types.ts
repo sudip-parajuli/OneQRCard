@@ -114,6 +114,13 @@ export const BUSINESS_TYPE_DEFAULTS: Record<string, BusinessTypeDetail> = {
     defaultSections: ["hero", "contact", "socials"],
     suggestedColor: "#085041",
   },
+  individual: {
+    label: "Personal / Individual",
+    emoji: "👤",
+    description: "Personal digital card for professionals and freelancers",
+    defaultSections: ["hero", "contact", "socials", "gallery", "services"],
+    suggestedColor: "#2c3e50",
+  },
 };
 
 export const DEFAULT_TITLES: Record<SectionType, string> = {

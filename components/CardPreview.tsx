@@ -1761,13 +1761,15 @@ export default function CardPreview({ data, onSaveContact, onDownloadCard, activ
     { id: "profile", label: "About", emoji: "👤" }
   ];
 
+  const isIndividualCard = data.business_type === "individual";
+
   if (hasSection("menu")) tabs.push({ id: "menu", label: "Menu", emoji: "🍽️" });
-  if (hasSection("services") || hasSection("courses")) tabs.push({ id: "services", label: "Services", emoji: "✂️" });
-  if (hasSection("gallery")) tabs.push({ id: "gallery", label: "Gallery", emoji: "📷" });
+  if (hasSection("services") || hasSection("courses")) tabs.push({ id: "services", label: isIndividualCard ? "Offerings" : "Services", emoji: isIndividualCard ? "💼" : "✂️" });
+  if (hasSection("gallery")) tabs.push({ id: "gallery", label: isIndividualCard ? "Portfolio" : "Gallery", emoji: "📷" });
   if (hasSection("featured_products") || hasSection("pricing_table")) tabs.push({ id: "products", label: "Products", emoji: "🛍️" });
   if (hasSection("wifi")) tabs.push({ id: "wifi", label: "WiFi", emoji: "📶" });
   if (hasSection("location") || hasSection("hours")) tabs.push({ id: "location", label: "Location", emoji: "📍" });
-  if (hasSection("booking") || hasSection("lead_capture")) tabs.push({ id: "booking", label: "Book", emoji: "📅" });
+  if (hasSection("booking") || hasSection("lead_capture")) tabs.push({ id: "booking", label: isIndividualCard ? "Hire Me" : "Book", emoji: "📅" });
   tabs.push({ id: "share", label: "Share", emoji: "🔗" });
 
   const getLandingTab = () => {

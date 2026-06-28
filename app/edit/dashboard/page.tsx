@@ -234,9 +234,18 @@ export default async function DashboardPage() {
                       <div className="flex flex-col justify-between border border-stone-200/80 rounded-2xl p-5 hover:shadow-md transition-all duration-200 bg-stone-50/20">
                         <div>
                           <div className="flex justify-between items-center mb-3">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-brand bg-brand-light px-2 py-0.5 rounded-md">
-                              Primary Card
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-brand bg-brand-light px-2 py-0.5 rounded-md">
+                                Primary Card
+                              </span>
+                              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                                primaryCard.business_type === "individual"
+                                  ? "text-violet-700 bg-violet-50"
+                                  : "text-stone-600 bg-stone-100"
+                              }`}>
+                                {primaryCard.business_type === "individual" ? "👤 Personal" : "🏢 Business"}
+                              </span>
+                            </div>
                             <span className="text-[10px] text-stone-400 font-mono">
                               {primaryCard.slug}.{baseDomain}
                             </span>

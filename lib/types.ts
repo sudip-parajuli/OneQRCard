@@ -53,16 +53,18 @@ export interface CardData {
   section_order?: string[] | null;
   qr_customization?: {
     dotStyle?: "square" | "rounded" | "dots" | "waves" | "teardrops";
-    cornerStyle?: "square" | "rounded" | "custom_frame";
+    cornerStyle?: "square" | "rounded" | "custom_frame" | "star_tips" | "shield";
     logoEnabled?: boolean;
     centerLogoType?: "standard" | "pixelated";
-    colorStyle?: "solid" | "gradient" | "spotlight";
+    colorStyle?: "solid" | "gradient" | "spotlight" | "duotone" | "inverse";
     gradientColor1?: string;
     gradientColor2?: string;
     spotlightColor?: string;
+    duotoneColor1?: string;
+    duotoneColor2?: string;
     custom_cta_frame?: string;
-    bg_texture?: "none" | "wood" | "geometric" | "marble" | "linen" | null;
-    threeDStyle?: "none" | "raised" | "embossed" | null;
+    bg_texture?: "none" | "wood" | "geometric" | "marble" | "linen" | "dots" | "circuit" | null;
+    threeDStyle?: "none" | "raised" | "embossed" | "layered" | "chiseled" | "floating" | null;
     cta_style?: "default" | "arrow" | "hand" | "star" | null;
   } | null;
   design_settings?: {
@@ -74,12 +76,13 @@ export interface CardData {
     animation?: "none" | "float" | "fade" | "pulse" | null;
     business_card?: {
       theme?: "classic" | "modern_dark" | "minimal_light" | "luxury_gold" | "neon_glow" | "organic_wood" | null;
-      bg_texture?: "none" | "metal" | "wood" | "geometric" | "marble" | "linen" | null;
+      bg_texture?: "none" | "metal" | "wood" | "geometric" | "marble" | "linen" | "dots" | "diagonal" | null;
       show_logo?: boolean;
       watermark_logo?: boolean;
       watermark_opacity?: number;
       border_radius?: "none" | "small" | "medium" | "large";
       border_glow?: boolean;
+      custom_fields?: { label: string; value: string }[];
     } | null;
     about_section_order?: string[] | null;
     show_wallet?: boolean;
@@ -87,9 +90,17 @@ export interface CardData {
       wifi_title?: string | null;
       wifi_text1?: string | null;
       wifi_text2?: string | null;
-      theme?: "dark_matte" | "light_elegant" | "brand_accent" | null;
-      bg_texture?: "none" | "geometric" | "linen" | "wood" | "marble" | null;
+      theme?: "dark_matte" | "light_elegant" | "brand_accent" | "forest_dark" | "ocean_dark" | "warm_sunset" | "rose_gold" | "slate_blue" | null;
+      bg_texture?: "none" | "geometric" | "linen" | "wood" | "marble" | "hexagon" | "noise" | null;
       show_logo?: boolean;
+      business_flyer_title?: string | null;
+      business_flyer_subtitle?: string | null;
+      business_flyer_subtitle_l1?: string | null;
+      business_flyer_subtitle_l2?: string | null;
+      show_contact?: boolean;
+      show_socials?: boolean;
+      show_whatsapp?: boolean;
+      show_menu?: boolean;
     } | null;
   } | null;
 

@@ -39,6 +39,7 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
   const bcWatermarkOpacity = bcSettings.watermark_opacity ?? 0.06;
   const bcBorderRadius = bcSettings.border_radius || "none";
   const bcBorderGlow = bcSettings.border_glow ?? false;
+  const bcCustomFields = bcSettings.custom_fields || [];
   const layout = bcTheme; // fallback mapping
 
   // 1. Generate QR code (embed logo for Pro & Business plans)
@@ -187,64 +188,6 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
     ctx.restore();
   }
 
-  // Draw background texture overlay if configured
-  if (bcBgTexture && bcBgTexture !== "none") {
-    ctx.save();
-    ctx.globalAlpha = 0.12; // light overlay texture
-    if (bcBgTexture === "metal") {
-      ctx.strokeStyle = "rgba(255,255,255,0.4)";
-      ctx.lineWidth = 0.5;
-      for (let i = 0; i < canvas.width + canvas.height; i += 8) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i - canvas.height, canvas.height);
-        ctx.stroke();
-      }
-    } else if (bcBgTexture === "wood") {
-      ctx.strokeStyle = "rgba(0,0,0,0.3)";
-      ctx.lineWidth = 2;
-      for (let i = -100; i < canvas.width; i += 30) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.bezierCurveTo(i + 20, canvas.height * 0.3, i - 30, canvas.height * 0.7, i + 10, canvas.height);
-        ctx.stroke();
-      }
-    } else if (bcBgTexture === "geometric") {
-      ctx.strokeStyle = "rgba(255,255,255,0.15)";
-      ctx.lineWidth = 0.5;
-      for (let r = 50; r < canvas.width; r += 60) {
-        ctx.beginPath();
-        ctx.arc(canvas.width / 2, canvas.height / 2, r, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    } else if (bcBgTexture === "marble") {
-      ctx.strokeStyle = "rgba(255,255,255,0.25)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, 100);
-      ctx.bezierCurveTo(200, 150, 400, 50, 1050, 450);
-      ctx.moveTo(300, 0);
-      ctx.bezierCurveTo(500, 300, 700, 400, 1050, 100);
-      ctx.stroke();
-    } else if (bcBgTexture === "linen") {
-      ctx.strokeStyle = "rgba(255,255,255,0.18)";
-      ctx.lineWidth = 0.5;
-      for (let i = 0; i < canvas.width; i += 12) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, canvas.height);
-        ctx.stroke();
-      }
-      for (let j = 0; j < canvas.height; j += 12) {
-        ctx.beginPath();
-        ctx.moveTo(0, j);
-        ctx.lineTo(canvas.width, j);
-        ctx.stroke();
-      }
-    }
-    ctx.restore();
-  }
-
   // 8. Draw background styling overlays
   if (bcTheme === "modern_dark") {
     ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
@@ -284,6 +227,66 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
     ctx.fill();
   }
 
+  // Draw background texture overlay AFTER theme overlays so it's visible
+  if (bcBgTexture && bcBgTexture !== "none") {
+    const isLightBC = bcTheme === "minimal_light";
+    ctx.save();
+    ctx.globalAlpha = 0.22;
+    if (bcBgTexture === "metal") {
+      ctx.strokeStyle = isLightBC ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.4)";
+      ctx.lineWidth = 0.6;
+      for (let i = 0; i < canvas.width + canvas.height; i += 8) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i - canvas.height, canvas.height); ctx.stroke();
+      }
+    } else if (bcBgTexture === "wood") {
+      ctx.strokeStyle = isLightBC ? "rgba(101,63,30,0.5)" : "rgba(255,255,255,0.3)";
+      ctx.lineWidth = 2.5;
+      for (let i = -100; i < canvas.width; i += 30) {
+        ctx.beginPath(); ctx.moveTo(i, 0);
+        ctx.bezierCurveTo(i + 20, canvas.height * 0.3, i - 30, canvas.height * 0.7, i + 10, canvas.height);
+        ctx.stroke();
+      }
+    } else if (bcBgTexture === "geometric") {
+      ctx.strokeStyle = isLightBC ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.25)";
+      ctx.lineWidth = 0.8;
+      for (let r = 50; r < canvas.width * 1.1; r += 60) {
+        ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height / 2, r, 0, Math.PI * 2); ctx.stroke();
+      }
+    } else if (bcBgTexture === "marble") {
+      ctx.strokeStyle = isLightBC ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.3)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 100); ctx.bezierCurveTo(200, 150, 400, 50, 1050, 450);
+      ctx.moveTo(300, 0); ctx.bezierCurveTo(500, 300, 700, 400, 1050, 100);
+      ctx.moveTo(100, 300); ctx.bezierCurveTo(350, 250, 600, 450, 1050, 200);
+      ctx.stroke();
+    } else if (bcBgTexture === "linen") {
+      ctx.strokeStyle = isLightBC ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.22)";
+      ctx.lineWidth = 0.6;
+      for (let i = 0; i < canvas.width; i += 12) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+      }
+      for (let j = 0; j < canvas.height; j += 12) {
+        ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
+      }
+    } else if (bcBgTexture === "dots") {
+      ctx.fillStyle = isLightBC ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.25)";
+      ctx.globalAlpha = 0.3;
+      for (let x = 25; x < canvas.width; x += 25) {
+        for (let y = 25; y < canvas.height; y += 25) {
+          ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    } else if (bcBgTexture === "diagonal") {
+      ctx.strokeStyle = isLightBC ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.18)";
+      ctx.lineWidth = 1;
+      for (let i = -canvas.height; i < canvas.width * 2; i += 20) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + canvas.height, canvas.height); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
   // 9. Draw border
   if (showBorder) {
     if (bcBorderGlow || bcTheme === "neon_glow") {
@@ -293,7 +296,7 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 14;
     ctx.strokeRect(16, 16, canvas.width - 32, canvas.height - 32);
-    ctx.shadowBlur = 0; // reset shadow glow
+    ctx.shadowBlur = 0;
   }
 
   // 10. Draw Left Column Text
@@ -422,6 +425,23 @@ export async function generateBusinessCard(data: CardData): Promise<string> {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("SCAN TO CONNECT", qrX + qrSize / 2, qrY + qrSize + 28);
+
+  // Draw custom fields if any
+  if (bcCustomFields.length > 0) {
+    let cfY = currentY + 10;
+    ctx.font = "22px sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    bcCustomFields.slice(0, 3).forEach((field: { label: string; value: string }) => {
+      if (!field.label || !field.value) return;
+      ctx.fillStyle = mutedTextColor;
+      ctx.fillText(`${field.label}: `, startX, cfY);
+      const labelW = ctx.measureText(`${field.label}: `).width;
+      ctx.fillStyle = textColor;
+      ctx.fillText(field.value, startX + labelW, cfY);
+      cfY += 40;
+    });
+  }
 
   if (bcBorderRadius !== "none") {
     ctx.restore();
@@ -674,37 +694,28 @@ function drawSocialFooterIcons(ctx: CanvasRenderingContext2D, cx: number, cy: nu
 function drawFlyerTexture(ctx: CanvasRenderingContext2D, width: number, height: number, texture: string, isLight: boolean) {
   ctx.save();
   if (texture === "geometric") {
-    ctx.fillStyle = isLight ? "rgba(0, 0, 0, 0.04)" : "rgba(255, 255, 255, 0.04)";
+    ctx.fillStyle = isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.09)";
     const dotSpacing = 30;
     for (let x = 40; x < width - 40; x += dotSpacing) {
       for (let y = 40; y < height - 40; y += dotSpacing) {
-        ctx.beginPath();
-        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(x, y, 1.8, 0, Math.PI * 2); ctx.fill();
       }
     }
   } else if (texture === "linen") {
-    ctx.strokeStyle = isLight ? "rgba(0, 0, 0, 0.02)" : "rgba(255, 255, 255, 0.025)";
+    ctx.strokeStyle = isLight ? "rgba(0, 0, 0, 0.06)" : "rgba(255, 255, 255, 0.08)";
     ctx.lineWidth = 1;
     const spacing = 12;
     for (let x = 40; x < width - 40; x += spacing) {
-      ctx.beginPath();
-      ctx.moveTo(x, 40);
-      ctx.lineTo(x, height - 40);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, 40); ctx.lineTo(x, height - 40); ctx.stroke();
     }
     for (let y = 40; y < height - 40; y += spacing) {
-      ctx.beginPath();
-      ctx.moveTo(40, y);
-      ctx.lineTo(width - 40, y);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(width - 40, y); ctx.stroke();
     }
   } else if (texture === "wood") {
-    ctx.strokeStyle = isLight ? "rgba(0, 0, 0, 0.025)" : "rgba(255, 255, 255, 0.02)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = isLight ? "rgba(120, 80, 40, 0.08)" : "rgba(255, 255, 255, 0.06)";
+    ctx.lineWidth = 2.5;
     for (let y = 50; y < height - 45; y += 18) {
-      ctx.beginPath();
-      ctx.moveTo(40, y);
+      ctx.beginPath(); ctx.moveTo(40, y);
       ctx.bezierCurveTo(
         width * 0.25, y - 5 + Math.sin(y) * 4,
         width * 0.75, y + 5 - Math.cos(y) * 4,
@@ -713,21 +724,34 @@ function drawFlyerTexture(ctx: CanvasRenderingContext2D, width: number, height: 
       ctx.stroke();
     }
   } else if (texture === "marble") {
-    ctx.strokeStyle = isLight ? "rgba(0, 0, 0, 0.025)" : "rgba(255, 255, 255, 0.035)";
+    ctx.strokeStyle = isLight ? "rgba(0, 0, 0, 0.06)" : "rgba(255, 255, 255, 0.08)";
     ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(100, 100);
-    ctx.bezierCurveTo(300, 400, 400, 800, 900, 1300);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(800, 100);
-    ctx.bezierCurveTo(700, 500, 300, 900, 200, 1300);
-    ctx.stroke();
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(400, 200);
-    ctx.bezierCurveTo(500, 400, 250, 700, 500, 1100);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(100, 100); ctx.bezierCurveTo(300, 400, 400, 800, 900, 1300); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(800, 100); ctx.bezierCurveTo(700, 500, 300, 900, 200, 1300); ctx.stroke();
+  } else if (texture === "hexagon") {
+    ctx.strokeStyle = isLight ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.07)";
+    ctx.lineWidth = 1;
+    const size = 20;
+    const h = size * Math.sqrt(3);
+    for (let y = 40; y < height; y += h) {
+      for (let x = 40; x < width; x += size * 3) {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i;
+          const xx = x + size * Math.cos(angle);
+          const yy = y + size * Math.sin(angle);
+          if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+        }
+        ctx.closePath(); ctx.stroke();
+      }
+    }
+  } else if (texture === "noise") {
+    ctx.fillStyle = isLight ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.05)";
+    for (let i = 0; i < 2000; i++) {
+      const rx = 40 + Math.random() * (width - 80);
+      const ry = 40 + Math.random() * (height - 80);
+      ctx.fillRect(rx, ry, 1.5, 1.5);
+    }
   }
   ctx.restore();
 }
@@ -800,9 +824,10 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     throw new Error("Could not get canvas 2D context");
   }
 
-  const flyerTheme = data.design_settings?.stand_flyer?.theme || "dark_matte";
-  const flyerTexture = data.design_settings?.stand_flyer?.bg_texture || "none";
-  const showLogo = data.design_settings?.stand_flyer?.show_logo !== false;
+  const sfSettings = data.design_settings?.stand_flyer || {};
+  const flyerTheme = sfSettings.theme || "dark_matte";
+  const flyerTexture = sfSettings.bg_texture || "none";
+  const showLogo = sfSettings.show_logo !== false;
 
   let bgColor = "#1e2025";
   let titleColor = "#ffffff";
@@ -825,6 +850,41 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     isLightTheme = false;
     outerBorderColor = "#ffffff";
     innerBorderColor = "rgba(255, 255, 255, 0.15)";
+  } else if (flyerTheme === "forest_dark") {
+    bgColor = "#064e3b";
+    titleColor = "#ffffff";
+    subtitleColor = "#34d399";
+    isLightTheme = false;
+    outerBorderColor = "#34d399";
+    innerBorderColor = "rgba(255, 255, 255, 0.1)";
+  } else if (flyerTheme === "ocean_dark") {
+    bgColor = "#0f172a";
+    titleColor = "#ffffff";
+    subtitleColor = "#38bdf8";
+    isLightTheme = false;
+    outerBorderColor = brandColor;
+    innerBorderColor = "rgba(255, 255, 255, 0.08)";
+  } else if (flyerTheme === "warm_sunset") {
+    bgColor = "#fef3c7";
+    titleColor = "#78350f";
+    subtitleColor = "#d97706";
+    isLightTheme = true;
+    outerBorderColor = "#78350f";
+    innerBorderColor = "rgba(120, 53, 15, 0.1)";
+  } else if (flyerTheme === "rose_gold") {
+    bgColor = "#fff1f2";
+    titleColor = "#881337";
+    subtitleColor = "#be185d";
+    isLightTheme = true;
+    outerBorderColor = "#db2777";
+    innerBorderColor = "rgba(136, 19, 55, 0.08)";
+  } else if (flyerTheme === "slate_blue") {
+    bgColor = "#334155";
+    titleColor = "#ffffff";
+    subtitleColor = "#38bdf8";
+    isLightTheme = false;
+    outerBorderColor = "#ffffff";
+    innerBorderColor = "rgba(255, 255, 255, 0.12)";
   }
 
   // Draw background
@@ -867,27 +927,36 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     currentY += logoSize + 25;
   }
 
-  // Business Name
+  // Business Name / Title
   ctx.fillStyle = titleColor;
   ctx.font = "bold 44px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.fillText(data.business_name || "Our Business", canvas.width / 2, currentY);
+  const flyerTitle = sfSettings.business_flyer_title || data.business_name || "Our Business";
+  ctx.fillText(flyerTitle, canvas.width / 2, currentY);
   currentY += 65;
 
-  // Scan Connect Explore text
+  // Scan Connect Explore text / Subtitle
   ctx.fillStyle = subtitleColor;
   ctx.font = "bold 26px sans-serif";
-  ctx.fillText("SCAN • CONNECT • EXPLORE", canvas.width / 2, currentY);
+  const flyerSubtitle = sfSettings.business_flyer_subtitle || "SCAN • CONNECT • EXPLORE";
+  ctx.fillText(flyerSubtitle.toUpperCase(), canvas.width / 2, currentY);
   currentY += 65;
 
-  // Build active bullet items dynamically based on user sections
+  // Build active bullet items dynamically based on user sections and toggles
   const listItems: { type: string; title: string; desc: string }[] = [];
+  
+  const showMenu = sfSettings.show_menu !== false;
+  const showLocation = sfSettings.show_contact !== false; // contact maps to location/hours/general contact
+  const showWhatsapp = sfSettings.show_whatsapp !== false;
+  const showSocials = sfSettings.show_socials !== false;
+  const showContact = sfSettings.show_contact !== false;
+
   const hasMenu = data.sections?.some((s: any) => s.type === "menu" && s.enabled !== false);
   const hasServices = data.sections?.some((s: any) => s.type === "services" && s.enabled !== false);
   const hasCourses = data.sections?.some((s: any) => s.type === "courses" && s.enabled !== false);
 
-  if (hasMenu || hasServices || hasCourses) {
+  if (showMenu && (hasMenu || hasServices || hasCourses)) {
     let title = "SERVICES";
     let desc = "View all services";
     if (hasMenu && (hasServices || hasCourses)) {
@@ -906,7 +975,7 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
   const hasLocation = data.sections?.some((s: any) => s.type === "location" && s.enabled !== false);
   const hasHours = data.sections?.some((s: any) => s.type === "hours" && s.enabled !== false);
 
-  if (hasLocation || hasHours) {
+  if (showLocation && (hasLocation || hasHours)) {
     let title = "LOCATION";
     let desc = "Find us easily";
     if (hasLocation && hasHours) {
@@ -919,19 +988,19 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     listItems.push({ type: "location", title, desc });
   }
 
-  if (data.whatsapp) {
+  if (showWhatsapp && data.whatsapp) {
     listItems.push({ type: "whatsapp", title: "WHATSAPP CHAT", desc: "Chat with us instantly" });
   }
   const socialSection = data.sections?.find((s: any) => s.type === "socials");
   const socialsEnabled = socialSection ? socialSection.enabled !== false : true;
   const socialKeys = ["facebook", "instagram", "tiktok", "youtube", "viber", "x_twitter", "threads", "linkedin", "telegram"];
   const hasSocials = socialsEnabled && socialKeys.some(key => !!(data as any)[key]);
-  if (hasSocials) {
+  if (showSocials && hasSocials) {
     listItems.push({ type: "socials", title: "SOCIAL MEDIA", desc: "Follow us on all platforms" });
   }
   const contactSection = data.sections?.find((s: any) => s.type === "contact");
   const contactEnabled = contactSection ? contactSection.enabled !== false : true;
-  if (contactEnabled && (data.phone || data.email)) {
+  if (showContact && contactEnabled && (data.phone || data.email)) {
     listItems.push({ type: "contact", title: "CONTACT US", desc: "Call, Email & More" });
   }
 
@@ -972,10 +1041,12 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     ctx.font = "bold 20px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText("Scan to Explore", leftX + cardW / 2, cardsY + 104);
+    const subL1 = sfSettings.business_flyer_subtitle_l1 || "Scan to Explore";
+    ctx.fillText(subL1, leftX + cardW / 2, cardsY + 104);
     ctx.font = "bold 15px sans-serif";
     ctx.fillStyle = "#64748b";
-    ctx.fillText("Our Services & More", leftX + cardW / 2, cardsY + 130);
+    const subL2 = sfSettings.business_flyer_subtitle_l2 || "Our Services & More";
+    ctx.fillText(subL2, leftX + cardW / 2, cardsY + 130);
 
     // Left QR code
     if (loadedImages.qr) {
@@ -1108,7 +1179,10 @@ export async function generateQRFlyer(data: CardData): Promise<string> {
     ctx.font = "bold 22px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText("Scan to Explore Our Services & More", leftX + cardW / 2, cardsY + 120);
+    const subCombined = sfSettings.business_flyer_subtitle_l1
+      ? `${sfSettings.business_flyer_subtitle_l1}${sfSettings.business_flyer_subtitle_l2 ? " " + sfSettings.business_flyer_subtitle_l2 : ""}`
+      : "Scan to Explore Our Services & More";
+    ctx.fillText(subCombined, leftX + cardW / 2, cardsY + 120);
 
     // Large Business QR code
     if (loadedImages.qr) {

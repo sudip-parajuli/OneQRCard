@@ -1790,6 +1790,8 @@ export default function CardForm({
                               <option value="square">Rigid Squares</option>
                               <option value="rounded">Soft Rounded</option>
                               <option value="custom_frame">Camera Lens Circle (Business)</option>
+                              <option value="star_tips">Pointed Star Tips (Business)</option>
+                              <option value="shield">Classic Shield Frame (Business)</option>
                             </select>
                           </div>
                         </div>
@@ -1828,9 +1830,44 @@ export default function CardForm({
                               <option value="solid">Solid brand color</option>
                               <option value="gradient">High-Contrast Gradient (Business)</option>
                               <option value="spotlight">Corner Spotlighting (Business)</option>
+                              <option value="duotone">Split Duotone (Business)</option>
+                              <option value="inverse">Inverse Brand Background (Business)</option>
                             </select>
                           </div>
                         </div>
+
+                        {data.qr_customization?.colorStyle === "duotone" && (
+                          <div className="grid grid-cols-2 gap-2 p-2.5 bg-stone-50 rounded-xl border border-stone-150 animate-fade-in text-xs">
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-stone-500 uppercase block">Duotone Left</label>
+                              <input
+                                type="color"
+                                value={data.qr_customization?.duotoneColor1 || brandColor}
+                                onChange={(e) => {
+                                  update("qr_customization", {
+                                    ...(data.qr_customization || {}),
+                                    duotoneColor1: e.target.value
+                                  });
+                                }}
+                                className="h-8 w-full rounded border border-stone-250 cursor-pointer p-0.5 bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-stone-500 uppercase block">Duotone Right</label>
+                              <input
+                                type="color"
+                                value={data.qr_customization?.duotoneColor2 || "#10b981"}
+                                onChange={(e) => {
+                                  update("qr_customization", {
+                                    ...(data.qr_customization || {}),
+                                    duotoneColor2: e.target.value
+                                  });
+                                }}
+                                className="h-8 w-full rounded border border-stone-250 cursor-pointer p-0.5 bg-white"
+                              />
+                            </div>
+                          </div>
+                        )}
 
                         {data.qr_customization?.colorStyle === "gradient" && (
                           <div className="grid grid-cols-2 gap-2 p-2.5 bg-stone-50 rounded-xl border border-stone-150 animate-fade-in">
@@ -1889,7 +1926,6 @@ export default function CardForm({
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">QR Background Pattern</label>
                             <select
-                              disabled={data.plan !== "business"}
                               value={data.qr_customization?.bg_texture || "none"}
                               onChange={(e) => {
                                 update("qr_customization", {
@@ -1899,18 +1935,19 @@ export default function CardForm({
                               }}
                               className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
                             >
-                              <option value="none">None (Solid white)</option>
-                              <option value="wood">Earthy Wood {data.plan !== "business" && "🔒"}</option>
-                              <option value="geometric">Geometric Dot-Grid {data.plan !== "business" && "🔒"}</option>
-                              <option value="marble">Marble Veins {data.plan !== "business" && "🔒"}</option>
-                              <option value="linen">Linen Crosshatch {data.plan !== "business" && "🔒"}</option>
+                              <option value="none">None (Solid background)</option>
+                              <option value="wood">Earthy Wood</option>
+                              <option value="geometric">Geometric Circle Grid</option>
+                              <option value="marble">Marble Veins</option>
+                              <option value="linen">Linen Crosshatch</option>
+                              <option value="dots">Modern Dot Matrix (Business)</option>
+                              <option value="circuit">Cyber Circuit (Business)</option>
                             </select>
                           </div>
 
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">3D Depth Effect</label>
                             <select
-                              disabled={data.plan !== "business"}
                               value={data.qr_customization?.threeDStyle || "none"}
                               onChange={(e) => {
                                 update("qr_customization", {
@@ -1921,8 +1958,11 @@ export default function CardForm({
                               className="w-full h-8 rounded border border-stone-250 bg-white px-2 text-xs outline-none text-stone-700 cursor-pointer disabled:bg-stone-50 disabled:text-stone-400"
                             >
                               <option value="none">Flat (2D)</option>
-                              <option value="raised">3D Shadow Raised {data.plan !== "business" && "🔒"}</option>
-                              <option value="embossed">Embossed depth {data.plan !== "business" && "🔒"}</option>
+                              <option value="raised">3D Shadow Raised</option>
+                              <option value="embossed">Embossed depth</option>
+                              <option value="layered">Double Layered Depth (Business)</option>
+                              <option value="chiseled">Chiseled Bevel (Business)</option>
+                              <option value="floating">Floating Soft Glow (Business)</option>
                             </select>
                           </div>
                         </div>
@@ -2063,6 +2103,8 @@ export default function CardForm({
                               <option value="geometric">Geometric Grid</option>
                               <option value="marble">Thin Marble Veins</option>
                               <option value="linen">Linen Crosshatch</option>
+                              <option value="dots">Modern Dot-Grid (Business)</option>
+                              <option value="diagonal">Elegant Diagonal lines (Business)</option>
                             </select>
                           </div>
                         </div>
@@ -2107,7 +2149,7 @@ export default function CardForm({
 
                         {data.design_settings?.business_card?.watermark_logo && (
                           <div className="space-y-1 p-2 bg-stone-50 border border-stone-150 rounded-xl animate-fade-in">
-                            <div className="flex justify-between items-center text-[10px] font-bold text-stone-550">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-stone-555">
                               <span>Watermark Opacity</span>
                               <span>{Math.round((data.design_settings?.business_card?.watermark_opacity || 0.15) * 100)}%</span>
                             </div>
@@ -2175,6 +2217,88 @@ export default function CardForm({
                             </label>
                           </div>
                         </div>
+
+                        {/* Custom Fields Editor section */}
+                        <div className="space-y-2.5 pt-2 border-t border-stone-100">
+                          <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Custom Card Fields (Max 3)</label>
+                            {((data.design_settings?.business_card?.custom_fields || []).length < 3) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const fields = [...(data.design_settings?.business_card?.custom_fields || [])];
+                                  fields.push({ label: "", value: "" });
+                                  update("design_settings", {
+                                    ...(data.design_settings || {}),
+                                    business_card: {
+                                      ...(data.design_settings?.business_card || {}),
+                                      custom_fields: fields
+                                    }
+                                  });
+                                }}
+                                className="text-[10px] text-brand font-bold hover:underline"
+                              >
+                                + Add Field
+                              </button>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            {(data.design_settings?.business_card?.custom_fields || []).map((field, idx) => (
+                              <div key={idx} className="flex gap-2 items-center animate-fade-in">
+                                <input
+                                  type="text"
+                                  placeholder="Label (e.g. Title)"
+                                  value={field.label}
+                                  onChange={(e) => {
+                                    const fields = [...(data.design_settings?.business_card?.custom_fields || [])];
+                                    fields[idx] = { ...fields[idx], label: e.target.value };
+                                    update("design_settings", {
+                                      ...(data.design_settings || {}),
+                                      business_card: {
+                                        ...(data.design_settings?.business_card || {}),
+                                        custom_fields: fields
+                                      }
+                                    });
+                                  }}
+                                  className="w-1/3 h-8 px-2 text-xs rounded border border-stone-250"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Value"
+                                  value={field.value}
+                                  onChange={(e) => {
+                                    const fields = [...(data.design_settings?.business_card?.custom_fields || [])];
+                                    fields[idx] = { ...fields[idx], value: e.target.value };
+                                    update("design_settings", {
+                                      ...(data.design_settings || {}),
+                                      business_card: {
+                                        ...(data.design_settings?.business_card || {}),
+                                        custom_fields: fields
+                                      }
+                                    });
+                                  }}
+                                  className="w-1/2 h-8 px-2 text-xs rounded border border-stone-250"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const fields = (data.design_settings?.business_card?.custom_fields || []).filter((_, i) => i !== idx);
+                                    update("design_settings", {
+                                      ...(data.design_settings || {}),
+                                      business_card: {
+                                        ...(data.design_settings?.business_card || {}),
+                                        custom_fields: fields
+                                      }
+                                    });
+                                  }}
+                                  className="p-1.5 text-stone-400 hover:text-red-500 rounded hover:bg-stone-50"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
 
                       {/* Right: Preview & Download */}
@@ -2222,62 +2346,236 @@ export default function CardForm({
                     <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6 items-start">
                       {/* Left: Inputs */}
                       <div className="space-y-4 text-xs">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">WiFi Section Title</label>
-                          <input
-                            type="text"
-                            value={data.design_settings?.stand_flyer?.wifi_title ?? ""}
-                            onChange={(e) => {
-                              update("design_settings", {
-                                ...(data.design_settings || {}),
-                                stand_flyer: {
-                                  ...(data.design_settings?.stand_flyer || {}),
-                                  wifi_title: e.target.value
-                                }
-                              });
-                            }}
-                            placeholder="Relax & Connect!"
-                            className="input"
-                          />
-                        </div>
+                        {(() => {
+                          const hasWifi = data.sections?.some(s => s.type === "wifi" && s.enabled !== false && s.data?.ssid);
+                          const businessFlyerInputs = (
+                            <div className="space-y-3.5 bg-stone-50/50 p-3 rounded-2xl border border-stone-200">
+                              <h4 className="font-bold text-[11px] text-stone-700 border-b border-stone-200 pb-1.5 flex items-center gap-1">🏢 Business QR Flyer Details</h4>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-stone-500 uppercase block">Flyer Main Title</label>
+                                <input
+                                  type="text"
+                                  value={data.design_settings?.stand_flyer?.business_flyer_title ?? ""}
+                                  onChange={(e) => {
+                                    update("design_settings", {
+                                      ...(data.design_settings || {}),
+                                      stand_flyer: {
+                                        ...(data.design_settings?.stand_flyer || {}),
+                                        business_flyer_title: e.target.value
+                                      }
+                                    });
+                                  }}
+                                  placeholder={data.business_name || "e.g. Our Business"}
+                                  className="w-full h-8 px-2 text-xs rounded border border-stone-250 bg-white"
+                                />
+                              </div>
 
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">WiFi Subtitle Line 1</label>
-                          <input
-                            type="text"
-                            value={data.design_settings?.stand_flyer?.wifi_text1 ?? ""}
-                            onChange={(e) => {
-                              update("design_settings", {
-                                ...(data.design_settings || {}),
-                                stand_flyer: {
-                                  ...(data.design_settings?.stand_flyer || {}),
-                                  wifi_text1: e.target.value
-                                }
-                              });
-                            }}
-                            placeholder="Enjoy free WiFi while"
-                            className="input"
-                          />
-                        </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-stone-500 uppercase block">Main Subtitle Banner</label>
+                                <input
+                                  type="text"
+                                  value={data.design_settings?.stand_flyer?.business_flyer_subtitle ?? ""}
+                                  onChange={(e) => {
+                                    update("design_settings", {
+                                      ...(data.design_settings || {}),
+                                      stand_flyer: {
+                                        ...(data.design_settings?.stand_flyer || {}),
+                                        business_flyer_subtitle: e.target.value
+                                      }
+                                    });
+                                  }}
+                                  placeholder="SCAN • CONNECT • EXPLORE"
+                                  className="w-full h-8 px-2 text-xs rounded border border-stone-250 bg-white"
+                                />
+                              </div>
 
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">WiFi Subtitle Line 2</label>
-                          <input
-                            type="text"
-                            value={data.design_settings?.stand_flyer?.wifi_text2 ?? ""}
-                            onChange={(e) => {
-                              update("design_settings", {
-                                ...(data.design_settings || {}),
-                                stand_flyer: {
-                                  ...(data.design_settings?.stand_flyer || {}),
-                                  wifi_text2: e.target.value
-                                }
-                              });
-                            }}
-                            placeholder="you are at our venue."
-                            className="input"
-                          />
-                        </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-stone-500 uppercase block">Card Subtitle Line 1</label>
+                                  <input
+                                    type="text"
+                                    value={data.design_settings?.stand_flyer?.business_flyer_subtitle_l1 ?? ""}
+                                    onChange={(e) => {
+                                      update("design_settings", {
+                                        ...(data.design_settings || {}),
+                                        stand_flyer: {
+                                          ...(data.design_settings?.stand_flyer || {}),
+                                          business_flyer_subtitle_l1: e.target.value
+                                        }
+                                      });
+                                    }}
+                                    placeholder="Scan to Explore"
+                                    className="w-full h-8 px-2 text-xs rounded border border-stone-250 bg-white"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-stone-500 uppercase block">Card Subtitle Line 2</label>
+                                  <input
+                                    type="text"
+                                    value={data.design_settings?.stand_flyer?.business_flyer_subtitle_l2 ?? ""}
+                                    onChange={(e) => {
+                                      update("design_settings", {
+                                        ...(data.design_settings || {}),
+                                        stand_flyer: {
+                                          ...(data.design_settings?.stand_flyer || {}),
+                                          business_flyer_subtitle_l2: e.target.value
+                                        }
+                                      });
+                                    }}
+                                    placeholder="Our Services & More"
+                                    className="w-full h-8 px-2 text-xs rounded border border-stone-250 bg-white"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="space-y-2 pt-1.5 border-t border-stone-200">
+                                <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">Select Sections to Show Below QR</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={data.design_settings?.stand_flyer?.show_menu !== false}
+                                      onChange={(e) => {
+                                        update("design_settings", {
+                                          ...(data.design_settings || {}),
+                                          stand_flyer: {
+                                            ...(data.design_settings?.stand_flyer || {}),
+                                            show_menu: e.target.checked
+                                          }
+                                        });
+                                      }}
+                                      className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                                    />
+                                    Services/Menu
+                                  </label>
+
+                                  <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={data.design_settings?.stand_flyer?.show_whatsapp !== false}
+                                      onChange={(e) => {
+                                        update("design_settings", {
+                                          ...(data.design_settings || {}),
+                                          stand_flyer: {
+                                            ...(data.design_settings?.stand_flyer || {}),
+                                            show_whatsapp: e.target.checked
+                                          }
+                                        });
+                                      }}
+                                      className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                                    />
+                                    WhatsApp Chat
+                                  </label>
+
+                                  <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={data.design_settings?.stand_flyer?.show_socials !== false}
+                                      onChange={(e) => {
+                                        update("design_settings", {
+                                          ...(data.design_settings || {}),
+                                          stand_flyer: {
+                                            ...(data.design_settings?.stand_flyer || {}),
+                                            show_socials: e.target.checked
+                                          }
+                                        });
+                                      }}
+                                      className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                                    />
+                                    Social Media
+                                  </label>
+
+                                  <label className="flex items-center gap-1.5 text-xs text-stone-600 font-semibold cursor-pointer py-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={data.design_settings?.stand_flyer?.show_contact !== false}
+                                      onChange={(e) => {
+                                        update("design_settings", {
+                                          ...(data.design_settings || {}),
+                                          stand_flyer: {
+                                            ...(data.design_settings?.stand_flyer || {}),
+                                            show_contact: e.target.checked
+                                          }
+                                        });
+                                      }}
+                                      className="rounded border-stone-300 text-brand focus:ring-brand scale-90"
+                                    />
+                                    General Contact
+                                  </label>
+                                </div>
+                              </div>
+                            </div>
+                          );
+
+                          const wifiFlyerInputs = hasWifi ? (
+                            <div className="space-y-3.5 bg-blue-50/20 p-3 rounded-2xl border border-blue-200/50">
+                              <h4 className="font-bold text-[11px] text-blue-700 border-b border-blue-200/40 pb-1.5 flex items-center gap-1">📶 WiFi QR Flyer Details</h4>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-blue-650 uppercase block">WiFi Card Header Title</label>
+                                <input
+                                  type="text"
+                                  value={data.design_settings?.stand_flyer?.wifi_title ?? ""}
+                                  onChange={(e) => {
+                                    update("design_settings", {
+                                      ...(data.design_settings || {}),
+                                      stand_flyer: {
+                                        ...(data.design_settings?.stand_flyer || {}),
+                                        wifi_title: e.target.value
+                                      }
+                                    });
+                                  }}
+                                  placeholder="Relax & Connect!"
+                                  className="w-full h-8 px-2 text-xs rounded border border-blue-200 bg-white"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-blue-650 uppercase block">WiFi Info Description Line 1</label>
+                                <input
+                                  type="text"
+                                  value={data.design_settings?.stand_flyer?.wifi_text1 ?? ""}
+                                  onChange={(e) => {
+                                    update("design_settings", {
+                                      ...(data.design_settings || {}),
+                                      stand_flyer: {
+                                        ...(data.design_settings?.stand_flyer || {}),
+                                        wifi_text1: e.target.value
+                                      }
+                                    });
+                                  }}
+                                  placeholder="Enjoy free WiFi while"
+                                  className="w-full h-8 px-2 text-xs rounded border border-blue-200 bg-white"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-blue-650 uppercase block">WiFi Info Description Line 2</label>
+                                <input
+                                  type="text"
+                                  value={data.design_settings?.stand_flyer?.wifi_text2 ?? ""}
+                                  onChange={(e) => {
+                                    update("design_settings", {
+                                      ...(data.design_settings || {}),
+                                      stand_flyer: {
+                                        ...(data.design_settings?.stand_flyer || {}),
+                                        wifi_text2: e.target.value
+                                      }
+                                    });
+                                  }}
+                                  placeholder="you are at our venue."
+                                  className="w-full h-8 px-2 text-xs rounded border border-blue-200 bg-white"
+                                />
+                              </div>
+                            </div>
+                          ) : null;
+
+                          return (
+                            <div className={hasWifi ? "grid md:grid-cols-2 gap-4" : "space-y-4"}>
+                              {businessFlyerInputs}
+                              {wifiFlyerInputs}
+                            </div>
+                          );
+                        })()}
 
                         {/* Flyer styling controls */}
                         <div className="grid grid-cols-2 gap-3 pt-2 border-t border-stone-100">
@@ -2299,6 +2597,11 @@ export default function CardForm({
                               <option value="dark_matte">Dark Matte (Charcoal)</option>
                               <option value="light_elegant">Light Elegant (Cream)</option>
                               <option value="brand_accent">Brand Accent (Color)</option>
+                              <option value="forest_dark">Forest Emerald (Business)</option>
+                              <option value="ocean_dark">Deep Ocean Blue (Business)</option>
+                              <option value="warm_sunset">Warm Golden Sunset (Business)</option>
+                              <option value="rose_gold">Rose Gold / Blush (Business)</option>
+                              <option value="slate_blue">Steel Slate Blue (Business)</option>
                             </select>
                           </div>
 
@@ -2322,6 +2625,8 @@ export default function CardForm({
                               <option value="linen">Elegant Linen</option>
                               <option value="wood">Wood Grain</option>
                               <option value="marble">Classic Marble</option>
+                              <option value="hexagon">Futuristic Honeycomb (Business)</option>
+                              <option value="noise">Fine Sand Grain Noise (Business)</option>
                             </select>
                           </div>
                         </div>
